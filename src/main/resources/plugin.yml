@@ -1,0 +1,9 @@
+name: RedisTrade
+version: '${version}'
+main: dev.unnm3d.redistrade.RedisTrade
+api-version: '1.19'
+
+libraries:
+  - net.kyori:adventure-text-minimessage:4.17.0
+  - com.zaxxer:HikariCP:5.1.0
+  - org.xerial:sqlite-jdbc:3.46.0.0
