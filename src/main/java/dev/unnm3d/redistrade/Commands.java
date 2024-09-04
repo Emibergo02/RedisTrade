@@ -31,6 +31,7 @@ public class Commands {
                                 plugin.getLogger().severe("Error creating trader: " + throwable);
                                 return null;
                             });
+
                     plugin.getDataCache().createOrder(player, target.getName(), List.of(target.getInventory().getItemInMainHand()), price)
                             .thenAccept(order -> {
                                 plugin.getLogger().info("Order created: " + order);

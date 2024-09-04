@@ -8,11 +8,7 @@ version = '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
-    mavenLocal()
-    maven {
-        name = "papermc-repo"
-        url = "https://repo.papermc.io/repository/maven-public/"
-    }
+    maven { url = "https://repo.papermc.io/repository/maven-public/" }
     maven {
         name = "sonatype"
         url = "https://oss.sonatype.org/content/groups/public/"
@@ -21,13 +17,13 @@ repositories {
 }
 
 dependencies {
-    compileOnly "io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT"
+    implementation "io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT"
     compileOnly 'com.zaxxer:HikariCP:5.1.0'
     compileOnly 'org.projectlombok:lombok:1.18.34'
 
-    implementation 'de.exlll:configlib-yaml:4.5.0'
+    implementation 'de.exlll:configlib-paper:4.5.0'
     implementation 'dev.jorel:commandapi-bukkit-shade:9.5.1'
-
+    implementation 'com.github.alexdev03:drink:1.5.1'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 }
@@ -38,9 +34,10 @@ shadowJar {
 
     relocate 'de.exlll.configlib', 'dev.unnm3d.redistrade.libraries.configlib'
     relocate 'dev.jorel.commandapi', 'dev.unnm3d.redistrade.libraries.commandapi'
+    relocate 'com.jonahseguin.drink', 'dev.unnm3d.redistrade.libraries.drink'
 }
 
-def targetJavaVersion = 17
+def targetJavaVersion = 21
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion

@@ -20,5 +20,11 @@ public class Order {
     private final boolean collected;
     private final boolean completed;
     private final short review;
-    private final double offer;
+    private double offer;
+
+    public void modOffer(double mod) {
+        this.offer += mod;
+    }
+
+
 }

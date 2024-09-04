@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 public class SQLiteDatabase extends DataCache implements Database {
+
     protected final RedisTrade plugin;
     @Getter
     @Setter

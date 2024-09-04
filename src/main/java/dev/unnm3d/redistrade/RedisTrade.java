@@ -1,14 +1,23 @@
 package dev.unnm3d.redistrade;
 
+import com.jonahseguin.drink.CommandService;
+import com.jonahseguin.drink.Drink;
+import de.exlll.configlib.ConfigLib;
 import de.exlll.configlib.ConfigurationException;
 import de.exlll.configlib.YamlConfigurationProperties;
 import de.exlll.configlib.YamlConfigurations;
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPIBukkitConfig;
+import dev.unnm3d.redistrade.commands.OrderProvider;
+import dev.unnm3d.redistrade.commands.TradeCommand;
+import dev.unnm3d.redistrade.commands.TraderProvider;
 import dev.unnm3d.redistrade.data.DataCache;
 import dev.unnm3d.redistrade.data.Database;
 import dev.unnm3d.redistrade.data.MySQLDatabase;
 import dev.unnm3d.redistrade.data.SQLiteDatabase;
+import dev.unnm3d.redistrade.fastinv.FastInvManager;
+import dev.unnm3d.redistrade.objects.Order;
+import dev.unnm3d.redistrade.objects.Trader;
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -38,6 +47,9 @@ public final class RedisTrade extends JavaPlugin {
     public void onEnable() {
         instance = this;
         loadYML();
+        FastInvManager.register(this);
+        loadCommands();
+
         CommandAPI.onEnable();
         dataCache = settings.databaseType.equalsIgnoreCase("mysql") ?
                 new MySQLDatabase(this, settings.mysql) :
@@ -48,12 +60,20 @@ public final class RedisTrade extends JavaPlugin {
         new Commands(this).getTradeListCommand().register();
     }
 
+    private void loadCommands() {
+        CommandService drink = Drink.get(this);
+        drink.bind(Trader.class).toProvider(new TraderProvider(this));
+        drink.bind(Order.class).toProvider(new OrderProvider(this));
+        drink.register(new TradeCommand(this), "trade", "t");
+        drink.registerCommands();
+    }
+
     public void loadYML() throws ConfigurationException {
         Path configFile = new File(getDataFolder(), "config.yml").toPath();
         this.settings = YamlConfigurations.update(
                 configFile,
                 Settings.class,
-                YamlConfigurationProperties.newBuilder()
+                ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
                         .header("RedisChat config")
                         .footer("Authors: Unnm3d")
                         .charset(StandardCharsets.UTF_8)
@@ -63,6 +83,7 @@ public final class RedisTrade extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+        FastInvManager.closeAll(this);
+        ((Database)dataCache).destroy();
     }
 }
