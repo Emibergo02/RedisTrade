@@ -14,16 +14,19 @@ repositories {
         url = "https://oss.sonatype.org/content/groups/public/"
     }
     maven { url 'https://jitpack.io' }
+    maven { url 'https://repo.xenondevs.xyz/releases' }
+
 }
 
 dependencies {
-    implementation "io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT"
+    compileOnly "io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT"
     compileOnly 'com.zaxxer:HikariCP:5.1.0'
     compileOnly 'org.projectlombok:lombok:1.18.34'
+    compileOnly 'io.lettuce:lettuce-core:6.4.0.RELEASE'
 
     implementation 'de.exlll:configlib-paper:4.5.0'
-    implementation 'dev.jorel:commandapi-bukkit-shade:9.5.1'
     implementation 'com.github.alexdev03:drink:1.5.1'
+    implementation 'xyz.xenondevs.invui:invui:1.37'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 }
@@ -35,6 +38,7 @@ shadowJar {
     relocate 'de.exlll.configlib', 'dev.unnm3d.redistrade.libraries.configlib'
     relocate 'dev.jorel.commandapi', 'dev.unnm3d.redistrade.libraries.commandapi'
     relocate 'com.jonahseguin.drink', 'dev.unnm3d.redistrade.libraries.drink'
+    relocate 'xyz.xenondevs.invui', 'dev.unnm3d.redistrade.libraries.invui'
 }
 
 def targetJavaVersion = 21

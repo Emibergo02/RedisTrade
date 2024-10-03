@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -189,9 +190,10 @@ public class SQLiteDatabase extends DataCache implements Database {
                                 Trader.fromPlayer(seller),
                                 traderCache.get(buyerName),
                                 items,
+                                new ArrayList<>(),
                                 false,
                                 false,
-                                (short) 0,
+                                (short)0,
                                 offer
                         )));
                     }
@@ -217,7 +219,7 @@ public class SQLiteDatabase extends DataCache implements Database {
                     WHERE id = ?
                     """)) {
                 statement.setString(1, order.getBuyer().getName());
-                statement.setString(2, serialize(order.getItems().toArray(new ItemStack[0])));
+                statement.setString(2, serialize(order.getItemsSeller().toArray(new ItemStack[0])));
                 statement.setBoolean(3, order.isCompleted());
                 statement.setBoolean(4, order.isCollected());
                 statement.setShort(5, order.getReview());
@@ -249,6 +251,7 @@ public class SQLiteDatabase extends DataCache implements Database {
                                 result.getTimestamp("timestamp").getTime(),
                                 trader,
                                 traderCache.get(result.getString("buyer")),
+                                List.of(deserialize(result.getString("serialized_items"))),
                                 List.of(deserialize(result.getString("serialized_items"))),
                                 result.getBoolean("completed"),
                                 result.getBoolean("collected"),

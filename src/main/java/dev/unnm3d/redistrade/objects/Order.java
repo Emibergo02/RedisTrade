@@ -2,6 +2,7 @@ package dev.unnm3d.redistrade.objects;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import org.bukkit.inventory.ItemStack;
 
@@ -16,7 +17,10 @@ public class Order {
     private final long timestamp;
     private final Trader buyer;
     private final Trader seller;
-    private final List<ItemStack> items;
+    @Setter
+    private List<ItemStack> itemsSeller;
+    @Setter
+    private List<ItemStack> itemsBuyer;
     private final boolean collected;
     private final boolean completed;
     private final short review;

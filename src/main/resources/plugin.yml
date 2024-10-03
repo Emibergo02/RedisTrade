@@ -7,3 +7,4 @@ libraries:
   - net.kyori:adventure-text-minimessage:4.17.0
   - com.zaxxer:HikariCP:5.1.0
   - org.xerial:sqlite-jdbc:3.46.0.0
+  - io.lettuce:lettuce-core:6.4.0.RELEASE
