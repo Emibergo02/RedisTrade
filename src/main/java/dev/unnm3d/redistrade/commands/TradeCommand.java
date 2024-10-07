@@ -12,8 +12,11 @@ public class TradeCommand {
     private final RedisTrade plugin;
 
     @Command(name = "", desc = "Open the emporium")
-    public void openTradeGUI(@Sender Player player, Player target) {
-        plugin.getTradeManager().startTrade(player, target);
+    public void openTradeGUI(@Sender Player player, PlayerListManager.Target targetName) {
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+
+            plugin.getTradeManager().startTrade(player, targetName.playerName());
+        });
     }
 
 }

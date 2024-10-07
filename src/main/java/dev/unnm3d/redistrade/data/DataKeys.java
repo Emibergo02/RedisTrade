@@ -7,8 +7,11 @@ public enum DataKeys {
     UPDATE_TRADE("rtrade:update"),
     UPDATE_MONEY("rtrade:up_money"),
     UPDATE_CONFIRM("rtrade:up_confirm"),
+    NEW_UPDATE_TRADE("rtrade:n_update"),
     UPDATE_ITEM("rtrade:up_item"),
     ORDER_TABLE("rtrade:update"),
+    PLAYERLIST("rtrade:playerlist"),
+    OPEN_WINDOW("rtrade:open_window"),
     ;
 
 

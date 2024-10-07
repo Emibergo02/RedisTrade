@@ -3,9 +3,7 @@ package dev.unnm3d.redistrade;
 import com.jonahseguin.drink.CommandService;
 import com.jonahseguin.drink.Drink;
 import de.exlll.configlib.ConfigurationException;
-import dev.unnm3d.redistrade.commands.OrderProvider;
-import dev.unnm3d.redistrade.commands.TradeCommand;
-import dev.unnm3d.redistrade.commands.TraderProvider;
+import dev.unnm3d.redistrade.commands.*;
 import dev.unnm3d.redistrade.data.*;
 import dev.unnm3d.redistrade.guis.TradeManager;
 import dev.unnm3d.redistrade.objects.Order;
@@ -32,12 +30,15 @@ public final class RedisTrade extends JavaPlugin {
     private TradeManager tradeManager;
     @Getter
     private RedisDataManager redisDataManager;
+    @Getter
+    private PlayerListManager playerListManager;
 
 
     @Override
     public void onEnable() {
         instance = this;
         loadYML();
+        this.playerListManager = new PlayerListManager(this);
         loadCommands();
 
         dataCache = settings.databaseType.equalsIgnoreCase("mysql") ?
@@ -70,6 +71,7 @@ public final class RedisTrade extends JavaPlugin {
 
     private void loadCommands() {
         CommandService drink = Drink.get(this);
+        drink.bind(PlayerListManager.Target.class).toProvider(new TargetProvider(playerListManager));
         drink.register(new TradeCommand(this), "trade", "t");
         drink.registerCommands();
     }

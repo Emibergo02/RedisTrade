@@ -1,8 +1,7 @@
 package dev.unnm3d.redistrade.guis;
 
 import dev.unnm3d.redistrade.Settings;
-import dev.unnm3d.redistrade.guis.maingui.AbstractTradeGui;
-import dev.unnm3d.redistrade.guis.maingui.TraderGui;
+import dev.unnm3d.redistrade.objects.NewTrade;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.entity.Player;
@@ -16,27 +15,26 @@ import xyz.xenondevs.invui.item.impl.SimpleItem;
 @Getter
 @Setter
 public class MoneyButton extends SimpleItem {
-    private AbstractTradeGui gui;
+    private NewTrade trade;
+    private boolean isTrader;
 
-    public MoneyButton(AbstractTradeGui gui) {
+    public MoneyButton(NewTrade trade, boolean isTrader) {
         super(Settings.instance().buttons.get(Settings.ButtonType.MONEY_BUTTON));
-        this.gui = gui;
+        this.trade = trade;
+        this.isTrader = isTrader;
     }
 
     @Override
     public ItemProvider getItemProvider() {
-        if (gui instanceof TraderGui) {
-            return new ItemBuilder(Settings.instance().buttons.get(Settings.ButtonType.MONEY_BUTTON))
-                    .setDisplayName("Current price: " + gui.getTrade().getTraderSideInfo().getProposed());
-        }
+        final OrderInfo orderInfo = isTrader ? trade.getTraderSideInfo() : trade.getTargetSideInfo();
 
         return new ItemBuilder(Settings.instance().buttons.get(Settings.ButtonType.MONEY_BUTTON))
-                .setDisplayName("Current price: " + gui.getTrade().getTargetSideInfo().getProposed());
+                .setDisplayName("Current price: " + orderInfo.getProposed());
     }
 
 
     @Override
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent inventoryClickEvent) {
-        new MoneySelectorGUI(gui, 0, player);
+        new MoneySelectorGUI(trade, isTrader, 0, player);
     }
 }

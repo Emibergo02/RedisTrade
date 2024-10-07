@@ -1,7 +1,6 @@
 package dev.unnm3d.redistrade.guis;
 
-import dev.unnm3d.redistrade.guis.maingui.AbstractTradeGui;
-import dev.unnm3d.redistrade.guis.maingui.TraderGui;
+import dev.unnm3d.redistrade.objects.NewTrade;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -20,14 +19,16 @@ import java.util.List;
 import java.util.Optional;
 
 public class MoneySelectorGUI {
-    private static final DecimalFormat df = new DecimalFormat("0.00");
-    private final AbstractTradeGui abstractTradeGui;
+    private static final DecimalFormat df = new DecimalFormat("#.##");
+    private final NewTrade trade;
+    private final boolean isTrader;
     private final Gui currentGui;
     private final Player viewer;
     private String moneyString;
 
-    public MoneySelectorGUI(@NotNull AbstractTradeGui abstractTradeGui, double currentPrice, Player viewer) {
-        this.abstractTradeGui = abstractTradeGui;
+    public MoneySelectorGUI(NewTrade trade, boolean isTrader, double currentPrice, Player viewer) {
+        this.trade = trade;
+        this.isTrader = isTrader;
         this.currentGui = Gui.empty(3, 1);
         this.moneyString = df.format(currentPrice);
         this.viewer = viewer;
@@ -37,8 +38,7 @@ public class MoneySelectorGUI {
                 .setRenameHandlers(List.of(this::handleRename))
                 .setGui(currentGui)
                 .setTitle("Money editor")
-                .setCloseable(true)
-                .setCloseHandlers(List.of(this::handleClose))
+                .setCloseable(false)
                 .open(viewer);
     }
 
@@ -47,14 +47,10 @@ public class MoneySelectorGUI {
         Optional.ofNullable(currentGui.getItem(2)).ifPresent(Item::notifyWindows);
     }
 
-    private void handleClose() {
-        abstractTradeGui.openWindow(viewer);
-    }
-
     private SimpleItem getMoneyDisplay() {
         return new SimpleItem(
                 new ItemBuilder(Material.GOLD_NUGGET)
-                        .setDisplayName("0")
+                        .setDisplayName(this.moneyString)
                         .addLoreLines("Set your price"));
     }
 
@@ -70,13 +66,13 @@ public class MoneySelectorGUI {
             @Override
             public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
                 try {
-                    if (abstractTradeGui instanceof TraderGui) {
-                        abstractTradeGui.getTrade().setTraderPrice(Double.parseDouble(moneyString));
+                    if (isTrader) {
+                        trade.setAndSendTraderPrice(Double.parseDouble(moneyString));
+                        trade.openWindow(viewer.getName(), true);
                     } else {
-                        abstractTradeGui.getTrade().setTargetPrice(Double.parseDouble(moneyString));
+                        trade.setAndSendTargetPrice(Double.parseDouble(moneyString));
+                        trade.openWindow(viewer.getName(), false);
                     }
-
-                    abstractTradeGui.openWindow(player);
                 } catch (NumberFormatException ignored) {
                 }
             }
