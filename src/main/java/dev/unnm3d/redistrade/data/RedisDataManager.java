@@ -7,7 +7,6 @@ import dev.unnm3d.redistrade.objects.NewTrade;
 import dev.unnm3d.redistrade.redistools.RedisAbstract;
 import io.lettuce.core.RedisClient;
 import lombok.Getter;
-import org.bukkit.Bukkit;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -28,7 +27,6 @@ public class RedisDataManager extends RedisAbstract {
         this.plugin = plugin;
         registerSub(DataKeys.FIELD_UPDATE_TRADE.toString(),
                 DataKeys.PLAYERLIST.toString(),
-                DataKeys.OPEN_WINDOW.toString(),
                 DataKeys.IGNORE_PLAYER_UPDATE.toString(),
                 DataKeys.NAME_UUIDS.toString()
         );
@@ -40,22 +38,18 @@ public class RedisDataManager extends RedisAbstract {
             if (plugin.getPlayerListManager() != null)
                 plugin.getPlayerListManager().updatePlayerList(Arrays.asList(message.split("§")));
 
-        } else if (channel.equals(DataKeys.OPEN_WINDOW.toString())) {
-            String[] split = message.split("§");
-            String name = split[0];
-            boolean traderView = Boolean.parseBoolean(split[1]);
-            UUID tradeUUID = UUID.fromString(split[2]);
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                plugin.getTradeManager().getTrade(tradeUUID)
-                        .ifPresentOrElse(trade -> trade.openWindow(name, traderView),
-                                () -> plugin.getLogger().warning("Trade not found " + tradeUUID));
-            });
         } else if (channel.equals(DataKeys.FIELD_UPDATE_TRADE.toString())) {
             int packetServerId = ByteBuffer.wrap(message.substring(0, 4).getBytes(StandardCharsets.ISO_8859_1)).getInt();
             if (packetServerId == serverId) return;
             UUID tradeUUID = UUID.fromString(message.substring(4, 40));
             TradeUpdateType type = TradeUpdateType.valueOf(message.charAt(40));
             String value = message.substring(41);
+            
+            if (type == TradeUpdateType.TRADE_START) {
+                plugin.getTradeManager().tradeUpdate(
+                        NewTrade.deserializeEmpty(this, value.getBytes(StandardCharsets.ISO_8859_1)));
+                return;
+            }
             plugin.getTradeManager().getTrade(tradeUUID).ifPresent(trade -> {
                 switch (type) {
                     case MONEY_TRADER -> trade.setTraderPrice(Double.parseDouble(value));
@@ -72,10 +66,8 @@ public class RedisDataManager extends RedisAbstract {
                         trade.updateTargetItem(slot, Utils.deserialize(split[1])[0], false);
                     }
                     case CONFIRM_TARGET -> trade.setTargetStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)));
-                    case TRADE_START -> plugin.getTradeManager().tradeUpdate(
-                            NewTrade.deserializeEmpty(this, value.getBytes(StandardCharsets.ISO_8859_1)));
-                    case null -> {
-                    }
+                    case null -> throw new IllegalStateException("Unexpected value: " + type);
+                    default -> throw new IllegalStateException("Unexpected value: " + type);
                 }
             });
         } else if (channel.equals(DataKeys.IGNORE_PLAYER_UPDATE.toString())) {

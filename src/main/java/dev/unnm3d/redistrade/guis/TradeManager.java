@@ -42,6 +42,9 @@ public class TradeManager {
                     //Update trade calls invite message
                     plugin.getRedisDataManager().createTrade(trade);
 
+                    traderPlayer.sendRichMessage(Messages.instance().tradeCreated
+                            .replace("%player%", targetName));
+
                     trade.openWindow(traderPlayer.getName(), true);
                 }, () -> traderPlayer.sendRichMessage(Messages.instance().playerNotFound
                         .replace("%player%", targetName)));
@@ -95,10 +98,6 @@ public class TradeManager {
             return true;
         }
         System.out.println("Target trade is null");
-
-        plugin.getPlayerListManager().getPlayerName(targetUUID)
-                .ifPresent(name -> traderPlayer.sendRichMessage(Messages.instance().targetAlreadyInTrade
-                        .replace("%player%", name)));
         return false;
     }
 
