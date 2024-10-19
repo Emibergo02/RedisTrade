@@ -1,15 +1,15 @@
 package dev.unnm3d.redistrade.data;
 
 public enum DataKeys {
-    UPDATE_TRADE_ITEM("rtrade:up_item"),
-    UPDATE_TRADE_MONEY("rtrade:up_money"),
-    UPDATE_TRADE_CONFIRM("rtrade:up_confirm"),
+
     UPDATE_TRADE("rtrade:update"),
-    UPDATE_MONEY("rtrade:up_money"),
-    UPDATE_CONFIRM("rtrade:up_confirm"),
-    NEW_UPDATE_TRADE("rtrade:n_update"),
-    UPDATE_ITEM("rtrade:up_item"),
-    ORDER_TABLE("rtrade:update"),
+    TRADES("rtrade:trades"),
+    NAME_UUIDS("rtrade:name_uuids"),
+    TRADE_ARCHIVE("rtrade:trade_archive"),
+    PLAYER_TRADES("rtrade:p_trades"),
+    IGNORE_PLAYER_PREFIX("rtrade:ignore_"),
+    IGNORE_PLAYER_UPDATE("rtrade:ignore_up"),
+    FIELD_UPDATE_TRADE("rtrade:f_update"),
     PLAYERLIST("rtrade:playerlist"),
     OPEN_WINDOW("rtrade:open_window"),
     ;

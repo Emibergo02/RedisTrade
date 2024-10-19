@@ -2,9 +2,20 @@ name: RedisTrade
 version: '${version}'
 main: dev.unnm3d.redistrade.RedisTrade
 api-version: '1.19'
-
+depend:
+  - Vault
 libraries:
   - net.kyori:adventure-text-minimessage:4.17.0
   - com.zaxxer:HikariCP:5.1.0
   - org.xerial:sqlite-jdbc:3.46.0.0
   - io.lettuce:lettuce-core:6.4.0.RELEASE
+permissions:
+  redistrade.trade:
+    description: Open the emporium
+    default: true
+  redistrade.setitem:
+    description: Set a gui item from your hand
+    default: op
+  redistrade.getitem:
+    description: Get a gui item to your hand
+    default: op
