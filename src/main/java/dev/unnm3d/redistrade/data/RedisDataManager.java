@@ -1,24 +1,28 @@
 package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.RedisTrade;
+import dev.unnm3d.redistrade.Settings;
 import dev.unnm3d.redistrade.Utils;
 import dev.unnm3d.redistrade.guis.OrderInfo;
 import dev.unnm3d.redistrade.objects.NewTrade;
 import dev.unnm3d.redistrade.redistools.RedisAbstract;
 import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisURI;
 import lombok.Getter;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
-public class RedisDataManager extends RedisAbstract {
+public class RedisDataManager extends RedisAbstract implements IStorageData {
     private static final int serverId = new Random().nextInt();
     private final RedisTrade plugin;
 
@@ -41,10 +45,12 @@ public class RedisDataManager extends RedisAbstract {
         } else if (channel.equals(DataKeys.FIELD_UPDATE_TRADE.toString())) {
             int packetServerId = ByteBuffer.wrap(message.substring(0, 4).getBytes(StandardCharsets.ISO_8859_1)).getInt();
             if (packetServerId == serverId) return;
+
             UUID tradeUUID = UUID.fromString(message.substring(4, 40));
             TradeUpdateType type = TradeUpdateType.valueOf(message.charAt(40));
             String value = message.substring(41);
-            
+
+            if (type == null) throw new IllegalStateException("Unexpected value: " + null);
             if (type == TradeUpdateType.TRADE_START) {
                 plugin.getTradeManager().tradeUpdate(
                         NewTrade.deserializeEmpty(this, value.getBytes(StandardCharsets.ISO_8859_1)));
@@ -66,7 +72,6 @@ public class RedisDataManager extends RedisAbstract {
                         trade.updateTargetItem(slot, Utils.deserialize(split[1])[0], false);
                     }
                     case CONFIRM_TARGET -> trade.setTargetStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)));
-                    case null -> throw new IllegalStateException("Unexpected value: " + type);
                     default -> throw new IllegalStateException("Unexpected value: " + type);
                 }
             });
@@ -90,6 +95,18 @@ public class RedisDataManager extends RedisAbstract {
                 });
     }
 
+    @Override
+    public void updateCachePlayerList(String playerName, UUID playerUUID) {
+        getConnectionAsync(connection ->
+                connection.publish(DataKeys.NAME_UUIDS.toString(), playerName + "§" + playerUUID)
+                        .exceptionally(exception -> {
+                            exception.printStackTrace();
+                            plugin.getLogger().warning("Error when publishing nameUUIDs");
+                            return null;
+                        }));
+    }
+
+
     public void publishPlayerList(List<String> playerList) {
         getConnectionAsync(connection -> connection.publish(DataKeys.PLAYERLIST.toString(),
                         String.join("§", playerList))
@@ -101,64 +118,44 @@ public class RedisDataManager extends RedisAbstract {
                 }));
     }
 
-    public void updateOfflinePlayerList(String playerName, UUID playerUUID) {
-        getConnectionPipeline(connection -> {
-            connection.hset(DataKeys.NAME_UUIDS.toString(), playerName, playerUUID.toString())
-                    .exceptionally(exception -> {
-                        exception.printStackTrace();
-                        plugin.getLogger().warning("Error when publishing nameUUIDs");
-                        return null;
-                    });
-            return connection.publish(DataKeys.NAME_UUIDS.toString(), playerName + "§" + playerUUID)
-                    .exceptionally(exception -> {
-                        exception.printStackTrace();
-                        plugin.getLogger().warning("Error when publishing nameUUIDs");
-                        return null;
-                    });
-        });
+    @Override
+    public void updateStoragePlayerList(String playerName, UUID playerUUID) {
+        getConnectionAsync(connection ->
+                connection.hset(DataKeys.NAME_UUIDS.toString(), playerName, playerUUID.toString())
+                        .exceptionally(exception -> {
+                            exception.printStackTrace();
+                            plugin.getLogger().warning("Error when publishing nameUUIDs");
+                            return null;
+                        }));
     }
 
-//    public void openRemoteWindow(@NotNull String name, boolean traderView, UUID tradeUUID) {
-//        getConnectionAsync(connection ->
-//                connection.publish(DataKeys.OPEN_WINDOW.toString(), name + "§" + traderView + "§" + tradeUUID)
-//                        .toCompletableFuture().orTimeout(1, TimeUnit.SECONDS)
-//                        .exceptionally(exception -> {
-//                            exception.printStackTrace();
-//                            plugin.getLogger().warning("Error when publishing trade update");
-//                            return 0L;
-//                        })
-//        );
-//    }
-
-    public void restoreTrades() {
-        getConnectionAsync(connection -> connection.hgetall(DataKeys.TRADES.toString())
-                .thenAccept(map -> {
+    @Override
+    public CompletionStage<List<NewTrade>> restoreTrades() {
+        return getConnectionAsync(connection -> connection.hgetall(DataKeys.TRADES.toString())
+                .thenApply(map -> {
+                    final List<NewTrade> trades = new ArrayList<>();
                     for (Map.Entry<String, String> stringStringEntry : map.entrySet()) {
                         try {
-                            NewTrade trade = NewTrade.deserialize(this, decompress(stringStringEntry.getValue().getBytes(StandardCharsets.ISO_8859_1)));
-                            plugin.getTradeManager().tradeUpdate(trade);
+                            trades.add(NewTrade.deserialize(this,
+                                    decompress(stringStringEntry.getValue()
+                                            .getBytes(StandardCharsets.ISO_8859_1))));
                         } catch (DataFormatException e) {
-                            throw new RuntimeException(e);
+                            e.printStackTrace();
                         }
                     }
+                    return trades;
                 }));
     }
 
-    public void backupTrade(NewTrade trade, boolean sendToArchive) {
-        getConnectionAsync(connection -> {
-            if (sendToArchive) {
-                return connection.zadd(DataKeys.TRADE_ARCHIVE.toString(),
-                                System.currentTimeMillis(),
-                                new String(compress(trade.serialize()), StandardCharsets.ISO_8859_1))
-                        //If the content added to zset is 1, it's new
-                        .thenApply(longres -> longres == 1);
-            } else return connection.hset(
-                    DataKeys.TRADES.toString(),
-                    trade.getUuid().toString(), new String(compress(trade.serialize()), StandardCharsets.ISO_8859_1));
-        });
+    @Override
+    public void backupTrade(NewTrade trade) {
+        getConnectionAsync(connection -> connection.hset(
+                DataKeys.TRADES.toString(),
+                trade.getUuid().toString(), new String(compress(trade.serialize()), StandardCharsets.ISO_8859_1)));
     }
 
-    public void removeTrade(UUID tradeUUID) {
+    @Override
+    public void removeTradeBackup(UUID tradeUUID) {
         getConnectionAsync(connection -> connection.hdel(DataKeys.TRADES.toString(),
                 tradeUUID.toString()))
                 .exceptionally(exception -> {
@@ -197,6 +194,7 @@ public class RedisDataManager extends RedisAbstract {
         );
     }
 
+    @Override
     public void ignorePlayer(String playerName, String targetName, boolean ignore) {
         getConnectionPipeline(connection -> {
             if (ignore) {
@@ -208,8 +206,24 @@ public class RedisDataManager extends RedisAbstract {
         });
     }
 
+    @Override
     public CompletionStage<Set<String>> getIgnoredPlayers(String playerName) {
         return getConnectionAsync(connection -> connection.smembers(DataKeys.IGNORE_PLAYER_PREFIX + playerName));
+    }
+
+    @Override
+    public boolean archiveTrade(NewTrade trade) {
+        return true;
+    }
+
+    @Override
+    public CompletableFuture<Map<Long, NewTrade>> getArchivedTrades(UUID playerUUID, Date startTimestamp, Date endTimestamp) {
+        return CompletableFuture.completedFuture(Collections.emptyMap());
+    }
+
+    @Override
+    public void connect() {
+
     }
 
     public static byte[] compress(byte[] input) {

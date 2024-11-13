@@ -35,14 +35,14 @@ public class PlayerListManager implements Listener {
                         .filter(n -> !n.isEmpty())
                         .toList();
                 if (!tempList.isEmpty())
-                    plugin.getRedisDataManager().publishPlayerList(tempList);
+                    plugin.getDataCache().publishPlayerList(tempList);
                 tempList.forEach(s -> onlinePlayerList.put(s, System.currentTimeMillis()));
             }
         }.runTaskTimerAsynchronously(plugin, 0, 60);//3 seconds
 
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
 
-        plugin.getRedisDataManager().loadNameUUIDs()
+        plugin.getDataStorage().loadNameUUIDs()
                 .thenAccept(map -> {
                     nameUUIDs.clear();
                     nameUUIDs.putAll(map);
@@ -53,7 +53,9 @@ public class PlayerListManager implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         if (nameUUIDs.containsKey(event.getPlayer().getName())) return;
-        plugin.getRedisDataManager().updateOfflinePlayerList(event.getPlayer().getName(), event.getPlayer().getUniqueId());
+        plugin.getDataCache().updateCachePlayerList(event.getPlayer().getName(), event.getPlayer().getUniqueId());
+        plugin.getDataStorage().updateStoragePlayerList(event.getPlayer().getName(), event.getPlayer().getUniqueId());
+
         setPlayerNameUUID(event.getPlayer().getName(), event.getPlayer().getUniqueId());
     }
 

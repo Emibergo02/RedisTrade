@@ -1,24 +1,27 @@
-create table if not exists `trader`
+create table if not exists `archived`
 (
-    uuid                    binary(16)  not null
-        primary key,
-    name                    varchar(16) null,
-    receipt_serialized_item text        null
+    trade_uuid  varchar(36) not null primary key,
+    trader_uuid varchar(36) not null,
+    target_uuid varchar(36) not null,
+    timestamp   timestamp default CURRENT_TIMESTAMP not null,
+    serialized  text        not null
 );
-create table if not exists `order`
+
+create table if not exists `backup`
 (
-    id               int auto_increment
-        primary key,
-    seller           varchar(36)                         not null
-        constraint order_trader_uuid_fk
-            references trader,
-    buyer            varchar(36)                         not null
-        constraint order_trader_uuid_fk2
-            references trader,
-    timestamp        timestamp default CURRENT_TIMESTAMP not null,
-    serialized_items text                                not null,
-    offer            double                              not null,
-    completed        tinyint   default 0                 not null,
-    collected        tinyint   default 0                 not null,
-    review           tinyint   default 0
+    trade_uuid  varchar(36)                         not null primary key,
+    serialized  text                                not null
 );
+
+create table if not exists `ignored_players`
+(
+    ignorer varchar(16) not null,
+    ignored varchar(16) not null,
+    constraint ignored_players_pk unique (ignorer, ignored)
+);
+
+create table if not exists `player_list`
+(
+    player_name varchar(16) not null primary key,
+    player_uuid varchar(36) not null
+)

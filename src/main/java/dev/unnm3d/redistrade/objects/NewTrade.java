@@ -3,6 +3,7 @@ package dev.unnm3d.redistrade.objects;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.Settings;
 import dev.unnm3d.redistrade.Utils;
+import dev.unnm3d.redistrade.data.ICacheData;
 import dev.unnm3d.redistrade.data.RedisDataManager;
 import dev.unnm3d.redistrade.guis.MoneySelectorGUI;
 import dev.unnm3d.redistrade.guis.OrderInfo;
@@ -34,7 +35,7 @@ import java.util.UUID;
 @ToString
 public class NewTrade {
 
-    private final RedisDataManager dataManager;
+    private final ICacheData dataCacheManager;
     private CompletionTimer completionTimer;
 
     private final UUID uuid;
@@ -49,12 +50,12 @@ public class NewTrade {
     private final TradeGuiImpl targetGui;
 
 
-    public NewTrade(RedisDataManager dataManager, UUID traderUUID, UUID targetUUID, String traderName, String targetName) {
-        this(dataManager, UUID.randomUUID(), traderUUID, targetUUID, traderName, targetName, new OrderInfo(20), new OrderInfo(20));
+    public NewTrade(ICacheData dataCacheManager, UUID traderUUID, UUID targetUUID, String traderName, String targetName) {
+        this(dataCacheManager, UUID.randomUUID(), traderUUID, targetUUID, traderName, targetName, new OrderInfo(20), new OrderInfo(20));
     }
 
-    public NewTrade(RedisDataManager dataManager, UUID uuid, UUID traderUUID, UUID targetUUID, String traderName, String targetName, OrderInfo traderSideInfo, OrderInfo targetSideInfo) {
-        this.dataManager = dataManager;
+    public NewTrade(ICacheData dataCacheManager, UUID uuid, UUID traderUUID, UUID targetUUID, String traderName, String targetName, OrderInfo traderSideInfo, OrderInfo targetSideInfo) {
+        this.dataCacheManager = dataCacheManager;
         this.completionTimer = null;
 
         this.uuid = uuid;
@@ -101,7 +102,7 @@ public class NewTrade {
 
     public void setAndSendTraderPrice(double price) {
         setTraderPrice(price);
-        dataManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.MONEY_TRADER, price);
+        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.MONEY_TRADER, price);
     }
 
     public void setTraderStatus(OrderInfo.Status status) {
@@ -114,7 +115,7 @@ public class NewTrade {
 
     public void setAndSendTraderStatus(OrderInfo.Status status) {
         setTraderStatus(status);
-        dataManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.CONFIRM_TRADER, status.getStatusByte());
+        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.CONFIRM_TRADER, status.getStatusByte());
     }
 
     //TARGET SIDE
@@ -126,7 +127,7 @@ public class NewTrade {
 
     public void setAndSendTargetPrice(double price) {
         setTargetPrice(price);
-        dataManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.MONEY_TARGET, price);
+        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.MONEY_TARGET, price);
     }
 
 
@@ -139,12 +140,12 @@ public class NewTrade {
 
     public void setAndSendTargetStatus(OrderInfo.Status status) {
         setTargetStatus(status);
-        dataManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.CONFIRM_TARGET, status.getStatusByte());
+        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.CONFIRM_TARGET, status.getStatusByte());
     }
 
     public void updateTraderItem(int slot, ItemStack item, boolean sendUpdate) {
         if (sendUpdate) {
-            dataManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.ITEM_TRADER, slot + "§;" + Utils.serialize(item));
+            dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.ITEM_TRADER, slot + "§;" + Utils.serialize(item));
         } else {
             traderSideInfo.getVirtualInventory().setItemSilently(slot, item);
         }
@@ -152,7 +153,7 @@ public class NewTrade {
 
     public void updateTargetItem(int slot, ItemStack item, boolean sendUpdate) {
         if (sendUpdate) {
-            dataManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.ITEM_TARGET, slot + "§;" + Utils.serialize(item));
+            dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.ITEM_TARGET, slot + "§;" + Utils.serialize(item));
         } else {
             targetSideInfo.getVirtualInventory().setItemSilently(slot, item);
         }
@@ -191,7 +192,7 @@ public class NewTrade {
                         "default", "Trade price");
 
         //Archive the completed trade
-        this.dataManager.backupTrade(this, true);
+        RedisTrade.getInstance().getDataStorage().archiveTrade(this);
         retrievePhase(true, false);
         retrievePhase(false, false);
     }
@@ -251,7 +252,7 @@ public class NewTrade {
         Optional<? extends Player> optionalPlayer = RedisTrade.getInstance().getPlayer(playerName);
         if (optionalPlayer.isPresent()) {
             Window.single()
-                    .setTitle((isTrader ? "Trader" : "Target") + " View")
+                    .setTitle(Settings.instance().tradeGuiTitle.replace("%player%", isTrader ? targetName : traderName))
                     .setGui(isTrader ? traderGui : targetGui)
                     .open(optionalPlayer.get());
             return true;
@@ -448,7 +449,7 @@ public class NewTrade {
         return bb.array();
     }
 
-    public static NewTrade deserialize(RedisDataManager dataManager, byte[] data) {
+    public static NewTrade deserialize(ICacheData dataManager, byte[] data) {
         ByteBuffer bb = ByteBuffer.wrap(data);
         UUID uuid = new UUID(bb.getLong(), bb.getLong());
         UUID traderUUID = new UUID(bb.getLong(), bb.getLong());

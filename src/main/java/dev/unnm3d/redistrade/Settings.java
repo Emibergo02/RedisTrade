@@ -18,7 +18,7 @@ import java.util.Map;
 public class Settings {
     private static Settings SETTINGS;
 
-    public static Settings instance(){
+    public static Settings instance() {
         return SETTINGS;
     }
 
@@ -36,7 +36,8 @@ public class Settings {
     }
 
 
-    public String databaseType = "sqlite";
+    public StorageType storageType = StorageType.SQLITE;
+    public CacheType cacheType = CacheType.REDIS;
     public MySQL mysql = new MySQL("localhost", 3306, "org.mariadb.jdbc.Driver",
             "redistrade", "root", "password",
             10, 10, 1800000, 0, 5000);
@@ -51,6 +52,42 @@ public class Settings {
             "RedisTrade",
             3);
 
+    @Comment({"Remember that a book line contains 20 large characters",
+            "(if you use 'i's or 'l's it will be contain more characters)"})
+    public List<List<String>> receiptIntestationFormat = List.of(
+            List.of(
+                    "Trade Receipt",
+                    "",
+                    "<black>Trader: <blue>%trader%</blue>",
+                    "",
+                    "<black>Target: <blue>%target%</blue>",
+                    "",
+                    "Date: ",
+                    "<blue>%timestamp%</blue>",
+                    "",
+                    "Trader price: <gold>%trader_price%</gold>",
+                    "Target price: <gold>%target_price%</gold>"
+            )
+    );
+
+
+    public String receiptBookDisplayName = "<white>%trader%'s Receipt #%id%";
+
+    @Comment({"Remember that a book line contains 20 large characters",
+            "(if you use 'i's or 'l's it will be contain more characters)"})
+    public List<String> receiptBookLore = List.of(
+            "Date: ",
+                    "<blue>%timestamp%</blue>",
+                    "",
+                    "%item_list%"
+            );
+
+    public String traderItemsIntestation = "<bold>Trader items: </bold>";
+    public String targetItemsIntestation = "<bold>Target items: </bold>";
+    @Comment("%item_name% - item name, %amount% - item amount, %display_name% - item display name")
+    public String itemFormat = "<reset>[x%amount% %item_name%]";
+
+    public String tradeGuiTitle = "Trading with %player%";
     public List<String> tradeGuiStructure = List.of(
             "CM##D##mc",
             "LLLLxRRRR",
@@ -100,21 +137,21 @@ public class Settings {
     public ItemStack getRefuteButton() {
         return new ItemBuilder(Material.RED_WOOL)
                 .setDisplayName("§cRefuted trade")
-                .setLegacyLore(List.of("","§fClick to §2confirm §fthe trade"))
+                .setLegacyLore(List.of("", "§fClick to §2confirm §fthe trade"))
                 .get();
     }
 
     public ItemStack getConfirmButton() {
         return new ItemBuilder(Material.GREEN_WOOL)
                 .setDisplayName("§aConfirmed trade")
-                .setLegacyLore(List.of("","§fClick to §crefute §fthe trade"))
+                .setLegacyLore(List.of("", "§fClick to §crefute §fthe trade"))
                 .get();
     }
 
     public ItemStack getCompletedButton() {
         return new ItemBuilder(Material.BLUE_WOOL)
                 .setDisplayName("§bCompleted trade")
-                .setLegacyLore(List.of("","§fThe trade has been completed"))
+                .setLegacyLore(List.of("", "§fThe trade has been completed"))
                 .get();
     }
 
@@ -133,20 +170,20 @@ public class Settings {
     public ItemStack getMoneyButton() {
         return new ItemBuilder(Material.GOLD_NUGGET)
                 .setDisplayName("§fCurrent price: §6%price%")
-                .setLegacyLore(List.of("","§fClick to §2set §fthe price"))
+                .setLegacyLore(List.of("", "§fClick to §2set §fthe price"))
                 .get();
     }
 
     public ItemStack getMoneyDisplay() {
         return new ItemBuilder(Material.GOLD_NUGGET)
-                .setLegacyLore(List.of("§fClick to change currency","§fSet your price"))
+                .setLegacyLore(List.of("§fClick to change currency", "§fSet your price"))
                 .get();
     }
 
     public ItemStack getMoneyConfirmButton() {
         return new ItemBuilder(Material.GREEN_WOOL)
                 .setDisplayName("§aConfirm price %price%")
-                .setLegacyLore(List.of("","§fConfirm your trade price"))
+                .setLegacyLore(List.of("", "§fConfirm your trade price"))
                 .get();
     }
 
@@ -188,6 +225,17 @@ public class Settings {
         MONEY_DISPLAY,
         MONEY_CONFIRM_BUTTON
 
+    }
+
+    public enum CacheType {
+        REDIS,
+        PLUGIN_MESSAGE,
+    }
+
+    public enum StorageType {
+        REDIS,
+        MYSQL,
+        SQLITE,
     }
 
 }

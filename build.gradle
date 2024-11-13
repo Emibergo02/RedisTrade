@@ -8,12 +8,13 @@ version = 'BETA1-SNAPSHOT'
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
     maven { url = "https://repo.papermc.io/repository/maven-public/" }
     maven {
         name = "sonatype"
         url = "https://oss.sonatype.org/content/groups/public/"
     }
-    maven { url 'https://jitpack.io' }
+
     maven { url 'https://repo.xenondevs.xyz/releases' }
 }
 
@@ -23,7 +24,7 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.34'
     compileOnly 'io.lettuce:lettuce-core:6.4.0.RELEASE'
     compileOnly "com.github.MilkBowl:VaultAPI:1.7.1"
-    compileOnly "com.github.Emibergo02:RedisEconomy:main-SNAPSHOT"
+    compileOnly "com.github.Emibergo02:RedisEconomy:4.3.9"
 
     implementation 'de.exlll:configlib-paper:4.5.0'
     implementation 'com.github.alexdev03:drink:1.5.3'

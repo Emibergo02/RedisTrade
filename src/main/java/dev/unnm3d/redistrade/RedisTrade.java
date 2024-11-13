@@ -9,8 +9,6 @@ import dev.unnm3d.redistrade.commands.*;
 import dev.unnm3d.redistrade.data.*;
 import dev.unnm3d.redistrade.guis.TradeManager;
 import dev.unnm3d.redistrade.hooks.EconomyHook;
-import dev.unnm3d.redistrade.objects.Order;
-import dev.unnm3d.redistrade.objects.Trader;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import lombok.Getter;
@@ -21,6 +19,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -30,11 +29,11 @@ public final class RedisTrade extends JavaPlugin {
     private static RedisTrade instance;
     private Settings settings;
     @Getter
-    private DataCache dataCache;
+    private ICacheData dataCache;
+    @Getter
+    private IStorageData dataStorage;
     @Getter
     private TradeManager tradeManager;
-    @Getter
-    private RedisDataManager redisDataManager;
     @Getter
     private PlayerListManager playerListManager;
     @Getter
@@ -46,11 +45,21 @@ public final class RedisTrade extends JavaPlugin {
         instance = this;
         loadYML();
 
-        dataCache = settings.databaseType.equalsIgnoreCase("mysql") ?
-                new MySQLDatabase(this, settings.mysql) :
-                new SQLiteDatabase(this);
-        ((Database) dataCache).connect();
-        loadRedis();
+
+        dataCache = switch (settings.cacheType) {
+            case REDIS -> new RedisDataManager(this, craftRedisClient(),
+                    settings.redis.poolSize());
+
+            case PLUGIN_MESSAGE -> null;
+        };
+        dataStorage = switch (settings.storageType) {
+            case REDIS -> dataCache instanceof RedisDataManager rdm ? rdm :
+                    new RedisDataManager(this, craftRedisClient(), settings.redis.poolSize());
+            case MYSQL -> new MySQLDatabase(this, settings.mysql);
+            case SQLITE -> new SQLiteDatabase(this);
+        };
+        dataStorage.connect();
+
 
         this.playerListManager = new PlayerListManager(this);
         this.economyHook = new EconomyHook(this);
@@ -63,12 +72,12 @@ public final class RedisTrade extends JavaPlugin {
     public void onDisable() {
         tradeManager.close();
         playerListManager.stop();
-        ((Database) dataCache).destroy();
-        redisDataManager.close();
+        dataStorage.close();
+        dataCache.close();
         Drink.unregister(this);
     }
 
-    private void loadRedis() {
+    private RedisClient craftRedisClient() {
         RedisURI.Builder redisURIBuilder = RedisURI.builder()
                 .withHost(settings.redis.host())
                 .withPort(settings.redis.port())
@@ -80,12 +89,8 @@ public final class RedisTrade extends JavaPlugin {
                 settings.redis.user().isEmpty() ?
                         redisURIBuilder.withPassword(settings.redis.password().toCharArray()) :
                         redisURIBuilder.withAuthentication(settings.redis.user(), settings.redis.password());
-        this.redisDataManager = new RedisDataManager(
-                this,
-                RedisClient.create(redisURIBuilder.build()),
-                settings.redis.poolSize()
-        );
-        getLogger().info("Connected to Redis successfully: " + settings.redis.host() + ":" + settings.redis.port());
+
+        return RedisClient.create(redisURIBuilder.build());
     }
 
     public Optional<? extends Player> getPlayer(String name) {
@@ -95,9 +100,11 @@ public final class RedisTrade extends JavaPlugin {
     private void loadCommands() {
         CommandService drink = Drink.get(this);
         drink.bind(PlayerListManager.Target.class).toProvider(new TargetProvider(playerListManager));
+        drink.bind(Date.class).toProvider(new DateProvider("yyyy-MM-dd@HH:mm", "GMT+1"));
         drink.register(new TradeCommand(this), "trade", "t");
         drink.register(new TradeGuiCommand(this), "trade-gui");
         drink.register(new TradeIgnoreCommand(tradeManager), "trade-ignore");
+        drink.register(new BrowseTradeCommand(this), "browse-trade");
         drink.registerCommands();
     }
 
@@ -108,7 +115,7 @@ public final class RedisTrade extends JavaPlugin {
         Messages.initSettings(messagesFile);
     }
 
-    public void saveYML(){
+    public void saveYML() {
         Path configFile = new File(getDataFolder(), "config.yml").toPath();
         YamlConfigurations.save(configFile, Settings.class, Settings.instance(),
                 ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()

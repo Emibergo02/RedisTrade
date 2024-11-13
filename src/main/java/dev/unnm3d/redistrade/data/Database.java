@@ -11,12 +11,6 @@ import java.util.Objects;
 
 public interface Database {
 
-    void connect();
-
-    void destroy();
-
-    boolean isConnected();
-
     @NotNull
     default String[] getSchemaStatements(@NotNull String schemaFileName) throws IOException {
         return new String(Objects.requireNonNull(RedisTrade.getInstance().getResource(schemaFileName))

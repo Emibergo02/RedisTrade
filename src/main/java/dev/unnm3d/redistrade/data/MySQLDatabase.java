@@ -71,14 +71,14 @@ public class MySQLDatabase extends SQLiteDatabase implements Database {
                 for (String tableCreationStatement : databaseSchema) {
                     statement.execute(tableCreationStatement);
                 }
-                setConnected(true);
+                connected = true;
             } catch (SQLException e) {
-                destroy();
+                close();
                 throw new IllegalStateException("Failed to create database tables. Please ensure you are running MySQL v8.0+ or MariaDB " +
                         "and that your connecting user account has privileges to create tables.", e);
             }
         } catch (SQLException | IOException e) {
-            destroy();
+            close();
             throw new IllegalStateException("Failed to establish a connection to the MySQL/MariaDB database. " +
                     "Please check the supplied database credentials in the config file", e);
         }
@@ -86,10 +86,10 @@ public class MySQLDatabase extends SQLiteDatabase implements Database {
     }
 
     @Override
-    public void destroy() {
+    public void close() {
         if (dataSource == null) return;
         if (dataSource.isClosed()) return;
         dataSource.close();
-        setConnected(false);
+        connected = false;
     }
 }

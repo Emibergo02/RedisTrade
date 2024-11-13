@@ -1,14 +1,14 @@
 package dev.unnm3d.redistrade.guis;
 
 import dev.unnm3d.redistrade.Messages;
+import dev.unnm3d.redistrade.ReceiptBuilder;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.objects.NewTrade;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import xyz.xenondevs.invui.item.Item;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TradeManager {
@@ -24,7 +24,8 @@ public class TradeManager {
         this.currentTrades = new ConcurrentHashMap<>();
         this.ignorePlayers = new ConcurrentHashMap<>();
 
-        plugin.getRedisDataManager().restoreTrades();
+        plugin.getDataStorage().restoreTrades().thenAccept(trades ->
+                trades.forEach(this::tradeUpdate));
     }
 
     public void startTrade(Player traderPlayer, String targetName) {
@@ -36,11 +37,11 @@ public class TradeManager {
         plugin.getPlayerListManager().getPlayerUUID(targetName)
                 .ifPresentOrElse(uuid -> {
                     if (openAlreadyStarted(traderPlayer, uuid)) return;
-                    final NewTrade trade = new NewTrade(plugin.getRedisDataManager(), traderPlayer.getUniqueId(), uuid,
+                    final NewTrade trade = new NewTrade(plugin.getDataCache(), traderPlayer.getUniqueId(), uuid,
                             traderPlayer.getName(), targetName);
                     tradeUpdate(trade);
                     //Update trade calls invite message
-                    plugin.getRedisDataManager().createTrade(trade);
+                    plugin.getDataCache().createTrade(trade);
 
                     traderPlayer.sendRichMessage(Messages.instance().tradeCreated
                             .replace("%player%", targetName));
@@ -48,6 +49,23 @@ public class TradeManager {
                     trade.openWindow(traderPlayer.getName(), true);
                 }, () -> traderPlayer.sendRichMessage(Messages.instance().playerNotFound
                         .replace("%player%", targetName)));
+    }
+
+    public void openBrowser(Player player, UUID targetUUID, Date start, Date end) {
+        System.out.println("Opening browser");
+        plugin.getDataStorage().getArchivedTrades(targetUUID, start, end)
+                .thenAcceptAsync(trades -> {
+                    final List<Item> receiptItems = trades.entrySet().stream()
+                            .map(entry -> ReceiptBuilder.buildReceipt(entry.getValue(), entry.getKey()))
+                            .toList();
+                    System.out.println("Opening browser with " + receiptItems.size() + " items");
+                    Bukkit.getScheduler().runTask(plugin, () ->
+                            new TradeBrowserGUI(receiptItems).openWindow(player));
+                })
+                .exceptionally(e -> {
+                    e.printStackTrace();
+                    return null;
+                });
     }
 
     /**
@@ -121,18 +139,18 @@ public class TradeManager {
                 })
                 .ifPresent(trade -> {
                     tradeGuis.remove(trade.getUuid());
-                    plugin.getRedisDataManager().removeTrade(trade.getUuid());
+                    plugin.getDataStorage().removeTradeBackup(trade.getUuid());
                 });
     }
 
     public void loadIgnoredPlayers(String playerName) {
-        plugin.getRedisDataManager().getIgnoredPlayers(playerName)
+        plugin.getDataStorage().getIgnoredPlayers(playerName)
                 .thenAccept(ignoredPlayers -> ignorePlayers.put(playerName, new HashSet<>(ignoredPlayers)));
     }
 
     public void ignorePlayerCloud(String playerName, String targetName, boolean ignore) {
         ignoreUpdate(playerName, targetName, ignore);
-        plugin.getRedisDataManager().ignorePlayer(playerName, targetName, ignore);
+        plugin.getDataStorage().ignorePlayer(playerName, targetName, ignore);
     }
 
     public boolean isIgnoring(String playerName, String targetName) {
@@ -177,8 +195,7 @@ public class TradeManager {
     }
 
     public void close() {
-        tradeGuis.values().forEach(trade -> {
-            plugin.getRedisDataManager().backupTrade(trade, false);
-        });
+        tradeGuis.values().forEach(trade ->
+                plugin.getDataStorage().backupTrade(trade));
     }
 }

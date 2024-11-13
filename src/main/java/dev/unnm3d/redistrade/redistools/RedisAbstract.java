@@ -1,9 +1,12 @@
 package dev.unnm3d.redistrade.redistools;
 
+import dev.unnm3d.redistrade.data.ICacheData;
 import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisFuture;
 import io.lettuce.core.TransactionResult;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
+import io.lettuce.core.api.reactive.RedisReactiveCommands;
 import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.pubsub.RedisPubSubListener;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
@@ -17,7 +20,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 
-public abstract class RedisAbstract {
+public abstract class RedisAbstract implements ICacheData {
     private final RoundRobinConnectionPool<String, String> roundRobinConnectionPool;
     private final ConcurrentHashMap<String[], StatefulRedisPubSubConnection<String, String>> pubSubConnections;
     protected RedisClient lettuceRedisClient;
@@ -73,6 +76,14 @@ public abstract class RedisAbstract {
         return redisCallBack.apply(roundRobinConnectionPool.get().async());
     }
 
+    public <T> T getConnectionAsyncResult(Function<RedisAsyncCommands<String, String>, T> redisCallBack) {
+        return redisCallBack.apply(roundRobinConnectionPool.get().async());
+    }
+
+    public <T> CompletionStage<T> getConnectionReactive(Function<RedisReactiveCommands<String, String>, CompletionStage<T>> redisCallBack) {
+        return redisCallBack.apply(roundRobinConnectionPool.get().reactive());
+    }
+
     public <T> CompletionStage<T> getConnectionPipeline(Function<RedisAsyncCommands<String, String>, CompletionStage<T>> redisCallBack) {
         StatefulRedisConnection<String, String> connection = roundRobinConnectionPool.get();
         connection.setAutoFlushCommands(false);
@@ -80,6 +91,10 @@ public abstract class RedisAbstract {
         connection.flushCommands();
         connection.setAutoFlushCommands(true);
         return completionStage;
+    }
+
+    public <T> T getRawConnection(Function<StatefulRedisConnection<String, String>, T> redisCallBack) {
+        return redisCallBack.apply(roundRobinConnectionPool.get());
     }
 
     public Optional<List<Object>> executeTransaction(Consumer<RedisCommands<String, String>> redisCommandsConsumer) {

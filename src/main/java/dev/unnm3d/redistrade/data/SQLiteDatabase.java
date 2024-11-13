@@ -3,29 +3,24 @@ package dev.unnm3d.redistrade.data;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import dev.unnm3d.redistrade.RedisTrade;
-import dev.unnm3d.redistrade.objects.Order;
-import dev.unnm3d.redistrade.objects.Trader;
+import dev.unnm3d.redistrade.objects.NewTrade;
 import lombok.Getter;
-import lombok.Setter;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.Date;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.logging.Level;
 
-public class SQLiteDatabase extends DataCache implements Database {
+public class SQLiteDatabase implements Database, IStorageData {
 
     protected final RedisTrade plugin;
     @Getter
-    @Setter
     protected boolean connected = false;
     protected HikariDataSource dataSource;
 
@@ -81,24 +76,23 @@ public class SQLiteDatabase extends DataCache implements Database {
         //Initialize the database
         try {
             final String[] databaseSchema = getSchemaStatements("schema.sql");
-            try (Statement statement = getConnection().createStatement()) {
-                for (String tableCreationStatement : databaseSchema) {
+            for (String tableCreationStatement : databaseSchema) {
+                try (Statement statement = getConnection().createStatement()) {
                     statement.execute(tableCreationStatement);
+                } catch (SQLException e) {
+                   e.printStackTrace();
                 }
-            } catch (SQLException e) {
-                destroy();
-                throw new IllegalStateException("Failed to create database tables.", e);
             }
         } catch (IOException e) {
-            destroy();
+            close();
             throw new IllegalStateException("Failed to create database tables.", e);
         }
-        setConnected(true);
-        load();
+        connected = true;
     }
 
+
     @Override
-    public void destroy() {
+    public void close() {
         try {
             if (getConnection() != null) {
                 if (!getConnection().isClosed()) {
@@ -108,162 +102,163 @@ public class SQLiteDatabase extends DataCache implements Database {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        setConnected(false);
+        connected = false;
     }
 
     @Override
-    public CompletableFuture<Optional<Trader>> getTrader(UUID uuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement statement = connection.prepareStatement("SELECT * FROM trader WHERE uuid = ?")) {
-                statement.setString(1, uuid.toString());
-                try (ResultSet result = statement.executeQuery()) {
-                    if (result.next()) {
-                        return Optional.of(new Trader(UUID.fromString(result.getString("uuid")),
-                                        result.getString("name"),null));
-                    }
-                }
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "An exception occurred retrieving a trader from the database", e);
-            }
-            return Optional.empty();
-        });
+    public boolean archiveTrade(NewTrade trade) {
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("""
+                     INSERT INTO `archived` (trade_uuid,trader_uuid,target_uuid,timestamp,serialized)
+                     VALUES (?,?,?,?,?);""")) {
+            statement.setString(1, trade.getUuid().toString());
+            statement.setString(2, trade.getTraderUUID().toString());
+            statement.setString(3, trade.getTargetUUID().toString());
+            statement.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
+            statement.setString(5, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
+            return statement.executeUpdate() != 0;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public CompletableFuture<Void> createTrader(Trader trader) {
-        return CompletableFuture.runAsync(() -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement statement = connection.prepareStatement("INSERT INTO trader (uuid, name, receipt_serialized_item) VALUES (?, ?, ?)")) {
-                statement.setString(1, trader.getUuid().toString());
-                statement.setString(2, trader.getName());
-                statement.setString(3, serialize(trader.getReceipt()));
-                statement.executeUpdate();
-                updateTraderCache(trader);
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "An exception occurred creating a trader in the database", e);
-            }
-        });
-    }
-
-    @Override
-    public CompletableFuture<Void> updateTrader(Trader trader) {
-        return CompletableFuture.runAsync(() -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement statement = connection.prepareStatement("UPDATE trader SET name = ?, receipt_serialized_item = ? WHERE uuid = ?")) {
-                statement.setString(1, trader.getName());
-                statement.setString(2, serialize(trader.getReceipt()));
-                statement.setString(3, trader.getUuid().toString());
-                if(statement.executeUpdate() == 0){
-                    throw new SQLException("Failed to update trader with uuid " + trader.getUuid());
-                }
-                updateTraderCache(trader);
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "An exception occurred updating a trader in the database", e);
-            }
-        });
-    }
-
-    @Override
-    public CompletableFuture<Optional<Order>> createOrder(Player seller, String buyerName, List<ItemStack> items, double offer) {
+    public CompletableFuture<Map<Long, NewTrade>> getArchivedTrades(UUID playerUUID, Date startTimestamp, Date endTimestamp) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         INSERT INTO `order` (seller, buyer, serialized_items, offer)
-                         SELECT
-                             ?,
-                             t.uuid,
-                             ?,
-                             ?
-                         FROM trader AS t
-                         WHERE t.name = ?;
-                         """)) {
-                statement.setString(1, seller.toString());
-                statement.setString(2, serialize(items.toArray(new ItemStack[0])));
-                statement.setDouble(3, offer);
-                statement.setString(4, buyerName);
-                statement.executeUpdate();
-                try (ResultSet result = statement.getGeneratedKeys()) {
-                    if (result.next()) {
-                        return Optional.of(updateOrderCache(new Order(result.getInt("last_insert_rowid()"),
-                                System.currentTimeMillis(),
-                                Trader.fromPlayer(seller),
-                                traderCache.get(buyerName),
-                                items,
-                                new ArrayList<>(),
-                                false,
-                                false,
-                                (short)0,
-                                offer
-                        )));
-                    }
-                }
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "An exception occurred creating an order in the database", e);
-            }
-            return Optional.empty();
-        });
-    }
+                         SELECT * FROM `archived` WHERE trader_uuid = ? OR target_uuid = ? AND timestamp BETWEEN ? AND ?;""")) {
+                statement.setString(1, playerUUID.toString());
+                statement.setString(2, playerUUID.toString());
+                statement.setTimestamp(3, new Timestamp(startTimestamp.getTime()));
+                statement.setTimestamp(4, new Timestamp(endTimestamp.getTime()));
 
-    @Override
-    public CompletableFuture<Void> updateOrder(Order order) {
-        return CompletableFuture.runAsync(() -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement statement = connection.prepareStatement("""
-                    UPDATE `order`
-                    SET buyer = ?,
-                    serialized_items = ?,
-                    completed = ?,
-                    collected = ?,
-                    review = ?
-                    WHERE id = ?
-                    """)) {
-                statement.setString(1, order.getBuyer().getName());
-                statement.setString(2, serialize(order.getItemsSeller().toArray(new ItemStack[0])));
-                statement.setBoolean(3, order.isCompleted());
-                statement.setBoolean(4, order.isCollected());
-                statement.setShort(5, order.getReview());
-                statement.setInt(6, order.getId());
-
-
-                if(statement.executeUpdate() == 0){
-                    throw new SQLException("Failed to update order with id " + order.getId());
-                }
-                updateOrder(order);
-
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "An exception occurred updating an order in the database", e);
-            }
-        });
-    }
-
-
-    @Override
-    public CompletableFuture<List<Order>> getOrders(Trader trader){
-        return CompletableFuture.supplyAsync(() -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement statement = connection.prepareStatement("SELECT * FROM `order` WHERE seller = ? OR buyer = ?")) {
-                statement.setString(1, trader.getUuid().toString());
-                statement.setString(2, trader.getName());
                 try (ResultSet result = statement.executeQuery()) {
+                    final Map<Long, NewTrade> trades = new HashMap<>();
                     while (result.next()) {
-                        new Order(result.getInt("id"),
-                                result.getTimestamp("timestamp").getTime(),
-                                trader,
-                                traderCache.get(result.getString("buyer")),
-                                List.of(deserialize(result.getString("serialized_items"))),
-                                List.of(deserialize(result.getString("serialized_items"))),
-                                result.getBoolean("completed"),
-                                result.getBoolean("collected"),
-                                result.getShort("status"),
-                                result.getDouble("offer")
-                        );
+                        trades.put(result.getTimestamp("timestamp").getTime(),
+                                NewTrade.deserialize(RedisTrade.getInstance().getDataCache(),
+                                        result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
                     }
+                    return trades;
                 }
             } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "An exception occurred retrieving orders from the database", e);
+                throw new RuntimeException(e);
             }
-            return List.copyOf(orderCache.values());
+        });
+    }
+
+    @Override
+    public void backupTrade(NewTrade trade) {
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("""
+                     INSERT INTO `backup` (trade_uuid,serialized)
+                        VALUES (?,?);""")) {
+            statement.setString(1, trade.getUuid().toString());
+            statement.setString(2, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void removeTradeBackup(UUID tradeUUID) {
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("""
+                     DELETE FROM `backup` WHERE trade_uuid = ?;""")) {
+            statement.setString(1, tradeUUID.toString());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void updateStoragePlayerList(String playerName, UUID playerUUID) {
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("""
+                     INSERT INTO `player_list` (player_name,player_uuid)
+                        VALUES (?,?);""")) {
+            statement.setString(1, playerName);
+            statement.setString(2, playerUUID.toString());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void ignorePlayer(String playerName, String targetName, boolean ignore) {
+        String query = ignore ?
+                "INSERT INTO `ignored_players` (ignorer,ignored) VALUES (?,?);" :
+                "DELETE FROM `ignored_players` WHERE ignored = ? AND ignorer = ?;";
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, playerName);
+            statement.setString(2, targetName);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public CompletionStage<List<NewTrade>> restoreTrades() {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection connection = getConnection();
+                 PreparedStatement statement = connection.prepareStatement("""
+                         SELECT * FROM `backup`;""")) {
+                try (ResultSet result = statement.executeQuery()) {
+                    final List<NewTrade> trades = new ArrayList<>();
+                    while (result.next()) {
+                        trades.add(NewTrade.deserialize(RedisTrade.getInstance().getDataCache(),
+                                result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
+                    }
+                    return trades;
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public CompletionStage<Map<String, UUID>> loadNameUUIDs() {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection connection = getConnection();
+                 PreparedStatement statement = connection.prepareStatement("""
+                         SELECT * FROM `player_list`;""")) {
+                try (ResultSet result = statement.executeQuery()) {
+                    final Map<String, UUID> nameUUIDs = new HashMap<>();
+                    while (result.next()) {
+                        nameUUIDs.put(result.getString("player_name"), UUID.fromString(result.getString("player_uuid")));
+                    }
+                    return nameUUIDs;
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public CompletionStage<Set<String>> getIgnoredPlayers(String playerName) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection connection = getConnection();
+                 PreparedStatement statement = connection.prepareStatement("""
+                         SELECT * FROM `ignored_players` WHERE ignorer = ?;""")) {
+                statement.setString(1, playerName);
+                try (ResultSet result = statement.executeQuery()) {
+                    final Set<String> ignoredPlayers = new HashSet<>();
+                    while (result.next()) {
+                        ignoredPlayers.add(result.getString("ignored"));
+                    }
+                    return ignoredPlayers;
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         });
     }
 }

@@ -6,6 +6,9 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.text.DecimalFormat;
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -28,8 +31,6 @@ public class Tests {
 //        assertEquals(deserialized.getItem(1), new ItemStack(Material.GOLD_INGOT));
 //        assertEquals(deserialized.getItem(19), new ItemStack(Material.IRON_INGOT));
 //        assertEquals(deserialized.getProposed(), 100.0);
-
-
     }
 
 
