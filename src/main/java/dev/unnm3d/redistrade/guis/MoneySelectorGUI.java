@@ -1,10 +1,9 @@
 package dev.unnm3d.redistrade.guis;
 
-import dev.unnm3d.redistrade.Messages;
+import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.RedisTrade;
-import dev.unnm3d.redistrade.Settings;
+import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.objects.NewTrade;
-import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
@@ -116,7 +115,7 @@ public class MoneySelectorGUI implements Listener {
                         player.getInventory().addItem(player.getItemOnCursor()).values().forEach(
                                 itemStack -> player.getWorld().dropItem(player.getLocation(), itemStack));
                         player.setItemOnCursor(null);
-                        trade.openWindow(viewer.getName(), isTrader);
+                        trade.openWindow(viewer.getUniqueId(), isTrader);
                         return;
                     }
 

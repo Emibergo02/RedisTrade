@@ -2,7 +2,7 @@ package dev.unnm3d.redistrade.commands;
 
 import com.jonahseguin.drink.annotation.Command;
 import com.jonahseguin.drink.annotation.Sender;
-import dev.unnm3d.redistrade.Messages;
+import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.guis.TradeManager;
 import lombok.AllArgsConstructor;
 import org.bukkit.entity.Player;

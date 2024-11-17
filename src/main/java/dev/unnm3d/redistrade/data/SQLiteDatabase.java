@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -109,7 +111,7 @@ public class SQLiteDatabase implements Database, IStorageData {
     public boolean archiveTrade(NewTrade trade) {
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("""
-                     INSERT INTO `archived` (trade_uuid,trader_uuid,target_uuid,timestamp,serialized)
+                     INSERT OR REPLACE INTO `archived` (trade_uuid,trader_uuid,target_uuid,timestamp,serialized)
                      VALUES (?,?,?,?,?);""")) {
             statement.setString(1, trade.getUuid().toString());
             statement.setString(2, trade.getTraderUUID().toString());
@@ -123,18 +125,19 @@ public class SQLiteDatabase implements Database, IStorageData {
     }
 
     @Override
-    public CompletableFuture<Map<Long, NewTrade>> getArchivedTrades(UUID playerUUID, Date startTimestamp, Date endTimestamp) {
+    public CompletableFuture<Map<Long, NewTrade>> getArchivedTrades(UUID playerUUID, LocalDateTime startTimestamp, LocalDateTime endTimestamp) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         SELECT * FROM `archived` WHERE trader_uuid = ? OR target_uuid = ? AND timestamp BETWEEN ? AND ?;""")) {
+                        SELECT * FROM `archived` WHERE trader_uuid = ? OR target_uuid = ? AND timestamp BETWEEN ? AND ?
+                        ORDER BY timestamp DESC ;""")) {
                 statement.setString(1, playerUUID.toString());
                 statement.setString(2, playerUUID.toString());
-                statement.setTimestamp(3, new Timestamp(startTimestamp.getTime()));
-                statement.setTimestamp(4, new Timestamp(endTimestamp.getTime()));
+                statement.setTimestamp(3, Timestamp.valueOf(startTimestamp));
+                statement.setTimestamp(4, Timestamp.valueOf(endTimestamp));
 
                 try (ResultSet result = statement.executeQuery()) {
-                    final Map<Long, NewTrade> trades = new HashMap<>();
+                    final Map<Long, NewTrade> trades = new LinkedHashMap<>();
                     while (result.next()) {
                         trades.put(result.getTimestamp("timestamp").getTime(),
                                 NewTrade.deserialize(RedisTrade.getInstance().getDataCache(),
@@ -152,7 +155,7 @@ public class SQLiteDatabase implements Database, IStorageData {
     public void backupTrade(NewTrade trade) {
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("""
-                     INSERT INTO `backup` (trade_uuid,serialized)
+                     INSERT OR REPLACE INTO `backup` (trade_uuid,serialized)
                         VALUES (?,?);""")) {
             statement.setString(1, trade.getUuid().toString());
             statement.setString(2, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
@@ -178,7 +181,7 @@ public class SQLiteDatabase implements Database, IStorageData {
     public void updateStoragePlayerList(String playerName, UUID playerUUID) {
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("""
-                     INSERT INTO `player_list` (player_name,player_uuid)
+                     INSERT OR REPLACE INTO `player_list` (player_name,player_uuid)
                         VALUES (?,?);""")) {
             statement.setString(1, playerName);
             statement.setString(2, playerUUID.toString());
@@ -191,7 +194,7 @@ public class SQLiteDatabase implements Database, IStorageData {
     @Override
     public void ignorePlayer(String playerName, String targetName, boolean ignore) {
         String query = ignore ?
-                "INSERT INTO `ignored_players` (ignorer,ignored) VALUES (?,?);" :
+                "INSERT OR REPLACE INTO `ignored_players` (ignorer,ignored) VALUES (?,?);" :
                 "DELETE FROM `ignored_players` WHERE ignored = ? AND ignorer = ?;";
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {

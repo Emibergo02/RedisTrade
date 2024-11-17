@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'dev.unnm3d'
-version = 'BETA1-SNAPSHOT'
+version = 'BETA4-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -28,7 +28,7 @@ dependencies {
 
     implementation 'de.exlll:configlib-paper:4.5.0'
     implementation 'com.github.alexdev03:drink:1.5.3'
-    implementation 'xyz.xenondevs.invui:invui:1.37'
+    implementation 'xyz.xenondevs.invui:invui:1.41'
     implementation 'com.github.Anon8281:UniversalScheduler:0.1.6'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.34'

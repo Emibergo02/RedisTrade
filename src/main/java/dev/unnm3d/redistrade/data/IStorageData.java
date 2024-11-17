@@ -2,6 +2,8 @@ package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.objects.NewTrade;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -23,7 +25,7 @@ public interface IStorageData {
 
     boolean archiveTrade(NewTrade trade);
 
-    CompletableFuture<Map<Long, NewTrade>> getArchivedTrades(UUID playerUUID, Date startTimestamp, Date endTimestamp);
+    CompletableFuture<Map<Long, NewTrade>> getArchivedTrades(UUID playerUUID, LocalDateTime startTimestamp, LocalDateTime endTimestamp);
     void connect();
     void close();
 }

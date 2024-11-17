@@ -52,7 +52,6 @@ public class PlayerListManager implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        if (nameUUIDs.containsKey(event.getPlayer().getName())) return;
         plugin.getDataCache().updateCachePlayerList(event.getPlayer().getName(), event.getPlayer().getUniqueId());
         plugin.getDataStorage().updateStoragePlayerList(event.getPlayer().getName(), event.getPlayer().getUniqueId());
 

@@ -1,27 +1,29 @@
 package dev.unnm3d.redistrade.guis;
 
-import dev.unnm3d.redistrade.Messages;
-import dev.unnm3d.redistrade.ReceiptBuilder;
+import dev.unnm3d.redistrade.configs.Messages;
+import dev.unnm3d.redistrade.utils.ReceiptBuilder;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.objects.NewTrade;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import xyz.xenondevs.invui.item.Item;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TradeManager {
 
     private final RedisTrade plugin;
-    private final ConcurrentHashMap<UUID, NewTrade> tradeGuis;
-    private final ConcurrentHashMap<UUID, UUID> currentTrades;
+    private final ConcurrentHashMap<UUID, NewTrade> trades;
+    private final ConcurrentHashMap<UUID, UUID> playerTrades;
     private final ConcurrentHashMap<String, HashSet<String>> ignorePlayers;
 
     public TradeManager(RedisTrade plugin) {
         this.plugin = plugin;
-        this.tradeGuis = new ConcurrentHashMap<>();
-        this.currentTrades = new ConcurrentHashMap<>();
+        this.trades = new ConcurrentHashMap<>();
+        this.playerTrades = new ConcurrentHashMap<>();
         this.ignorePlayers = new ConcurrentHashMap<>();
 
         plugin.getDataStorage().restoreTrades().thenAccept(trades ->
@@ -33,25 +35,32 @@ public class TradeManager {
             traderPlayer.sendRichMessage(Messages.instance().tradeWithYourself);
             return;
         }
-        //Create Trade and send update
-        plugin.getPlayerListManager().getPlayerUUID(targetName)
-                .ifPresentOrElse(uuid -> {
-                    if (openAlreadyStarted(traderPlayer, uuid)) return;
-                    final NewTrade trade = new NewTrade(plugin.getDataCache(), traderPlayer.getUniqueId(), uuid,
-                            traderPlayer.getName(), targetName);
-                    tradeUpdate(trade);
-                    //Update trade calls invite message
-                    plugin.getDataCache().createTrade(trade);
+        //Create Trade and send update (and open inventories)
+        plugin.getServer().getScheduler().runTask(plugin, () ->
+                plugin.getPlayerListManager().getPlayerUUID(targetName)
+                        .ifPresentOrElse(uuid -> {
+                            if (openAlreadyStarted(traderPlayer, uuid)) return;
+                            final NewTrade trade = new NewTrade(plugin.getDataCache(), traderPlayer.getUniqueId(), uuid,
+                                    traderPlayer.getName(), targetName);
+                            tradeUpdate(trade);
+                            //Update trade calls invite message
+                            plugin.getDataCache().createTrade(trade);
 
-                    traderPlayer.sendRichMessage(Messages.instance().tradeCreated
-                            .replace("%player%", targetName));
+                            traderPlayer.sendRichMessage(Messages.instance().tradeCreated
+                                    .replace("%player%", targetName));
 
-                    trade.openWindow(traderPlayer.getName(), true);
-                }, () -> traderPlayer.sendRichMessage(Messages.instance().playerNotFound
-                        .replace("%player%", targetName)));
+
+                            openWindow(trade, traderPlayer.getUniqueId(), true);
+                        }, () -> traderPlayer.sendRichMessage(Messages.instance().playerNotFound
+                                .replace("%player%", targetName))));
     }
 
-    public void openBrowser(Player player, UUID targetUUID, Date start, Date end) {
+    public Optional<NewTrade> getActiveTrade(UUID playerUUID) {
+        return Optional.ofNullable(playerTrades.get(playerUUID))
+                .map(trades::get);
+    }
+
+    public void openBrowser(Player player, UUID targetUUID, LocalDateTime start, LocalDateTime end) {
         System.out.println("Opening browser");
         plugin.getDataStorage().getArchivedTrades(targetUUID, start, end)
                 .thenAcceptAsync(trades -> {
@@ -75,18 +84,18 @@ public class TradeManager {
      * @return true if a trade window is opened
      */
     public boolean openAlreadyStarted(Player traderPlayer, UUID targetUUID) {
-        final NewTrade traderTrade = Optional.ofNullable(currentTrades.get(traderPlayer.getUniqueId()))
-                .map(tradeGuis::get)
+        final NewTrade traderTrade = Optional.ofNullable(playerTrades.get(traderPlayer.getUniqueId()))
+                .map(trades::get)
                 .orElse(null);
         if (traderTrade != null) {
             //If the trade target is the current target open the window for the trader
-            if (traderTrade.getTargetUUID().equals(targetUUID)) {
-                traderTrade.openWindow(traderPlayer.getName(), true);
+            if (traderTrade.isTarget(targetUUID)) {
+                openWindow(traderTrade, traderPlayer.getUniqueId(), true);
                 return true;
             }
             //If the trade target is the current target open the window for the trader
-            if (traderTrade.getTraderUUID().equals(targetUUID)) {
-                traderTrade.openWindow(traderPlayer.getName(), false);
+            if (traderTrade.isTrader(targetUUID)) {
+                openWindow(traderTrade, traderPlayer.getUniqueId(), false);
                 return true;
             }
 
@@ -98,16 +107,16 @@ public class TradeManager {
         }
         System.out.println("Trader trade is null");
 
-        final NewTrade targetTrade = Optional.ofNullable(currentTrades.get(targetUUID))
-                .map(tradeGuis::get)
+        final NewTrade targetTrade = Optional.ofNullable(playerTrades.get(targetUUID))
+                .map(trades::get)
                 .orElse(null);
         if (targetTrade != null) {
-            if (targetTrade.getTargetUUID().equals(traderPlayer.getUniqueId())) {
-                targetTrade.openWindow(traderPlayer.getName(), false);
+            if (targetTrade.isTarget(traderPlayer.getUniqueId())) {
+                openWindow(targetTrade, traderPlayer.getUniqueId(), false);
                 return true;
             }
-            if (targetTrade.getTraderUUID().equals(traderPlayer.getUniqueId())) {
-                targetTrade.openWindow(traderPlayer.getName(), true);
+            if (targetTrade.isTrader(traderPlayer.getUniqueId())) {
+                openWindow(targetTrade, traderPlayer.getUniqueId(), true);
                 return true;
             }
             plugin.getPlayerListManager().getPlayerName(targetUUID)
@@ -127,20 +136,39 @@ public class TradeManager {
      */
     public void finishTrade(UUID playerUUID) {
         //Remove the trade only if both trader and target are removed from the current trades
-        Optional.ofNullable(currentTrades.remove(playerUUID))
-                .map(tradeGuis::get)
-                .filter(trade -> {
-                    if (trade.getTraderUUID().equals(playerUUID)) {
-                        System.out.println("Cancelling trade. Current trades contains target: " + currentTrades.containsKey(trade.getTargetUUID()));
-                        return !currentTrades.containsKey(trade.getTargetUUID());
-                    }
-                    System.out.println("Cancelling trade. Current trades contains trader: " + currentTrades.containsKey(trade.getTargetUUID()));
-                    return !currentTrades.containsKey(trade.getTraderUUID());
-                })
-                .ifPresent(trade -> {
-                    tradeGuis.remove(trade.getUuid());
-                    plugin.getDataStorage().removeTradeBackup(trade.getUuid());
-                });
+        UUID removedTradeUUID = playerTrades.remove(playerUUID);
+        if (removedTradeUUID == null) return;
+        NewTrade trade = trades.get(removedTradeUUID);
+        if (trade == null) return;
+        //Check if Current trade does not contain the target
+        if (trade.isTrader(playerUUID)) {
+            System.out.println("Cancelling trade. Current trades contains target: " + playerTrades.containsKey(trade.getTargetUUID()));
+            if (!playerTrades.containsKey(trade.getTargetUUID())) {
+                removeTrade(trade.getUuid());
+            }
+        } else {
+            //Check if Current trade does not contain the trader
+            System.out.println("Cancelling trade. Current trades contains trader: " + playerTrades.containsKey(trade.getTraderUUID()));
+            if (!playerTrades.containsKey(trade.getTraderUUID())) {
+                removeTrade(trade.getUuid());
+            }
+        }
+    }
+
+    public boolean openWindow(NewTrade trade, UUID playerUUID, boolean isTrader) {
+        //If the other side is empty, do not add the trade to the current trades
+        //Because the player has already retrieved his items
+        if (trade.getOrderInfo(!isTrader).getStatus() != OrderInfo.Status.RETRIEVED) {
+            playerTrades.put(playerUUID, trade.getUuid());
+            System.out.println("Adding player to current trades");
+        }
+
+        return trade.openWindow(playerUUID, isTrader);
+    }
+
+    private void removeTrade(UUID tradeUUID) {
+        trades.remove(tradeUUID);
+        plugin.getDataStorage().removeTradeBackup(tradeUUID);
     }
 
     public void loadIgnoredPlayers(String playerName) {
@@ -162,13 +190,13 @@ public class TradeManager {
     }
 
     public Optional<NewTrade> getTrade(UUID tradeUUID) {
-        return Optional.ofNullable(tradeGuis.get(tradeUUID));
+        return Optional.ofNullable(trades.get(tradeUUID));
     }
 
     public void tradeUpdate(NewTrade trade) {
-        if (tradeGuis.containsKey(trade.getUuid())) return;
-        tradeGuis.put(trade.getUuid(), trade);
-        currentTrades.put(trade.getTraderUUID(), trade.getUuid());
+        if (trades.containsKey(trade.getUuid())) return;
+        trades.put(trade.getUuid(), trade);
+        playerTrades.put(trade.getTraderUUID(), trade.getUuid());
 
         if (isIgnoring(trade.getTargetName(), trade.getTraderName())) return;
 
@@ -195,7 +223,7 @@ public class TradeManager {
     }
 
     public void close() {
-        tradeGuis.values().forEach(trade ->
+        trades.values().forEach(trade ->
                 plugin.getDataStorage().backupTrade(trade));
     }
 }

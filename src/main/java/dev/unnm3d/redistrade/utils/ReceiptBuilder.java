@@ -1,5 +1,6 @@
-package dev.unnm3d.redistrade;
+package dev.unnm3d.redistrade.utils;
 
+import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.objects.NewTrade;
 import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;
@@ -19,10 +20,7 @@ import xyz.xenondevs.invui.item.impl.AbstractItem;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 @UtilityClass
 public class ReceiptBuilder {
@@ -66,15 +64,33 @@ public class ReceiptBuilder {
                         .replace("%id%", String.valueOf(trade.getUuid().getMostSignificantBits()))
         ));
 
-        List<Component> lore = new ArrayList<>();
+        final List<Component> lore = new ArrayList<>();
         for (String loreString : Settings.instance().receiptBookLore) {
-            lore.add(MiniMessage.miniMessage().deserialize(loreString
+            if (loreString.contains("%items%")) {
+                //Add items to lore
+                Arrays.stream(trade.getTraderSideInfo().getVirtualInventory().getItems())
+                        .filter(Objects::nonNull)
+                        .map(item -> MiniMessage.miniMessage().deserialize(Settings.instance().itemDisplayLoreFormat
+                                        .replace("%amount%", String.valueOf(item.getAmount())))
+                                .replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
+                                        .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
+                                .forEach(lore::add);
+                Arrays.stream(trade.getTargetSideInfo().getVirtualInventory().getItems())
+                        .filter(Objects::nonNull)
+                        .map(item -> MiniMessage.miniMessage().deserialize(Settings.instance().itemDisplayLoreFormat
+                                        .replace("%amount%", String.valueOf(item.getAmount())))
+                                .replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
+                                        .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
+                        .forEach(lore::add);
+                continue;
+            }
+            lore.add(MiniMessage.miniMessage().deserialize("<white><!i>" + loreString
                     .replace("%trader%", trade.getTraderName())
                     .replace("%target%", trade.getTargetName())
                     .replace("%timestamp%", parsedDate)
                     .replace("%trader_price%", decimalFormat.format(trade.getTraderSideInfo().getProposed()))
-                    .replace("%target_price%", decimalFormat.format(trade.getTargetSideInfo().getProposed()))
-            ));
+                    .replace("%target_price%", decimalFormat.format(trade.getTargetSideInfo().getProposed())))
+            );
         }
         writtenMeta.lore(lore);
 

@@ -1,19 +1,18 @@
 package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.RedisTrade;
-import dev.unnm3d.redistrade.Settings;
-import dev.unnm3d.redistrade.Utils;
+import dev.unnm3d.redistrade.utils.Utils;
 import dev.unnm3d.redistrade.guis.OrderInfo;
 import dev.unnm3d.redistrade.objects.NewTrade;
 import dev.unnm3d.redistrade.redistools.RedisAbstract;
 import io.lettuce.core.RedisClient;
-import io.lettuce.core.RedisURI;
 import lombok.Getter;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -58,20 +57,20 @@ public class RedisDataManager extends RedisAbstract implements IStorageData {
             }
             plugin.getTradeManager().getTrade(tradeUUID).ifPresent(trade -> {
                 switch (type) {
-                    case MONEY_TRADER -> trade.setTraderPrice(Double.parseDouble(value));
-                    case ITEM_TRADER -> {
+                    case TRADER_MONEY -> trade.setTraderPrice(Double.parseDouble(value));
+                    case TRADER_ITEM -> {
                         String[] split = value.split("§;");
                         int slot = Integer.parseInt(split[0]);
                         trade.updateTraderItem(slot, Utils.deserialize(split[1])[0], false);
                     }
-                    case CONFIRM_TRADER -> trade.setTraderStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)));
-                    case MONEY_TARGET -> trade.setTargetPrice(Double.parseDouble(value));
-                    case ITEM_TARGET -> {
+                    case TRADER_STATUS -> trade.setTraderStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)));
+                    case TARGET_MONEY -> trade.setTargetPrice(Double.parseDouble(value));
+                    case TARGET_ITEM -> {
                         String[] split = value.split("§;");
                         int slot = Integer.parseInt(split[0]);
                         trade.updateTargetItem(slot, Utils.deserialize(split[1])[0], false);
                     }
-                    case CONFIRM_TARGET -> trade.setTargetStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)));
+                    case TARGET_STATUS -> trade.setTargetStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)));
                     default -> throw new IllegalStateException("Unexpected value: " + type);
                 }
             });
@@ -217,7 +216,7 @@ public class RedisDataManager extends RedisAbstract implements IStorageData {
     }
 
     @Override
-    public CompletableFuture<Map<Long, NewTrade>> getArchivedTrades(UUID playerUUID, Date startTimestamp, Date endTimestamp) {
+    public CompletableFuture<Map<Long, NewTrade>> getArchivedTrades(UUID playerUUID, LocalDateTime startTimestamp, LocalDateTime endTimestamp) {
         return CompletableFuture.completedFuture(Collections.emptyMap());
     }
 
@@ -260,12 +259,12 @@ public class RedisDataManager extends RedisAbstract implements IStorageData {
     @Getter
     public enum TradeUpdateType {
         TRADE_START('S'),
-        MONEY_TRADER('M'),
-        ITEM_TRADER('I'),
-        CONFIRM_TRADER('C'),
-        MONEY_TARGET('m'),
-        ITEM_TARGET('i'),
-        CONFIRM_TARGET('c');
+        TRADER_MONEY('M'),
+        TRADER_ITEM('I'),
+        TRADER_STATUS('C'),
+        TARGET_MONEY('m'),
+        TARGET_ITEM('i'),
+        TARGET_STATUS('c');
 
         private final char code;
 
@@ -281,12 +280,12 @@ public class RedisDataManager extends RedisAbstract implements IStorageData {
         public static TradeUpdateType valueOf(char code) {
             return switch (code) {
                 case 'S' -> TRADE_START;
-                case 'M' -> MONEY_TRADER;
-                case 'I' -> ITEM_TRADER;
-                case 'C' -> CONFIRM_TRADER;
-                case 'm' -> MONEY_TARGET;
-                case 'i' -> ITEM_TARGET;
-                case 'c' -> CONFIRM_TARGET;
+                case 'M' -> TRADER_MONEY;
+                case 'I' -> TRADER_ITEM;
+                case 'C' -> TRADER_STATUS;
+                case 'm' -> TARGET_MONEY;
+                case 'i' -> TARGET_ITEM;
+                case 'c' -> TARGET_STATUS;
                 default -> null;
             };
         }

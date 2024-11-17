@@ -2,16 +2,17 @@ package dev.unnm3d.redistrade.data;
 
 import com.zaxxer.hikari.HikariDataSource;
 import dev.unnm3d.redistrade.RedisTrade;
-import dev.unnm3d.redistrade.Settings;
+import dev.unnm3d.redistrade.configs.Settings;
+import dev.unnm3d.redistrade.objects.NewTrade;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.nio.charset.StandardCharsets;
+import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 
 @Setter
 @Getter
@@ -83,6 +84,70 @@ public class MySQLDatabase extends SQLiteDatabase implements Database {
                     "Please check the supplied database credentials in the config file", e);
         }
 
+    }
+
+    @Override
+    public boolean archiveTrade(NewTrade trade) {
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("""
+                     INSERT INTO `archived` (trade_uuid,trader_uuid,target_uuid,timestamp,serialized)
+                     VALUES (?,?,?,?,?)
+                     ON DUPLICATE KEY UPDATE trade_uuid=VALUES(trade_uuid), trader_uuid=VALUES(trader_uuid),
+                     target_uuid = VALUES(target_uuid), timestamp = VALUES(timestamp), serialized=VALUES(serialized)
+                     ;""")) {
+            statement.setString(1, trade.getUuid().toString());
+            statement.setString(2, trade.getTraderUUID().toString());
+            statement.setString(3, trade.getTargetUUID().toString());
+            statement.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
+            statement.setString(5, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
+            return statement.executeUpdate() != 0;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void backupTrade(NewTrade trade) {
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("""
+                     INSERT INTO `backup` (trade_uuid,serialized)
+                        VALUES (?,?)
+                     ON DUPLICATE KEY UPDATE trade_uuid = VALUES(trade_uuid), serialized = VALUES(serialized);""")) {
+            statement.setString(1, trade.getUuid().toString());
+            statement.setString(2, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void updateStoragePlayerList(String playerName, UUID playerUUID) {
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("""
+                     INSERT INTO `player_list` (player_name,player_uuid)
+                        VALUES (?,?)
+                    ON DUPLICATE KEY UPDATE player_name = VALUES(player_name), player_uuid = VALUES(player_uuid);""")) {
+            statement.setString(1, playerName);
+            statement.setString(2, playerUUID.toString());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void ignorePlayer(String playerName, String targetName, boolean ignore) {
+        String query = ignore ?
+                "INSERT INTO `ignored_players` (ignorer,ignored) VALUES (?,?);" :
+                "DELETE FROM `ignored_players` WHERE ignored = ? AND ignorer = ?;";
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, playerName);
+            statement.setString(2, targetName);
+            statement.executeUpdate();
+        } catch (SQLException ignored) {
+        }
     }
 
     @Override

@@ -1,7 +1,7 @@
 package dev.unnm3d.redistrade.objects;
 
 import com.github.Anon8281.universalScheduler.UniversalRunnable;
-import dev.unnm3d.redistrade.Messages;
+import dev.unnm3d.redistrade.configs.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;

@@ -1,8 +1,8 @@
 package dev.unnm3d.redistrade.objects;
 
 import dev.unnm3d.redistrade.RedisTrade;
-import dev.unnm3d.redistrade.Settings;
-import dev.unnm3d.redistrade.Utils;
+import dev.unnm3d.redistrade.configs.Settings;
+import dev.unnm3d.redistrade.utils.Utils;
 import dev.unnm3d.redistrade.data.ICacheData;
 import dev.unnm3d.redistrade.data.RedisDataManager;
 import dev.unnm3d.redistrade.guis.MoneySelectorGUI;
@@ -92,6 +92,19 @@ public class NewTrade {
         this.targetGui = createTargetGui();
     }
 
+    //GETTERS
+    public boolean isTrader(UUID playerUUID) {
+        return playerUUID.equals(traderUUID);
+    }
+    public boolean isTarget(UUID playerUUID) {
+        return playerUUID.equals(targetUUID);
+    }
+
+
+    public OrderInfo getOrderInfo(boolean isTrader) {
+        return isTrader ? traderSideInfo : targetSideInfo;
+    }
+
     //TRADER SIDE
     public void setTraderPrice(double price) {
         traderSideInfo.setProposed(price);
@@ -102,7 +115,7 @@ public class NewTrade {
 
     public void setAndSendTraderPrice(double price) {
         setTraderPrice(price);
-        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.MONEY_TRADER, price);
+        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.TRADER_MONEY, price);
     }
 
     public void setTraderStatus(OrderInfo.Status status) {
@@ -115,7 +128,7 @@ public class NewTrade {
 
     public void setAndSendTraderStatus(OrderInfo.Status status) {
         setTraderStatus(status);
-        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.CONFIRM_TRADER, status.getStatusByte());
+        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.TRADER_STATUS, status.getStatusByte());
     }
 
     //TARGET SIDE
@@ -127,7 +140,7 @@ public class NewTrade {
 
     public void setAndSendTargetPrice(double price) {
         setTargetPrice(price);
-        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.MONEY_TARGET, price);
+        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.TARGET_MONEY, price);
     }
 
 
@@ -140,12 +153,12 @@ public class NewTrade {
 
     public void setAndSendTargetStatus(OrderInfo.Status status) {
         setTargetStatus(status);
-        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.CONFIRM_TARGET, status.getStatusByte());
+        dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.TARGET_STATUS, status.getStatusByte());
     }
 
     public void updateTraderItem(int slot, ItemStack item, boolean sendUpdate) {
         if (sendUpdate) {
-            dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.ITEM_TRADER, slot + "§;" + Utils.serialize(item));
+            dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.TRADER_ITEM, slot + "§;" + Utils.serialize(item));
         } else {
             traderSideInfo.getVirtualInventory().setItemSilently(slot, item);
         }
@@ -153,7 +166,7 @@ public class NewTrade {
 
     public void updateTargetItem(int slot, ItemStack item, boolean sendUpdate) {
         if (sendUpdate) {
-            dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.ITEM_TARGET, slot + "§;" + Utils.serialize(item));
+            dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.TARGET_ITEM, slot + "§;" + Utils.serialize(item));
         } else {
             targetSideInfo.getVirtualInventory().setItemSilently(slot, item);
         }
@@ -201,7 +214,8 @@ public class NewTrade {
      * Check if an inventory is empty and the status is completed
      * Then it resets the trade for the player and locks the whole GUI
      *
-     * @param isTrader If the inventory to check is the trader side
+     * @param isTrader     If the inventory to check is the trader side
+     * @param selfRetrieve If the player is retrieving the items
      */
     public void retrievePhase(boolean isTrader, boolean selfRetrieve) {
         if (isTrader) {
@@ -248,8 +262,8 @@ public class NewTrade {
         };
     }
 
-    public boolean openWindow(String playerName, boolean isTrader) {
-        Optional<? extends Player> optionalPlayer = RedisTrade.getInstance().getPlayer(playerName);
+    public boolean openWindow(UUID playerUUID, boolean isTrader) {
+        Optional<? extends Player> optionalPlayer = Optional.ofNullable(RedisTrade.getInstance().getServer().getPlayer(playerUUID));
         if (optionalPlayer.isPresent()) {
             Window.single()
                     .setTitle(Settings.instance().tradeGuiTitle.replace("%player%", isTrader ? targetName : traderName))
@@ -394,7 +408,10 @@ public class NewTrade {
     }
 
     public void notifyItem(int x, int y, boolean isTrader) {
-        Optional.ofNullable((isTrader ? traderGui : targetGui).getItem(x, y)).ifPresent(Item::notifyWindows);
+        Item item = (isTrader ? traderGui : targetGui).getItem(x, y);
+        if (item != null) {
+            item.notifyWindows();
+        }
     }
 
     public byte[] serialize() {

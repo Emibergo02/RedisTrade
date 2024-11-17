@@ -1,4 +1,4 @@
-package dev.unnm3d.redistrade;
+package dev.unnm3d.redistrade.configs;
 
 
 import de.exlll.configlib.Comment;
@@ -52,6 +52,11 @@ public class Settings {
             "RedisTrade",
             3);
 
+    @Comment("Timezone for the trade receipt")
+    public String timeZone = "GMT+1";
+    @Comment("Date format for trade timestamps")
+    public String dateFormat = "yyyy-MM-dd@HH:mm";
+
     @Comment({"Remember that a book line contains 20 large characters",
             "(if you use 'i's or 'l's it will be contain more characters)"})
     public List<List<String>> receiptIntestationFormat = List.of(
@@ -70,17 +75,21 @@ public class Settings {
             )
     );
 
-
-    public String receiptBookDisplayName = "<white>%trader%'s Receipt #%id%";
+    public String receiptBookDisplayName = "<white>%trader%'s Receipt";
 
     @Comment({"Remember that a book line contains 20 large characters",
             "(if you use 'i's or 'l's it will be contain more characters)"})
     public List<String> receiptBookLore = List.of(
+            "Trader: <blue>%trader%</blue>",
+            "Target: <blue>%target%</blue>",
             "Date: ",
-                    "<blue>%timestamp%</blue>",
-                    "",
-                    "%item_list%"
-            );
+            "<blue>%timestamp%</blue>",
+            "Trader price: <gold>%trader_price%</gold>",
+            "Target price: <gold>%target_price%</gold>",
+            "Exchanged items:",
+            "%items%"
+    );
+    public String itemDisplayLoreFormat = "<!i><gray>[x%amount% %item_display%]";
 
     public String traderItemsIntestation = "<bold>Trader items: </bold>";
     public String targetItemsIntestation = "<bold>Target items: </bold>";

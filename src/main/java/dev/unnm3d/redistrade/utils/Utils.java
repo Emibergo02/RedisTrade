@@ -1,4 +1,4 @@
-package dev.unnm3d.redistrade;
+package dev.unnm3d.redistrade.utils;
 
 import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;

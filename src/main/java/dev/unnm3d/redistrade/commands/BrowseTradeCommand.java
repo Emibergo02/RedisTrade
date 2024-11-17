@@ -4,11 +4,13 @@ import com.jonahseguin.drink.annotation.Command;
 import com.jonahseguin.drink.annotation.OptArg;
 import com.jonahseguin.drink.annotation.Require;
 import com.jonahseguin.drink.annotation.Sender;
-import dev.unnm3d.redistrade.Messages;
+import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.RedisTrade;
 import lombok.AllArgsConstructor;
 import org.bukkit.entity.Player;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -18,7 +20,7 @@ public class BrowseTradeCommand {
 
     @Command(name = "", desc = "Browse past trades")
     @Require("redistrade.browse")
-    public void browseTrade(@Sender Player player, @OptArg("start") @StartDate Date start, @OptArg("end") Date end, @OptArg("target") PlayerListManager.Target target) {
+    public void browseTrade(@Sender Player player, @OptArg("target") PlayerListManager.Target target, @OptArg("start") @StartDate LocalDateTime start, @OptArg("end") LocalDateTime end) {
         UUID targetUUID = target.playerName() == null ? player.getUniqueId() :
                 plugin.getPlayerListManager().getPlayerUUID(target.playerName())
                         .orElse(null);
@@ -27,10 +29,10 @@ public class BrowseTradeCommand {
             return;
         }
         if (start == null) {
-            start = new Date(0L);
+            start = LocalDateTime.MIN;
         }
         if (end == null) {
-            end = new Date();
+            end = LocalDateTime.MAX;
         }
 
         plugin.getTradeManager().openBrowser(player, targetUUID, start, end);

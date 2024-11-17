@@ -6,9 +6,12 @@ import de.exlll.configlib.ConfigLib;
 import de.exlll.configlib.ConfigurationException;
 import de.exlll.configlib.YamlConfigurations;
 import dev.unnm3d.redistrade.commands.*;
+import dev.unnm3d.redistrade.configs.Messages;
+import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.data.*;
 import dev.unnm3d.redistrade.guis.TradeManager;
 import dev.unnm3d.redistrade.hooks.EconomyHook;
+import dev.unnm3d.redistrade.utils.Metrics;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import lombok.Getter;
@@ -19,7 +22,8 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -38,6 +42,7 @@ public final class RedisTrade extends JavaPlugin {
     private PlayerListManager playerListManager;
     @Getter
     private EconomyHook economyHook;
+    private Metrics metrics;
 
 
     @Override
@@ -54,8 +59,8 @@ public final class RedisTrade extends JavaPlugin {
         };
         dataStorage = switch (settings.storageType) {
             case REDIS -> dataCache instanceof RedisDataManager rdm ? rdm :
-                    new RedisDataManager(this, craftRedisClient(), settings.redis.poolSize());
-            case MYSQL -> new MySQLDatabase(this, settings.mysql);
+                    new RedisDataManager(this, craftRedisClient(), this.settings.redis.poolSize());
+            case MYSQL -> new MySQLDatabase(this, this.settings.mysql);
             case SQLITE -> new SQLiteDatabase(this);
         };
         dataStorage.connect();
@@ -65,11 +70,15 @@ public final class RedisTrade extends JavaPlugin {
         this.economyHook = new EconomyHook(this);
         this.tradeManager = new TradeManager(this);
         loadCommands();
-
+        //bStats
+        this.metrics=new Metrics(this, 23912);
+        metrics.addCustomChart(new Metrics.SimplePie("storage_type", () -> this.settings.storageType.name()));
+        metrics.addCustomChart(new Metrics.SimplePie("cache_type", () -> this.settings.cacheType.name()));
     }
 
     @Override
     public void onDisable() {
+        metrics.shutdown();
         tradeManager.close();
         playerListManager.stop();
         dataStorage.close();
@@ -100,7 +109,7 @@ public final class RedisTrade extends JavaPlugin {
     private void loadCommands() {
         CommandService drink = Drink.get(this);
         drink.bind(PlayerListManager.Target.class).toProvider(new TargetProvider(playerListManager));
-        drink.bind(Date.class).toProvider(new DateProvider("yyyy-MM-dd@HH:mm", "GMT+1"));
+        drink.bind(LocalDateTime.class).toProvider(new LocalDateProvider(settings.dateFormat, settings.timeZone));
         drink.register(new TradeCommand(this), "trade", "t");
         drink.register(new TradeGuiCommand(this), "trade-gui");
         drink.register(new TradeIgnoreCommand(tradeManager), "trade-ignore");
