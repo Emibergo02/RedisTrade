@@ -28,7 +28,6 @@ public class TradeBrowserGUI {
                 .addIngredient('>', forwardItem())
                 .setContent(receiptItems)
                 .build();
-        System.out.println("TradeBrowserGUI created");
     }
 
     public void openWindow(Player player) {

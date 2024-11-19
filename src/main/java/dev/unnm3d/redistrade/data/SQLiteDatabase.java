@@ -11,15 +11,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.logging.Level;
 
-public class SQLiteDatabase implements Database, IStorageData {
+public class SQLiteDatabase implements Database {
 
     protected final RedisTrade plugin;
     @Getter
@@ -82,7 +80,7 @@ public class SQLiteDatabase implements Database, IStorageData {
                 try (Statement statement = getConnection().createStatement()) {
                     statement.execute(tableCreationStatement);
                 } catch (SQLException e) {
-                   e.printStackTrace();
+                    e.printStackTrace();
                 }
             }
         } catch (IOException e) {
@@ -129,8 +127,8 @@ public class SQLiteDatabase implements Database, IStorageData {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                        SELECT * FROM `archived` WHERE trader_uuid = ? OR target_uuid = ? AND timestamp BETWEEN ? AND ?
-                        ORDER BY timestamp DESC ;""")) {
+                         SELECT * FROM `archived` WHERE trader_uuid = ? OR target_uuid = ? AND timestamp BETWEEN ? AND ?
+                         ORDER BY timestamp DESC ;""")) {
                 statement.setString(1, playerUUID.toString());
                 statement.setString(2, playerUUID.toString());
                 statement.setTimestamp(3, Timestamp.valueOf(startTimestamp));

@@ -11,8 +11,14 @@ libraries:
   - io.lettuce:lettuce-core:6.4.0.RELEASE
 permissions:
   redistrade.trade:
-    description: Open the emporium
+    description: Open the trade GUI
     default: true
+  redistrade.ignore:
+    description: Ignore a trade
+    default: true
+  redistrade.browse:
+    description: Browse the trades
+    default: op
   redistrade.setitem:
     description: Set a gui item from your hand
     default: op

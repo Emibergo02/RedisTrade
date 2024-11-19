@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'dev.unnm3d'
-version = 'BETA4-SNAPSHOT'
+version = 'BETA5'
 
 repositories {
     mavenCentral()

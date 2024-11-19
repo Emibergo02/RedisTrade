@@ -1,20 +1,18 @@
 package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.RedisTrade;
-import dev.unnm3d.redistrade.utils.Utils;
+import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.guis.OrderInfo;
 import dev.unnm3d.redistrade.objects.NewTrade;
 import dev.unnm3d.redistrade.redistools.RedisAbstract;
+import dev.unnm3d.redistrade.utils.Utils;
 import io.lettuce.core.RedisClient;
 import lombok.Getter;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.DataFormatException;
@@ -83,6 +81,7 @@ public class RedisDataManager extends RedisAbstract implements IStorageData {
         }
     }
 
+    @Override
     public CompletionStage<Map<String, UUID>> loadNameUUIDs() {
         return getConnectionAsync(connection -> connection.hgetall(DataKeys.NAME_UUIDS.toString()))
                 .thenApply(map -> {
@@ -164,6 +163,7 @@ public class RedisDataManager extends RedisAbstract implements IStorageData {
                 });
     }
 
+    @Override
     public void updateTrade(UUID tradeUUID, TradeUpdateType type, Object value) {
         getConnectionAsync(connection ->
                 connection.publish(DataKeys.FIELD_UPDATE_TRADE.toString(),
@@ -210,21 +210,6 @@ public class RedisDataManager extends RedisAbstract implements IStorageData {
         return getConnectionAsync(connection -> connection.smembers(DataKeys.IGNORE_PLAYER_PREFIX + playerName));
     }
 
-    @Override
-    public boolean archiveTrade(NewTrade trade) {
-        return true;
-    }
-
-    @Override
-    public CompletableFuture<Map<Long, NewTrade>> getArchivedTrades(UUID playerUUID, LocalDateTime startTimestamp, LocalDateTime endTimestamp) {
-        return CompletableFuture.completedFuture(Collections.emptyMap());
-    }
-
-    @Override
-    public void connect() {
-
-    }
-
     public static byte[] compress(byte[] input) {
         Deflater deflater = new Deflater();
         deflater.setInput(input);
@@ -237,7 +222,9 @@ public class RedisDataManager extends RedisAbstract implements IStorageData {
             int compressedSize = deflater.deflate(buffer);
             outputStream.write(buffer, 0, compressedSize);
         }
-        System.out.println("Compressed " + input.length + " to " + outputStream.size());
+        if (Settings.instance().debug) {
+            RedisTrade.getInstance().getLogger().info("Compressed " + input.length + " to " + outputStream.size());
+        }
         return outputStream.toByteArray();
     }
 

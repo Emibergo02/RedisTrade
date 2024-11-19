@@ -35,10 +35,19 @@ public class Settings {
         return SETTINGS;
     }
 
-
+    @Comment({"Storage type for the plugin",
+            "REDIS - Redis storage (you can't use archived trades with this storage type)",
+            "MYSQL - MySQL storage",
+            "SQLITE - SQLite storage"})
     public StorageType storageType = StorageType.SQLITE;
-    public CacheType cacheType = CacheType.REDIS;
-    public MySQL mysql = new MySQL("localhost", 3306, "org.mariadb.jdbc.Driver",
+
+    @Comment({"Cache type for the plugin",
+            "REDIS - Redis cache",
+            "PLUGIN_MESSAGE - Plugin message cache (not implemented yet)",
+            "MEMORY - Memory cache (RAM) (does not enable cross-server features)"})
+    public CacheType cacheType = CacheType.MEMORY;
+
+    public MySQL mysql = new MySQL("localhost", 3306, "com.mysql.cj.jdbc.Driver",
             "redistrade", "root", "password",
             10, 10, 1800000, 0, 5000);
 
@@ -122,6 +131,7 @@ public class Settings {
     );
 
     public String defaultCurrency = "default";
+    public boolean debug = false;
 
     public ItemStack getButton(ButtonType buttonType) {
         return buttons.getOrDefault(buttonType, new ItemBuilder(Material.BARRIER).setDisplayName("§cItem is not set").get());
@@ -239,6 +249,7 @@ public class Settings {
     public enum CacheType {
         REDIS,
         PLUGIN_MESSAGE,
+        MEMORY,
     }
 
     public enum StorageType {

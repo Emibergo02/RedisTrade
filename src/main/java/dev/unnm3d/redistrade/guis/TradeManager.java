@@ -1,14 +1,15 @@
 package dev.unnm3d.redistrade.guis;
 
-import dev.unnm3d.redistrade.configs.Messages;
-import dev.unnm3d.redistrade.utils.ReceiptBuilder;
 import dev.unnm3d.redistrade.RedisTrade;
+import dev.unnm3d.redistrade.configs.Messages;
+import dev.unnm3d.redistrade.configs.Settings;
+import dev.unnm3d.redistrade.data.Database;
 import dev.unnm3d.redistrade.objects.NewTrade;
+import dev.unnm3d.redistrade.utils.ReceiptBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import xyz.xenondevs.invui.item.Item;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,20 +62,23 @@ public class TradeManager {
     }
 
     public void openBrowser(Player player, UUID targetUUID, LocalDateTime start, LocalDateTime end) {
-        System.out.println("Opening browser");
-        plugin.getDataStorage().getArchivedTrades(targetUUID, start, end)
-                .thenAcceptAsync(trades -> {
-                    final List<Item> receiptItems = trades.entrySet().stream()
-                            .map(entry -> ReceiptBuilder.buildReceipt(entry.getValue(), entry.getKey()))
-                            .toList();
-                    System.out.println("Opening browser with " + receiptItems.size() + " items");
-                    Bukkit.getScheduler().runTask(plugin, () ->
-                            new TradeBrowserGUI(receiptItems).openWindow(player));
-                })
-                .exceptionally(e -> {
-                    e.printStackTrace();
-                    return null;
-                });
+        if (plugin.getDataStorage() instanceof Database database) {
+            database.getArchivedTrades(targetUUID, start, end)
+                    .thenAcceptAsync(trades -> {
+                        final List<Item> receiptItems = trades.entrySet().stream()
+                                .map(entry -> ReceiptBuilder.buildReceipt(entry.getValue(), entry.getKey()))
+                                .toList();
+                        Bukkit.getScheduler().runTask(plugin, () ->
+                                new TradeBrowserGUI(receiptItems).openWindow(player));
+                    })
+                    .exceptionally(e -> {
+                        e.printStackTrace();
+                        return null;
+                    });
+        } else {
+            player.sendRichMessage(Messages.instance().notSupported
+                    .replace("%feature%", "Redis database"));
+        }
     }
 
     /**
@@ -105,7 +109,6 @@ public class TradeManager {
 
             return true;
         }
-        System.out.println("Trader trade is null");
 
         final NewTrade targetTrade = Optional.ofNullable(playerTrades.get(targetUUID))
                 .map(trades::get)
@@ -124,7 +127,6 @@ public class TradeManager {
                             .replace("%player%", name)));
             return true;
         }
-        System.out.println("Target trade is null");
         return false;
     }
 
@@ -142,15 +144,19 @@ public class TradeManager {
         if (trade == null) return;
         //Check if Current trade does not contain the target
         if (trade.isTrader(playerUUID)) {
-            System.out.println("Cancelling trade. Current trades contains target: " + playerTrades.containsKey(trade.getTargetUUID()));
             if (!playerTrades.containsKey(trade.getTargetUUID())) {
                 removeTrade(trade.getUuid());
+                if (Settings.instance().debug) {
+                    plugin.getLogger().info("Trade removed: " + trade.getUuid() + " target isn't in current trades");
+                }
             }
         } else {
             //Check if Current trade does not contain the trader
-            System.out.println("Cancelling trade. Current trades contains trader: " + playerTrades.containsKey(trade.getTraderUUID()));
             if (!playerTrades.containsKey(trade.getTraderUUID())) {
                 removeTrade(trade.getUuid());
+                if (Settings.instance().debug) {
+                    plugin.getLogger().info("Trade removed: " + trade.getUuid() + " trader isn't in current trades");
+                }
             }
         }
     }
@@ -160,7 +166,6 @@ public class TradeManager {
         //Because the player has already retrieved his items
         if (trade.getOrderInfo(!isTrader).getStatus() != OrderInfo.Status.RETRIEVED) {
             playerTrades.put(playerUUID, trade.getUuid());
-            System.out.println("Adding player to current trades");
         }
 
         return trade.openWindow(playerUUID, isTrader);

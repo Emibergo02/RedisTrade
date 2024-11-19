@@ -46,7 +46,7 @@ public class PlayerListManager implements Listener {
                 .thenAccept(map -> {
                     nameUUIDs.clear();
                     nameUUIDs.putAll(map);
-                    plugin.getLogger().info("Loaded " + map.size() + " nameUUIDs from redis");
+                    plugin.getLogger().info("Loaded " + map.size() + " nameUUIDs from database");
                 });
     }
 

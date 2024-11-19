@@ -13,18 +13,16 @@ import dev.unnm3d.redistrade.guis.TradeManager;
 import dev.unnm3d.redistrade.hooks.EconomyHook;
 import dev.unnm3d.redistrade.utils.Metrics;
 import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisConnectionException;
 import io.lettuce.core.RedisURI;
 import lombok.Getter;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public final class RedisTrade extends JavaPlugin {
@@ -50,20 +48,28 @@ public final class RedisTrade extends JavaPlugin {
         instance = this;
         loadYML();
 
-
-        dataCache = switch (settings.cacheType) {
-            case REDIS -> new RedisDataManager(this, craftRedisClient(),
-                    settings.redis.poolSize());
-
-            case PLUGIN_MESSAGE -> null;
-        };
+        try {
+            dataCache = switch (settings.cacheType) {
+                case REDIS -> new RedisDataManager(this, craftRedisClient(),
+                        settings.redis.poolSize());
+                case MEMORY -> ICacheData.createEmpty();
+                case PLUGIN_MESSAGE -> null;
+            };
+        } catch (RedisConnectionException e) {
+            getLogger().severe("Cannot connect to Redis server");
+            getLogger().severe("Check your configuration and try again");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         dataStorage = switch (settings.storageType) {
             case REDIS -> dataCache instanceof RedisDataManager rdm ? rdm :
                     new RedisDataManager(this, craftRedisClient(), this.settings.redis.poolSize());
             case MYSQL -> new MySQLDatabase(this, this.settings.mysql);
             case SQLITE -> new SQLiteDatabase(this);
         };
-        dataStorage.connect();
+        if (dataStorage instanceof Database database) {
+            database.connect();
+        }
 
 
         this.playerListManager = new PlayerListManager(this);
@@ -71,7 +77,7 @@ public final class RedisTrade extends JavaPlugin {
         this.tradeManager = new TradeManager(this);
         loadCommands();
         //bStats
-        this.metrics=new Metrics(this, 23912);
+        this.metrics = new Metrics(this, 23912);
         metrics.addCustomChart(new Metrics.SimplePie("storage_type", () -> this.settings.storageType.name()));
         metrics.addCustomChart(new Metrics.SimplePie("cache_type", () -> this.settings.cacheType.name()));
     }
@@ -100,10 +106,6 @@ public final class RedisTrade extends JavaPlugin {
                         redisURIBuilder.withAuthentication(settings.redis.user(), settings.redis.password());
 
         return RedisClient.create(redisURIBuilder.build());
-    }
-
-    public Optional<? extends Player> getPlayer(String name) {
-        return getServer().getOnlinePlayers().stream().filter(player -> player.getName().equals(name)).findFirst();
     }
 
     private void loadCommands() {

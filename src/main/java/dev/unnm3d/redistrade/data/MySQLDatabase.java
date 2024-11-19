@@ -16,17 +16,12 @@ import java.util.UUID;
 
 @Setter
 @Getter
-public class MySQLDatabase extends SQLiteDatabase implements Database {
+public class MySQLDatabase extends SQLiteDatabase {
     private final Settings.MySQL settings;
 
     public MySQLDatabase(RedisTrade plugin, Settings.MySQL settings) {
         super(plugin);
         this.settings = settings;
-    }
-
-    @Override
-    public Connection getConnection() throws SQLException {
-        return dataSource.getConnection();
     }
 
     @Override
@@ -127,7 +122,7 @@ public class MySQLDatabase extends SQLiteDatabase implements Database {
              PreparedStatement statement = connection.prepareStatement("""
                      INSERT INTO `player_list` (player_name,player_uuid)
                         VALUES (?,?)
-                    ON DUPLICATE KEY UPDATE player_name = VALUES(player_name), player_uuid = VALUES(player_uuid);""")) {
+                     ON DUPLICATE KEY UPDATE player_name = VALUES(player_name), player_uuid = VALUES(player_uuid);""")) {
             statement.setString(1, playerName);
             statement.setString(2, playerUUID.toString());
             statement.executeUpdate();

@@ -3,14 +3,12 @@ package dev.unnm3d.redistrade.configs;
 
 import de.exlll.configlib.Configuration;
 import de.exlll.configlib.YamlConfigurations;
-import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 
 @Configuration
 public class Messages {
     private static Messages SETTINGS;
-    public @NotNull String alreadyIgnored;
 
 
     public static Messages instance() {
@@ -36,4 +34,5 @@ public class Messages {
     public String tradeUnignored = "<green>You unignored %player% trades";
     public String tradeIgnored = "<green>You ignored %player% trades";
     public String tradeIgnoreList = "<green>Ignored players: %list%";
+    public String notSupported = "<red>This feature is not supported with %feature%";
 }

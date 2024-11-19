@@ -2,12 +2,13 @@ package dev.unnm3d.redistrade.objects;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Settings;
-import dev.unnm3d.redistrade.utils.Utils;
+import dev.unnm3d.redistrade.data.Database;
 import dev.unnm3d.redistrade.data.ICacheData;
 import dev.unnm3d.redistrade.data.RedisDataManager;
 import dev.unnm3d.redistrade.guis.MoneySelectorGUI;
 import dev.unnm3d.redistrade.guis.OrderInfo;
 import dev.unnm3d.redistrade.guis.TradeGuiImpl;
+import dev.unnm3d.redistrade.utils.Utils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -85,8 +86,12 @@ public class NewTrade {
         });
         targetSideInfo.getVirtualInventory().setPostUpdateHandler(event -> retrievePhase(false, false));
 
-        System.out.println("VirtualInventory trader hash: " + traderSideInfo.getVirtualInventory().hashCode());
-        System.out.println("VirtualInventory target hash: " + targetSideInfo.getVirtualInventory().hashCode());
+        if (Settings.instance().debug) {
+            RedisTrade.getInstance().getLogger()
+                    .info("VirtualInventory trader hash: " + traderSideInfo.getVirtualInventory().hashCode());
+            RedisTrade.getInstance().getLogger()
+                    .info("VirtualInventory target hash: " + targetSideInfo.getVirtualInventory().hashCode());
+        }
 
         this.traderGui = createTraderGui();
         this.targetGui = createTargetGui();
@@ -96,6 +101,7 @@ public class NewTrade {
     public boolean isTrader(UUID playerUUID) {
         return playerUUID.equals(traderUUID);
     }
+
     public boolean isTarget(UUID playerUUID) {
         return playerUUID.equals(targetUUID);
     }
@@ -205,7 +211,9 @@ public class NewTrade {
                         "default", "Trade price");
 
         //Archive the completed trade
-        RedisTrade.getInstance().getDataStorage().archiveTrade(this);
+        if (RedisTrade.getInstance().getDataStorage() instanceof Database database) {
+            database.archiveTrade(this);
+        }
         retrievePhase(true, false);
         retrievePhase(false, false);
     }
