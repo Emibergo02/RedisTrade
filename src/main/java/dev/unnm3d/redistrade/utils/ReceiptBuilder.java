@@ -1,7 +1,7 @@
 package dev.unnm3d.redistrade.utils;
 
 import dev.unnm3d.redistrade.configs.Settings;
-import dev.unnm3d.redistrade.objects.NewTrade;
+import dev.unnm3d.redistrade.core.NewTrade;
 import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;

@@ -3,7 +3,7 @@ package dev.unnm3d.redistrade.data;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import dev.unnm3d.redistrade.RedisTrade;
-import dev.unnm3d.redistrade.objects.NewTrade;
+import dev.unnm3d.redistrade.core.NewTrade;
 import lombok.Getter;
 
 import java.io.File;
@@ -156,7 +156,7 @@ public class SQLiteDatabase implements Database {
                      INSERT OR REPLACE INTO `backup` (trade_uuid,serialized)
                         VALUES (?,?);""")) {
             statement.setString(1, trade.getUuid().toString());
-            statement.setString(2, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
+            statement.setString(2, Base64.getEncoder().encodeToString(trade.serialize()));
             statement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -214,7 +214,7 @@ public class SQLiteDatabase implements Database {
                     final List<NewTrade> trades = new ArrayList<>();
                     while (result.next()) {
                         trades.add(NewTrade.deserialize(RedisTrade.getInstance().getDataCache(),
-                                result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
+                                Base64.getDecoder().decode(result.getString("serialized"))));
                     }
                     return trades;
                 }

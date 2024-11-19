@@ -1,4 +1,4 @@
-package dev.unnm3d.redistrade.objects;
+package dev.unnm3d.redistrade.core;
 
 import com.github.Anon8281.universalScheduler.UniversalRunnable;
 import dev.unnm3d.redistrade.configs.Messages;

@@ -1,6 +1,6 @@
 package dev.unnm3d.redistrade.data;
 
-import dev.unnm3d.redistrade.objects.NewTrade;
+import dev.unnm3d.redistrade.core.NewTrade;
 
 import java.util.List;
 import java.util.UUID;

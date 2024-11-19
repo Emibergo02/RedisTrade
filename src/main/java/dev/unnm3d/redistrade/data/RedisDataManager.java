@@ -2,8 +2,8 @@ package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Settings;
-import dev.unnm3d.redistrade.guis.OrderInfo;
-import dev.unnm3d.redistrade.objects.NewTrade;
+import dev.unnm3d.redistrade.core.OrderInfo;
+import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.redistools.RedisAbstract;
 import dev.unnm3d.redistrade.utils.Utils;
 import io.lettuce.core.RedisClient;

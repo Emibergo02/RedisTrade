@@ -21,7 +21,8 @@ public class TradeCommand {
         plugin.getTradeManager().getActiveTrade(player.getUniqueId())
                 .ifPresentOrElse(trade -> {
                             plugin.getServer().getScheduler().runTask(plugin, () ->
-                                    plugin.getTradeManager().openWindow(trade, player.getUniqueId(), false));
+                                    plugin.getTradeManager().openWindow(trade, player.getUniqueId(),
+                                            trade.isTrader(player.getUniqueId())));
                             player.sendRichMessage(Messages.instance().alreadyInTrade
                                     .replace("%player%", trade.getTraderName()));
                         },

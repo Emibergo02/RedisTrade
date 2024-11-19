@@ -3,7 +3,7 @@ package dev.unnm3d.redistrade.data;
 import com.zaxxer.hikari.HikariDataSource;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Settings;
-import dev.unnm3d.redistrade.objects.NewTrade;
+import dev.unnm3d.redistrade.core.NewTrade;
 import lombok.Getter;
 import lombok.Setter;
 

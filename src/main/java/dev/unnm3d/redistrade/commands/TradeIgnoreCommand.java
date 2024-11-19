@@ -4,7 +4,7 @@ import com.jonahseguin.drink.annotation.Command;
 import com.jonahseguin.drink.annotation.Require;
 import com.jonahseguin.drink.annotation.Sender;
 import dev.unnm3d.redistrade.configs.Messages;
-import dev.unnm3d.redistrade.guis.TradeManager;
+import dev.unnm3d.redistrade.core.TradeManager;
 import lombok.AllArgsConstructor;
 import org.bukkit.entity.Player;
 

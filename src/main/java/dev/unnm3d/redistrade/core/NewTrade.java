@@ -1,4 +1,4 @@
-package dev.unnm3d.redistrade.objects;
+package dev.unnm3d.redistrade.core;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Settings;
@@ -6,7 +6,6 @@ import dev.unnm3d.redistrade.data.Database;
 import dev.unnm3d.redistrade.data.ICacheData;
 import dev.unnm3d.redistrade.data.RedisDataManager;
 import dev.unnm3d.redistrade.guis.MoneySelectorGUI;
-import dev.unnm3d.redistrade.guis.OrderInfo;
 import dev.unnm3d.redistrade.guis.TradeGuiImpl;
 import dev.unnm3d.redistrade.utils.Utils;
 import lombok.EqualsAndHashCode;
@@ -91,6 +90,10 @@ public class NewTrade {
                     .info("VirtualInventory trader hash: " + traderSideInfo.getVirtualInventory().hashCode());
             RedisTrade.getInstance().getLogger()
                     .info("VirtualInventory target hash: " + targetSideInfo.getVirtualInventory().hashCode());
+            RedisTrade.getInstance().getLogger()
+                    .info("OrderInfo trader: " + traderSideInfo);
+            RedisTrade.getInstance().getLogger()
+                    .info("OrderInfo target: " + targetSideInfo);
         }
 
         this.traderGui = createTraderGui();
@@ -423,6 +426,12 @@ public class NewTrade {
     }
 
     public byte[] serialize() {
+        if (Settings.instance().debug) {
+            RedisTrade.getInstance().getLogger()
+                    .info("Serializing OrderInfo trader: " + traderSideInfo);
+            RedisTrade.getInstance().getLogger()
+                    .info("Serializing OrderInfo target: " + targetSideInfo);
+        }
         byte[] traderData = traderSideInfo.serialize();
         byte[] targetData = targetSideInfo.serialize();
         //Allocate bytes for TradeUUID, TraderUUID, TargetUUID, TraderName, TargetName, TraderData size, TargetData size, TraderData, TargetData

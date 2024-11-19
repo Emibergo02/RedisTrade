@@ -1,4 +1,4 @@
-package dev.unnm3d.redistrade.guis;
+package dev.unnm3d.redistrade.core;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;

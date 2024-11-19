@@ -1,10 +1,10 @@
-package dev.unnm3d.redistrade.guis;
+package dev.unnm3d.redistrade.core;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.data.Database;
-import dev.unnm3d.redistrade.objects.NewTrade;
+import dev.unnm3d.redistrade.guis.TradeBrowserGUI;
 import dev.unnm3d.redistrade.utils.ReceiptBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -28,7 +28,11 @@ public class TradeManager {
         this.ignorePlayers = new ConcurrentHashMap<>();
 
         plugin.getDataStorage().restoreTrades().thenAccept(trades ->
-                trades.forEach(this::tradeUpdate));
+                trades.forEach(this::tradeUpdate))
+                .exceptionally(e -> {
+                    e.printStackTrace();
+                    return null;
+                });
     }
 
     public void startTrade(Player traderPlayer, String targetName) {
@@ -159,6 +163,12 @@ public class TradeManager {
                 }
             }
         }
+    }
+
+    public void abortTrade(NewTrade trade){
+        Player onlineTrader= plugin.getServer().getPlayer(trade.getTraderUUID());
+        Player onlineTarget= plugin.getServer().getPlayer(trade.getTargetUUID());
+
     }
 
     public boolean openWindow(NewTrade trade, UUID playerUUID, boolean isTrader) {

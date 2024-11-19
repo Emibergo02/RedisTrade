@@ -9,7 +9,7 @@ import dev.unnm3d.redistrade.commands.*;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.data.*;
-import dev.unnm3d.redistrade.guis.TradeManager;
+import dev.unnm3d.redistrade.core.TradeManager;
 import dev.unnm3d.redistrade.hooks.EconomyHook;
 import dev.unnm3d.redistrade.utils.Metrics;
 import io.lettuce.core.RedisClient;
@@ -116,6 +116,7 @@ public final class RedisTrade extends JavaPlugin {
         drink.register(new TradeGuiCommand(this), "trade-gui");
         drink.register(new TradeIgnoreCommand(tradeManager), "trade-ignore");
         drink.register(new BrowseTradeCommand(this), "browse-trade");
+        drink.register(new TradeReloadCommand(), "trade-reload");
         drink.registerCommands();
     }
 
