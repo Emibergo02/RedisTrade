@@ -10,6 +10,8 @@ create table if not exists `archived`
 create table if not exists `backup`
 (
     trade_uuid  varchar(36)                         not null primary key,
+    server_id    int                                 not null,
+    timestamp   timestamp default CURRENT_TIMESTAMP not null,
     serialized  text                                not null
 );
 

@@ -16,7 +16,7 @@ public interface IStorageData {
 
     void ignorePlayer(String playerName, String targetName, boolean ignore);
 
-    CompletionStage<List<NewTrade>> restoreTrades();
+    CompletionStage<Map<Integer, NewTrade>> restoreTrades();
 
     CompletionStage<Map<String, UUID>> loadNameUUIDs();
 

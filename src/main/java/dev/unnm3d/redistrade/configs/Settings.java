@@ -65,6 +65,8 @@ public class Settings {
     public String timeZone = "GMT+1";
     @Comment("Date format for trade timestamps")
     public String dateFormat = "yyyy-MM-dd@HH:mm";
+    @Comment("Decimal format for the trade receipt")
+    public String decimalFormat = "#.##";
 
     @Comment({"Remember that a book line contains 20 large characters",
             "(if you use 'i's or 'l's it will be contain more characters)"})
@@ -253,7 +255,6 @@ public class Settings {
     }
 
     public enum StorageType {
-        REDIS,
         MYSQL,
         SQLITE,
     }

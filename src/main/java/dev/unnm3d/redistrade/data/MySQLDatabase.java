@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
+import dev.unnm3d.redistrade.integrity.RedisTradeStorageException;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -91,13 +92,14 @@ public class MySQLDatabase extends SQLiteDatabase {
                      target_uuid = VALUES(target_uuid), timestamp = VALUES(timestamp), serialized=VALUES(serialized)
                      ;""")) {
             statement.setString(1, trade.getUuid().toString());
-            statement.setString(2, trade.getTraderUUID().toString());
-            statement.setString(3, trade.getTargetUUID().toString());
+            statement.setString(2, trade.getTraderSide().getTraderUUID().toString());
+            statement.setString(3, trade.getOtherSide().getTraderUUID().toString());
             statement.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
             statement.setString(5, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
             return statement.executeUpdate() != 0;
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.ARCHIVE_TRADE, trade.getUuid()));
+            return false;
         }
     }
 
@@ -105,14 +107,15 @@ public class MySQLDatabase extends SQLiteDatabase {
     public void backupTrade(NewTrade trade) {
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("""
-                     INSERT INTO `backup` (trade_uuid,serialized)
-                        VALUES (?,?)
+                     INSERT INTO `backup` (trade_uuid,server_id,serialized)
+                        VALUES (?,?,?)
                      ON DUPLICATE KEY UPDATE trade_uuid = VALUES(trade_uuid), serialized = VALUES(serialized);""")) {
             statement.setString(1, trade.getUuid().toString());
-            statement.setString(2, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
+            statement.setInt(2, RedisTrade.getServerId());
+            statement.setString(3, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.BACKUP_TRADE, trade.getUuid()));
         }
     }
 
@@ -127,7 +130,7 @@ public class MySQLDatabase extends SQLiteDatabase {
             statement.setString(2, playerUUID.toString());
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.PLAYERLIST));
         }
     }
 
@@ -141,7 +144,8 @@ public class MySQLDatabase extends SQLiteDatabase {
             statement.setString(1, playerName);
             statement.setString(2, targetName);
             statement.executeUpdate();
-        } catch (SQLException ignored) {
+        } catch (SQLException e) {
+            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.IGNORED_PLAYER));
         }
     }
 

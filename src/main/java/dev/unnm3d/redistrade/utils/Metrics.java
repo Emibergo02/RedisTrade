@@ -87,7 +87,7 @@ public class Metrics {
             }
         }
         // Load the data
-        boolean enabled = config.getBoolean("enabled", true);
+        boolean enabled = true;
         String serverUUID = config.getString("serverUuid");
         boolean logErrors = config.getBoolean("logFailedRequests", false);
         boolean logSentData = config.getBoolean("logSentData", false);
@@ -122,7 +122,7 @@ public class Metrics {
                         logSentData,
                         logResponseStatusText,
                         false);
-        addCustomChart(new SimplePie("Jar origin", () -> "compiled"));
+        addCustomChart(new SimplePie("jar_origin", () -> "compiled"));
     }
 
     /** Shuts down the underlying scheduler service. */

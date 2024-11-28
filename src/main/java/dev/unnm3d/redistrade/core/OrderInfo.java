@@ -4,6 +4,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.bukkit.inventory.ItemStack;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
 
 import java.nio.ByteBuffer;
@@ -27,6 +28,12 @@ public class OrderInfo {
         this.virtualInventory = virtualInventory;
         this.status = status;
         this.proposed = proposed;
+    }
+
+    public void replaceAllItems(ItemStack[] items) {
+        for (int i = 0; i < items.length; i++) {
+            virtualInventory.setItemSilently(i, items[i]);
+        }
     }
 
 

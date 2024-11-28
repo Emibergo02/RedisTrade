@@ -3,12 +3,14 @@ package dev.unnm3d.redistrade.configs;
 
 import de.exlll.configlib.Configuration;
 import de.exlll.configlib.YamlConfigurations;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 
 @Configuration
 public class Messages {
     private static Messages SETTINGS;
+
 
 
     public static Messages instance() {
@@ -35,4 +37,9 @@ public class Messages {
     public String tradeIgnored = "<green>You ignored %player% trades";
     public String tradeIgnoreList = "<green>Ignored players: %list%";
     public String notSupported = "<red>This feature is not supported with %feature%";
+    public String playerMoneyDisplay = "Your price: %amount%$";
+    public String otherPlayerMoneyDisplay = "The other player price: %amount%$";
+    public String confirmMoneyDisplay = "<green>Confirm the price %amount%$";
+    public String tradeAborted = "<red>The trade was aborted for safety reasons. Your items and money were returned";
+    public String newTradesLock = "<red>Sorry for the inconvenience. There are temporary synchronization issues<br> Please try again in a few seconds";
 }

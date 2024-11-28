@@ -95,6 +95,10 @@ public class PlayerListManager implements Listener {
         task.cancel();
     }
 
+    public void clear() {
+        onlinePlayerList.clear();
+    }
+
     public record Target(String playerName) {
     }
 }

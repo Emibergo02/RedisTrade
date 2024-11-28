@@ -1,13 +1,7 @@
 package dev.unnm3d.redistrade;
 
-import dev.unnm3d.redistrade.guis.OrderInfo;
-import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import java.text.DecimalFormat;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

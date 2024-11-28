@@ -17,18 +17,25 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TradeManager {
 
     private final RedisTrade plugin;
-    private final ConcurrentHashMap<UUID, NewTrade> trades;
+    final ConcurrentHashMap<UUID, NewTrade> trades;
     private final ConcurrentHashMap<UUID, UUID> playerTrades;
     private final ConcurrentHashMap<String, HashSet<String>> ignorePlayers;
+
+    private final ConcurrentHashMap<Integer, UUID> tradeServerOwners;
+    private long lastQuery;
 
     public TradeManager(RedisTrade plugin) {
         this.plugin = plugin;
         this.trades = new ConcurrentHashMap<>();
+        this.tradeServerOwners = new ConcurrentHashMap<>();
         this.playerTrades = new ConcurrentHashMap<>();
         this.ignorePlayers = new ConcurrentHashMap<>();
 
-        plugin.getDataStorage().restoreTrades().thenAccept(trades ->
-                trades.forEach(this::tradeUpdate))
+        plugin.getDataStorage().restoreTrades().thenAccept(trades -> {
+                    trades.forEach(this::initializeTrade);
+                    plugin.getDataCache().sendQuery();
+                    lastQuery = System.currentTimeMillis();
+                })
                 .exceptionally(e -> {
                     e.printStackTrace();
                     return null;
@@ -40,24 +47,49 @@ public class TradeManager {
             traderPlayer.sendRichMessage(Messages.instance().tradeWithYourself);
             return;
         }
+
         //Create Trade and send update (and open inventories)
-        plugin.getServer().getScheduler().runTask(plugin, () ->
-                plugin.getPlayerListManager().getPlayerUUID(targetName)
-                        .ifPresentOrElse(uuid -> {
-                            if (openAlreadyStarted(traderPlayer, uuid)) return;
-                            final NewTrade trade = new NewTrade(plugin.getDataCache(), traderPlayer.getUniqueId(), uuid,
-                                    traderPlayer.getName(), targetName);
-                            tradeUpdate(trade);
-                            //Update trade calls invite message
-                            plugin.getDataCache().createTrade(trade);
+        plugin.getPlayerListManager().getPlayerUUID(targetName)
+                .ifPresentOrElse(uuid -> {
+                    if (openAlreadyStarted(traderPlayer, uuid)) return;
 
-                            traderPlayer.sendRichMessage(Messages.instance().tradeCreated
-                                    .replace("%player%", targetName));
+                    final NewTrade trade = new NewTrade(plugin.getDataCache(), traderPlayer.getUniqueId(), uuid,
+                            traderPlayer.getName(), targetName);
+                    //Update trade calls invite message remotely
+                    plugin.getDataCache().sendFullTrade(trade).whenComplete((aLong, throwable) -> {
+                        if (throwable == null) {
+                            //Update trade calls invite message locally
+                            initializeTrade(RedisTrade.getServerId(), trade);
 
+                            plugin.getServer().getScheduler().runTask(plugin, () ->
+                                    openWindow(trade, traderPlayer.getUniqueId()));
+                            return;
+                        }
 
-                            openWindow(trade, traderPlayer.getUniqueId(), true);
-                        }, () -> traderPlayer.sendRichMessage(Messages.instance().playerNotFound
-                                .replace("%player%", targetName))));
+                        traderPlayer.sendRichMessage(Messages.instance().newTradesLock);
+                    });
+
+                    traderPlayer.sendRichMessage(Messages.instance().tradeCreated
+                            .replace("%player%", targetName));
+
+                }, () -> traderPlayer.sendRichMessage(Messages.instance().playerNotFound
+                        .replace("%player%", targetName)));
+    }
+
+    /**
+     * Send all current trades to the other servers
+     * This is called when a new server joins the network (aka a query is received)
+     */
+    public void sendAllCurrentTrades() {
+        tradeServerOwners.forEach((serverId, tradeUUID) -> {
+            if (serverId != RedisTrade.getServerId()) return;
+            NewTrade trade = trades.get(tradeUUID);
+            if (trade == null) return;
+            plugin.getDataCache().sendFullTrade(trade);
+            if (Settings.instance().debug) {
+                plugin.getLogger().info("Sending trade query response: " + trade.getUuid());
+            }
+        });
     }
 
     public Optional<NewTrade> getActiveTrade(UUID playerUUID) {
@@ -96,18 +128,13 @@ public class TradeManager {
                 .map(trades::get)
                 .orElse(null);
         if (traderTrade != null) {
-            //If the trade target is the current target open the window for the trader
-            if (traderTrade.isTarget(targetUUID)) {
-                openWindow(traderTrade, traderPlayer.getUniqueId(), true);
-                return true;
-            }
-            //If the trade target is the current target open the window for the trader
-            if (traderTrade.isTrader(targetUUID)) {
-                openWindow(traderTrade, traderPlayer.getUniqueId(), false);
+            if (traderTrade.isTarget(targetUUID) || traderTrade.isTrader(targetUUID)) {
+                plugin.getServer().getScheduler().runTask(plugin, () ->
+                        openWindow(traderTrade, traderPlayer.getUniqueId()));
                 return true;
             }
 
-            plugin.getPlayerListManager().getPlayerName(traderTrade.getTargetUUID())
+            plugin.getPlayerListManager().getPlayerName(traderTrade.getOtherSide().getTraderUUID())
                     .ifPresent(name -> traderPlayer.sendRichMessage(Messages.instance().alreadyInTrade
                             .replace("%player%", name)));
 
@@ -118,14 +145,12 @@ public class TradeManager {
                 .map(trades::get)
                 .orElse(null);
         if (targetTrade != null) {
-            if (targetTrade.isTarget(traderPlayer.getUniqueId())) {
-                openWindow(targetTrade, traderPlayer.getUniqueId(), false);
+            if (targetTrade.isTarget(traderPlayer.getUniqueId()) || targetTrade.isTrader(traderPlayer.getUniqueId())) {
+                plugin.getServer().getScheduler().runTask(plugin, () ->
+                        openWindow(targetTrade, traderPlayer.getUniqueId()));
                 return true;
             }
-            if (targetTrade.isTrader(traderPlayer.getUniqueId())) {
-                openWindow(targetTrade, traderPlayer.getUniqueId(), true);
-                return true;
-            }
+
             plugin.getPlayerListManager().getPlayerName(targetUUID)
                     .ifPresent(name -> traderPlayer.sendRichMessage(Messages.instance().targetAlreadyInTrade
                             .replace("%player%", name)));
@@ -148,7 +173,7 @@ public class TradeManager {
         if (trade == null) return;
         //Check if Current trade does not contain the target
         if (trade.isTrader(playerUUID)) {
-            if (!playerTrades.containsKey(trade.getTargetUUID())) {
+            if (!playerTrades.containsKey(trade.getOtherSide().getTraderUUID())) {
                 removeTrade(trade.getUuid());
                 if (Settings.instance().debug) {
                     plugin.getLogger().info("Trade removed: " + trade.getUuid() + " target isn't in current trades");
@@ -156,7 +181,7 @@ public class TradeManager {
             }
         } else {
             //Check if Current trade does not contain the trader
-            if (!playerTrades.containsKey(trade.getTraderUUID())) {
+            if (!playerTrades.containsKey(trade.getTraderSide().getTraderUUID())) {
                 removeTrade(trade.getUuid());
                 if (Settings.instance().debug) {
                     plugin.getLogger().info("Trade removed: " + trade.getUuid() + " trader isn't in current trades");
@@ -165,13 +190,21 @@ public class TradeManager {
         }
     }
 
-    public void abortTrade(NewTrade trade){
-        Player onlineTrader= plugin.getServer().getPlayer(trade.getTraderUUID());
-        Player onlineTarget= plugin.getServer().getPlayer(trade.getTargetUUID());
-
+    public void cancelAllTimers() {
+        trades.values().forEach(trade -> {
+            trade.getCompletionTimer().cancel();
+            if (trade.getTraderSide().getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
+                trade.setStatus(OrderInfo.Status.REFUTED, true);
+            }
+            if (trade.getOtherSide().getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
+                trade.setStatus(OrderInfo.Status.REFUTED, false);
+            }
+        });
     }
 
-    public boolean openWindow(NewTrade trade, UUID playerUUID, boolean isTrader) {
+
+    public boolean openWindow(NewTrade trade, UUID playerUUID) {
+        boolean isTrader = trade.isTrader(playerUUID);
         //If the other side is empty, do not add the trade to the current trades
         //Because the player has already retrieved his items
         if (trade.getOrderInfo(!isTrader).getStatus() != OrderInfo.Status.RETRIEVED) {
@@ -181,8 +214,10 @@ public class TradeManager {
         return trade.openWindow(playerUUID, isTrader);
     }
 
-    private void removeTrade(UUID tradeUUID) {
+    public void removeTrade(UUID tradeUUID) {
         trades.remove(tradeUUID);
+        playerTrades.values().removeIf(uuid -> uuid.equals(tradeUUID));
+        tradeServerOwners.values().removeIf(uuid -> uuid.equals(tradeUUID));
         plugin.getDataStorage().removeTradeBackup(tradeUUID);
     }
 
@@ -208,16 +243,30 @@ public class TradeManager {
         return Optional.ofNullable(trades.get(tradeUUID));
     }
 
-    public void tradeUpdate(NewTrade trade) {
-        if (trades.containsKey(trade.getUuid())) return;
+    /**
+     * Initialize a trade from a remote server
+     * This is called when a new trade is created
+     * Or when the current server receives trades from other servers during query time
+     *
+     * @param serverId The server that is owning the trade right now
+     * @param trade    The trade to initialize
+     */
+    public void initializeTrade(int serverId, NewTrade trade) {
+
+        if (Settings.instance().debug) {
+            plugin.getLogger().info("initializeTrade: " + trade.getUuid());
+        }
+
+        trade.initializeGuis();
+        tradeServerOwners.put(serverId, trade.getUuid());
+        playerTrades.put(trade.getTraderSide().getTraderUUID(), trade.getUuid());
         trades.put(trade.getUuid(), trade);
-        playerTrades.put(trade.getTraderUUID(), trade.getUuid());
 
-        if (isIgnoring(trade.getTargetName(), trade.getTraderName())) return;
-
-        Player foundPlayer = plugin.getServer().getPlayer(trade.getTargetUUID());
+        //Send trade invite message
+        if (isIgnoring(trade.getOtherSide().getTraderName(), trade.getTraderSide().getTraderName())) return;
+        Player foundPlayer = plugin.getServer().getPlayer(trade.getOtherSide().getTraderUUID());
         if (foundPlayer != null) {
-            plugin.getPlayerListManager().getPlayerName(trade.getTraderUUID())
+            plugin.getPlayerListManager().getPlayerName(trade.getTraderSide().getTraderUUID())
                     .ifPresent(name -> foundPlayer.sendRichMessage(Messages.instance().tradeReceived
                             .replace("%player%", name)));
         }
@@ -241,4 +290,6 @@ public class TradeManager {
         trades.values().forEach(trade ->
                 plugin.getDataStorage().backupTrade(trade));
     }
+
+
 }

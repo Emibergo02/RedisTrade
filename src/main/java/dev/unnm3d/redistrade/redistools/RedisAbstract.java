@@ -2,7 +2,6 @@ package dev.unnm3d.redistrade.redistools;
 
 import dev.unnm3d.redistrade.data.ICacheData;
 import io.lettuce.core.RedisClient;
-import io.lettuce.core.RedisFuture;
 import io.lettuce.core.TransactionResult;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
@@ -14,6 +13,7 @@ import org.bukkit.Bukkit;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -73,7 +73,13 @@ public abstract class RedisAbstract implements ICacheData {
     }
 
     public <T> CompletionStage<T> getConnectionAsync(Function<RedisAsyncCommands<String, String>, CompletionStage<T>> redisCallBack) {
-        return redisCallBack.apply(roundRobinConnectionPool.get().async());
+        try {
+            return redisCallBack.apply(roundRobinConnectionPool.get().async());
+        } catch (Exception e) {
+            CompletableFuture<T> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            return future;
+        }
     }
 
     public <T> T getConnectionAsyncResult(Function<RedisAsyncCommands<String, String>, T> redisCallBack) {

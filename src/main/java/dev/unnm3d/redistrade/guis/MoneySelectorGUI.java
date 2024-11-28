@@ -1,14 +1,16 @@
 package dev.unnm3d.redistrade.guis;
 
-import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.RedisTrade;
+import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.jetbrains.annotations.NotNull;
+import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
 import xyz.xenondevs.invui.gui.Gui;
 import xyz.xenondevs.invui.item.Item;
 import xyz.xenondevs.invui.item.ItemProvider;
@@ -76,7 +78,8 @@ public class MoneySelectorGUI implements Listener {
             @Override
             public ItemProvider getItemProvider() {
                 return new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.MONEY_CONFIRM_BUTTON))
-                        .setDisplayName("§aConfirm " + changingPriceString);
+                        .setDisplayName(new AdventureComponentWrapper(MiniMessage.miniMessage().deserialize(Messages.instance().confirmMoneyDisplay
+                                .replace("%amount%", changingPriceString))));
             }
 
             @Override
@@ -107,11 +110,8 @@ public class MoneySelectorGUI implements Listener {
                                 "default", "Trade price");
                     }
                     if (response) {
-                        if (isTrader) {
-                            trade.setAndSendTraderPrice(nextPrice);
-                        } else {
-                            trade.setAndSendTargetPrice(nextPrice);
-                        }
+                        trade.setAndSendPrice(nextPrice, isTrader);
+
                         player.getInventory().addItem(player.getItemOnCursor()).values().forEach(
                                 itemStack -> player.getWorld().dropItem(player.getLocation(), itemStack));
                         player.setItemOnCursor(null);

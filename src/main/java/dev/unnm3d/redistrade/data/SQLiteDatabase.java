@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.core.NewTrade;
+import dev.unnm3d.redistrade.integrity.RedisTradeStorageException;
 import lombok.Getter;
 
 import java.io.File;
@@ -112,13 +113,14 @@ public class SQLiteDatabase implements Database {
                      INSERT OR REPLACE INTO `archived` (trade_uuid,trader_uuid,target_uuid,timestamp,serialized)
                      VALUES (?,?,?,?,?);""")) {
             statement.setString(1, trade.getUuid().toString());
-            statement.setString(2, trade.getTraderUUID().toString());
-            statement.setString(3, trade.getTargetUUID().toString());
+            statement.setString(2, trade.getTraderSide().getTraderUUID().toString());
+            statement.setString(3, trade.getOtherSide().getTraderUUID().toString());
             statement.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
             statement.setString(5, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
             return statement.executeUpdate() != 0;
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.ARCHIVE_TRADE, trade.getUuid()));
+            return false;
         }
     }
 
@@ -144,7 +146,8 @@ public class SQLiteDatabase implements Database {
                     return trades;
                 }
             } catch (SQLException e) {
-                throw new RuntimeException(e);
+                plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.UNARCHIVE_TRADE));
+                return Collections.emptyMap();
             }
         });
     }
@@ -153,13 +156,14 @@ public class SQLiteDatabase implements Database {
     public void backupTrade(NewTrade trade) {
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("""
-                     INSERT OR REPLACE INTO `backup` (trade_uuid,serialized)
-                        VALUES (?,?);""")) {
+                     INSERT OR REPLACE INTO `backup` (trade_uuid,server_id,serialized)
+                        VALUES (?,?,?);""")) {
             statement.setString(1, trade.getUuid().toString());
-            statement.setString(2, Base64.getEncoder().encodeToString(trade.serialize()));
+            statement.setInt(2, RedisTrade.getServerId());
+            statement.setString(3, Base64.getEncoder().encodeToString(trade.serialize()));
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.BACKUP_TRADE, trade.getUuid()));
         }
     }
 
@@ -171,7 +175,7 @@ public class SQLiteDatabase implements Database {
             statement.setString(1, tradeUUID.toString());
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.BACKUP_TRADE, tradeUUID));
         }
     }
 
@@ -185,7 +189,7 @@ public class SQLiteDatabase implements Database {
             statement.setString(2, playerUUID.toString());
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.PLAYERLIST));
         }
     }
 
@@ -200,26 +204,28 @@ public class SQLiteDatabase implements Database {
             statement.setString(2, targetName);
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.IGNORED_PLAYER));
         }
     }
 
     @Override
-    public CompletionStage<List<NewTrade>> restoreTrades() {
+    public CompletionStage<Map<Integer,NewTrade>> restoreTrades() {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
                          SELECT * FROM `backup`;""")) {
                 try (ResultSet result = statement.executeQuery()) {
-                    final List<NewTrade> trades = new ArrayList<>();
+                    final HashMap<Integer, NewTrade> trades = new HashMap<>();
                     while (result.next()) {
-                        trades.add(NewTrade.deserialize(RedisTrade.getInstance().getDataCache(),
-                                Base64.getDecoder().decode(result.getString("serialized"))));
+                        trades.put(result.getInt("server_id"),
+                                NewTrade.deserialize(RedisTrade.getInstance().getDataCache(),
+                                        Base64.getDecoder().decode(result.getString("serialized"))));
                     }
                     return trades;
                 }
             } catch (SQLException e) {
-                throw new RuntimeException(e);
+                plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.RESTORE_TRADE));
+                return Collections.emptyMap();
             }
         });
     }
@@ -238,7 +244,8 @@ public class SQLiteDatabase implements Database {
                     return nameUUIDs;
                 }
             } catch (SQLException e) {
-                throw new RuntimeException(e);
+                plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.PLAYERLIST));
+                return Collections.emptyMap();
             }
         });
     }
@@ -258,7 +265,8 @@ public class SQLiteDatabase implements Database {
                     return ignoredPlayers;
                 }
             } catch (SQLException e) {
-                throw new RuntimeException(e);
+                plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.IGNORED_PLAYER));
+                return Collections.emptySet();
             }
         });
     }

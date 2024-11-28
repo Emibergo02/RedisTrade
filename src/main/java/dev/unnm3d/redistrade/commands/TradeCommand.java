@@ -21,10 +21,10 @@ public class TradeCommand {
         plugin.getTradeManager().getActiveTrade(player.getUniqueId())
                 .ifPresentOrElse(trade -> {
                             plugin.getServer().getScheduler().runTask(plugin, () ->
-                                    plugin.getTradeManager().openWindow(trade, player.getUniqueId(),
-                                            trade.isTrader(player.getUniqueId())));
+                                    plugin.getTradeManager().openWindow(trade, player.getUniqueId()
+                                    ));
                             player.sendRichMessage(Messages.instance().alreadyInTrade
-                                    .replace("%player%", trade.getTraderName()));
+                                    .replace("%player%", trade.getTraderSide().getTraderName()));
                         },
                         () -> {
                             if (targetName == null || targetName.playerName() == null) {

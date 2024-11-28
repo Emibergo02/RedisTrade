@@ -38,11 +38,11 @@ public class ReceiptBuilder {
             final Iterator<String> itStr = formatList.iterator();
             while (itStr.hasNext()) {
                 text = text.append(MiniMessage.miniMessage().deserialize(itStr.next()
-                        .replace("%trader%", trade.getTraderName())
-                        .replace("%target%", trade.getTargetName())
+                        .replace("%trader%", trade.getTraderSide().getTraderName())
+                        .replace("%target%", trade.getOtherSide().getTraderName())
                         .replace("%timestamp%", parsedDate)
-                        .replace("%trader_price%", decimalFormat.format(trade.getTraderSideInfo().getProposed()))
-                        .replace("%target_price%", decimalFormat.format(trade.getTargetSideInfo().getProposed()))
+                        .replace("%trader_price%", decimalFormat.format(trade.getTraderSide().getOrder().getProposed()))
+                        .replace("%target_price%", decimalFormat.format(trade.getOtherSide().getOrder().getProposed()))
                 ));
                 if (itStr.hasNext()) {
                     text = text.append(Component.newline());
@@ -51,16 +51,16 @@ public class ReceiptBuilder {
             writtenMeta.addPages(text);
         }
 
-        buildPages(true, trade.getTraderSideInfo().getVirtualInventory().getItems())
+        buildPages(true, trade.getTraderSide().getOrder().getVirtualInventory().getItems())
                 .forEach(writtenMeta::addPages);
 
-        buildPages(false, trade.getTargetSideInfo().getVirtualInventory().getItems())
+        buildPages(false, trade.getOtherSide().getOrder().getVirtualInventory().getItems())
                 .forEach(writtenMeta::addPages);
 
         writtenMeta.itemName(MiniMessage.miniMessage().deserialize(
                 Settings.instance().receiptBookDisplayName
-                        .replace("%trader%", trade.getTraderName())
-                        .replace("%target%", trade.getTargetName())
+                        .replace("%trader%", trade.getTraderSide().getTraderName())
+                        .replace("%target%", trade.getOtherSide().getTraderName())
                         .replace("%id%", String.valueOf(trade.getUuid().getMostSignificantBits()))
         ));
 
@@ -68,14 +68,14 @@ public class ReceiptBuilder {
         for (String loreString : Settings.instance().receiptBookLore) {
             if (loreString.contains("%items%")) {
                 //Add items to lore
-                Arrays.stream(trade.getTraderSideInfo().getVirtualInventory().getItems())
+                Arrays.stream(trade.getTraderSide().getOrder().getVirtualInventory().getItems())
                         .filter(Objects::nonNull)
                         .map(item -> MiniMessage.miniMessage().deserialize(Settings.instance().itemDisplayLoreFormat
                                         .replace("%amount%", String.valueOf(item.getAmount())))
                                 .replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
                                         .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
                                 .forEach(lore::add);
-                Arrays.stream(trade.getTargetSideInfo().getVirtualInventory().getItems())
+                Arrays.stream(trade.getOtherSide().getOrder().getVirtualInventory().getItems())
                         .filter(Objects::nonNull)
                         .map(item -> MiniMessage.miniMessage().deserialize(Settings.instance().itemDisplayLoreFormat
                                         .replace("%amount%", String.valueOf(item.getAmount())))
@@ -85,11 +85,11 @@ public class ReceiptBuilder {
                 continue;
             }
             lore.add(MiniMessage.miniMessage().deserialize("<white><!i>" + loreString
-                    .replace("%trader%", trade.getTraderName())
-                    .replace("%target%", trade.getTargetName())
+                    .replace("%trader%", trade.getTraderSide().getTraderName())
+                    .replace("%target%", trade.getOtherSide().getTraderName())
                     .replace("%timestamp%", parsedDate)
-                    .replace("%trader_price%", decimalFormat.format(trade.getTraderSideInfo().getProposed()))
-                    .replace("%target_price%", decimalFormat.format(trade.getTargetSideInfo().getProposed())))
+                    .replace("%trader_price%", decimalFormat.format(trade.getTraderSide().getOrder().getProposed()))
+                    .replace("%target_price%", decimalFormat.format(trade.getOtherSide().getOrder().getProposed())))
             );
         }
         writtenMeta.lore(lore);

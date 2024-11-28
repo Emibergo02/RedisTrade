@@ -8,9 +8,10 @@ import de.exlll.configlib.YamlConfigurations;
 import dev.unnm3d.redistrade.commands.*;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
-import dev.unnm3d.redistrade.data.*;
 import dev.unnm3d.redistrade.core.TradeManager;
+import dev.unnm3d.redistrade.data.*;
 import dev.unnm3d.redistrade.hooks.EconomyHook;
+import dev.unnm3d.redistrade.integrity.IntegritySystem;
 import dev.unnm3d.redistrade.utils.Metrics;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisConnectionException;
@@ -23,10 +24,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public final class RedisTrade extends JavaPlugin {
-
+    @Getter
+    private static final int serverId = new Random().nextInt();
     @Getter
     private static RedisTrade instance;
     private Settings settings;
@@ -40,6 +43,8 @@ public final class RedisTrade extends JavaPlugin {
     private PlayerListManager playerListManager;
     @Getter
     private EconomyHook economyHook;
+    @Getter
+    private IntegritySystem integritySystem;
     private Metrics metrics;
 
 
@@ -62,8 +67,6 @@ public final class RedisTrade extends JavaPlugin {
             return;
         }
         dataStorage = switch (settings.storageType) {
-            case REDIS -> dataCache instanceof RedisDataManager rdm ? rdm :
-                    new RedisDataManager(this, craftRedisClient(), this.settings.redis.poolSize());
             case MYSQL -> new MySQLDatabase(this, this.settings.mysql);
             case SQLITE -> new SQLiteDatabase(this);
         };
@@ -73,22 +76,37 @@ public final class RedisTrade extends JavaPlugin {
 
 
         this.playerListManager = new PlayerListManager(this);
-        this.economyHook = new EconomyHook(this);
+        try {
+            this.economyHook = new EconomyHook(this);
+        } catch (IllegalStateException e) {
+            getLogger().severe("Economy not found");
+            getLogger().severe("Check your economy plugin and try again");
+            this.economyHook = null;
+        }
         this.tradeManager = new TradeManager(this);
         loadCommands();
         //bStats
         this.metrics = new Metrics(this, 23912);
         metrics.addCustomChart(new Metrics.SimplePie("storage_type", () -> this.settings.storageType.name()));
         metrics.addCustomChart(new Metrics.SimplePie("cache_type", () -> this.settings.cacheType.name()));
+        metrics.addCustomChart(new Metrics.SimplePie("player_count", () -> {
+            int count = getServer().getOnlinePlayers().size();
+            return count > 100 ? "100+" : count > 50 ? "50-100" : count > 20 ? "20-50" : count > 10 ? "10-20" : count > 5 ? "5-10" : "less than 5";
+        }));
     }
 
     @Override
     public void onDisable() {
-        metrics.shutdown();
-        tradeManager.close();
-        playerListManager.stop();
-        dataStorage.close();
-        dataCache.close();
+        if (metrics != null)
+            metrics.shutdown();
+        if (tradeManager != null)
+            tradeManager.close();
+        if (playerListManager != null)
+            playerListManager.stop();
+        if (dataStorage != null)
+            dataStorage.close();
+        if (dataCache != null)
+            dataCache.close();
         Drink.unregister(this);
     }
 
@@ -104,8 +122,9 @@ public final class RedisTrade extends JavaPlugin {
                 settings.redis.user().isEmpty() ?
                         redisURIBuilder.withPassword(settings.redis.password().toCharArray()) :
                         redisURIBuilder.withAuthentication(settings.redis.user(), settings.redis.password());
-
-        return RedisClient.create(redisURIBuilder.build());
+        final RedisClient redisClient = RedisClient.create(redisURIBuilder.build());
+        this.integritySystem = new IntegritySystem(this, redisClient);
+        return redisClient;
     }
 
     private void loadCommands() {

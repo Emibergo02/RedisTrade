@@ -1,9 +1,12 @@
 package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.core.NewTrade;
+import io.lettuce.core.RedisConnectionException;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 public interface ICacheData {
 
@@ -11,9 +14,27 @@ public interface ICacheData {
 
     void updateCachePlayerList(String playerName, UUID playerUUID);
 
-    void updateTrade(UUID tradeUUID, RedisDataManager.TradeUpdateType type, Object value);
+    /**
+     * Update a trade in the cache
+     * @param tradeUUID the trade to update
+     * @param type the type of update (price, item, status)
+     * @param value the value to update
+     * @return the number of subscribers that received the message
+     */
+    CompletionStage<Long> updateTrade(UUID tradeUUID, RedisDataManager.TradeUpdateType type, Object value);
 
-    void createTrade(NewTrade trade);
+    /**
+     * Broadcast a full trade to all servers in the network
+     * @param trade the trade to broadcast
+     * @return the number of subscribers that received the message
+     */
+    CompletionStage<Long> sendFullTrade(NewTrade trade);
+
+    /**
+     * Send a query to all servers
+     * The servers will respond by sending all their owned trades via sendFullTrade
+     */
+    void sendQuery();
 
     void close();
 
@@ -28,11 +49,17 @@ public interface ICacheData {
             }
 
             @Override
-            public void updateTrade(UUID tradeUUID, RedisDataManager.TradeUpdateType type, Object value) {
+            public CompletionStage<Long> updateTrade(UUID tradeUUID, RedisDataManager.TradeUpdateType type, Object value) {
+                return null;
             }
 
             @Override
-            public void createTrade(NewTrade trade) {
+            public CompletionStage<Long> sendFullTrade(NewTrade trade) {
+                return CompletableFuture.completedFuture(0L);
+            }
+
+            @Override
+            public void sendQuery() {
             }
 
             @Override

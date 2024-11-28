@@ -1,10 +1,11 @@
 plugins {
     id 'java'
     id 'io.github.goooler.shadow' version "8.1.7"
+    id 'maven-publish'
 }
 
 group = 'dev.unnm3d'
-version = 'BETA6'
+version = 'BETA7'
 
 repositories {
     mavenCentral()
@@ -70,6 +71,17 @@ tasks.withType(JavaCompile).configureEach {
 
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
         options.release.set(targetJavaVersion)
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = 'dev.unnm3d'
+            artifactId = 'redistrade'
+            version = "$version"
+            artifact shadowJar
+        }
     }
 }
 

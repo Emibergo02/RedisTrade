@@ -11,12 +11,17 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.text.DecimalFormat;
 import java.util.*;
 
 @UtilityClass
 public class Utils {
 
 
+
+    public String parseDoubleFormat(double value) {
+        return new DecimalFormat("#.##").format(value);
+    }
 
     public Optional<Player> getPlayer(UUID uuid) {
         return Optional.ofNullable(Bukkit.getPlayer(uuid));

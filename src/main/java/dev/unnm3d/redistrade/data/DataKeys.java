@@ -2,8 +2,9 @@ package dev.unnm3d.redistrade.data;
 
 public enum DataKeys {
 
-    UPDATE_TRADE("rtrade:update"),
+    FULL_TRADE("rtrade:f_trade_up"),
     TRADES("rtrade:trades"),
+    TRADE_QUERY("rtrade:query"),
     NAME_UUIDS("rtrade:name_uuids"),
     TRADE_ARCHIVE("rtrade:trades"),
     TRADE_ARCHIVE_PLAYER_PREFIX("rtrade:p_trades_"),
