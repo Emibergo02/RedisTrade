@@ -160,7 +160,7 @@ public class SQLiteDatabase implements Database {
                         VALUES (?,?,?);""")) {
             statement.setString(1, trade.getUuid().toString());
             statement.setInt(2, RedisTrade.getServerId());
-            statement.setString(3, Base64.getEncoder().encodeToString(trade.serialize()));
+            statement.setString(3, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
             statement.executeUpdate();
         } catch (SQLException e) {
             plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.BACKUP_TRADE, trade.getUuid()));
@@ -219,7 +219,7 @@ public class SQLiteDatabase implements Database {
                     while (result.next()) {
                         trades.put(result.getInt("server_id"),
                                 NewTrade.deserialize(RedisTrade.getInstance().getDataCache(),
-                                        Base64.getDecoder().decode(result.getString("serialized"))));
+                                        result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
                     }
                     return trades;
                 }

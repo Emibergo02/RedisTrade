@@ -21,7 +21,7 @@ public class TradeManager {
     private final ConcurrentHashMap<UUID, UUID> playerTrades;
     private final ConcurrentHashMap<String, HashSet<String>> ignorePlayers;
 
-    private final ConcurrentHashMap<Integer, UUID> tradeServerOwners;
+    private final ConcurrentHashMap<Integer, List<UUID>> tradeServerOwners;
     private long lastQuery;
 
     public TradeManager(RedisTrade plugin) {
@@ -81,14 +81,24 @@ public class TradeManager {
      * This is called when a new server joins the network (aka a query is received)
      */
     public void sendAllCurrentTrades() {
-        tradeServerOwners.forEach((serverId, tradeUUID) -> {
-            if (serverId != RedisTrade.getServerId()) return;
+
+        tradeServerOwners.getOrDefault(RedisTrade.getServerId(), new ArrayList<>()).forEach(tradeUUID -> {
             NewTrade trade = trades.get(tradeUUID);
             if (trade == null) return;
             plugin.getDataCache().sendFullTrade(trade);
             if (Settings.instance().debug) {
                 plugin.getLogger().info("Sending trade query response: " + trade.getUuid());
             }
+        });
+    }
+
+    public void setTradeServerOwner(int serverId, UUID tradeUUID) {
+        tradeServerOwners.compute(serverId, (key, value) -> {
+            if (value == null) {
+                value = new ArrayList<>();
+            }
+            value.add(tradeUUID);
+            return value;
         });
     }
 
@@ -217,7 +227,7 @@ public class TradeManager {
     public void removeTrade(UUID tradeUUID) {
         trades.remove(tradeUUID);
         playerTrades.values().removeIf(uuid -> uuid.equals(tradeUUID));
-        tradeServerOwners.values().removeIf(uuid -> uuid.equals(tradeUUID));
+        tradeServerOwners.values().forEach(uuids -> uuids.removeIf(uuid -> uuid.equals(tradeUUID)));
         plugin.getDataStorage().removeTradeBackup(tradeUUID);
     }
 
@@ -258,7 +268,7 @@ public class TradeManager {
         }
 
         trade.initializeGuis();
-        tradeServerOwners.put(serverId, trade.getUuid());
+        setTradeServerOwner(serverId, trade.getUuid());
         playerTrades.put(trade.getTraderSide().getTraderUUID(), trade.getUuid());
         trades.put(trade.getUuid(), trade);
 

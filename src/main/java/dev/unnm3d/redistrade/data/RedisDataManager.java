@@ -49,6 +49,7 @@ public class RedisDataManager extends RedisAbstract {
 
             if (type == null) throw new IllegalStateException("Unexpected value: " + null);
             plugin.getTradeManager().getTrade(tradeUUID).ifPresent(trade -> {
+                plugin.getTradeManager().setTradeServerOwner(packetServerId, tradeUUID);
                 switch (type) {
                     case TRADER_MONEY -> trade.setPrice(Double.parseDouble(value), true);
                     case TRADER_ITEM -> {
@@ -112,6 +113,7 @@ public class RedisDataManager extends RedisAbstract {
 
     @Override
     public CompletionStage<Long> updateTrade(UUID tradeUUID, TradeUpdateType type, Object value) {
+        plugin.getTradeManager().setTradeServerOwner(RedisTrade.getServerId(), tradeUUID);
         return getConnectionAsync(connection ->
                 connection.publish(DataKeys.FIELD_UPDATE_TRADE.toString(),
                         new String(ByteBuffer.allocate(4).putInt(RedisTrade.getServerId()).array(), StandardCharsets.ISO_8859_1) +

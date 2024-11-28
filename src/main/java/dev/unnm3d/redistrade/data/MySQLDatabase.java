@@ -109,7 +109,7 @@ public class MySQLDatabase extends SQLiteDatabase {
              PreparedStatement statement = connection.prepareStatement("""
                      INSERT INTO `backup` (trade_uuid,server_id,serialized)
                         VALUES (?,?,?)
-                     ON DUPLICATE KEY UPDATE trade_uuid = VALUES(trade_uuid), serialized = VALUES(serialized);""")) {
+                     ON DUPLICATE KEY UPDATE trade_uuid = VALUES(trade_uuid),server_id = VALUES(server_id), serialized = VALUES(serialized);""")) {
             statement.setString(1, trade.getUuid().toString());
             statement.setInt(2, RedisTrade.getServerId());
             statement.setString(3, new String(trade.serialize(), StandardCharsets.ISO_8859_1));

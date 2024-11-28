@@ -89,7 +89,7 @@ public class NewTrade {
             RedisTrade.getInstance().getLogger()
                     .info("OrderInfo trader: " + traderSide.getOrder());
             RedisTrade.getInstance().getLogger()
-                    .info("OrderInfo target: " + otherSide);
+                    .info("OrderInfo target: " + otherSide.getOrder());
         }
 
         this.traderGui = createTraderGui();
@@ -135,6 +135,7 @@ public class NewTrade {
                 isTrader ? RedisDataManager.TradeUpdateType.TRADER_MONEY :
                         RedisDataManager.TradeUpdateType.TARGET_MONEY,
                 price);
+
     }
 
     /**

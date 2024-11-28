@@ -1,7 +1,6 @@
 package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.core.NewTrade;
-import io.lettuce.core.RedisConnectionException;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,15 +15,17 @@ public interface ICacheData {
 
     /**
      * Update a trade in the cache
+     *
      * @param tradeUUID the trade to update
-     * @param type the type of update (price, item, status)
-     * @param value the value to update
+     * @param type      the type of update (price, item, status)
+     * @param value     the value to update
      * @return the number of subscribers that received the message
      */
     CompletionStage<Long> updateTrade(UUID tradeUUID, RedisDataManager.TradeUpdateType type, Object value);
 
     /**
      * Broadcast a full trade to all servers in the network
+     *
      * @param trade the trade to broadcast
      * @return the number of subscribers that received the message
      */
