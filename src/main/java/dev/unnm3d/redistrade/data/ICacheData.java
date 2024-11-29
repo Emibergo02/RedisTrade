@@ -51,7 +51,7 @@ public interface ICacheData {
 
             @Override
             public CompletionStage<Long> updateTrade(UUID tradeUUID, RedisDataManager.TradeUpdateType type, Object value) {
-                return null;
+                return CompletableFuture.completedFuture(0L);
             }
 
             @Override

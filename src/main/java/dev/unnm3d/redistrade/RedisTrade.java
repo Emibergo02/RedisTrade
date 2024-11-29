@@ -57,7 +57,10 @@ public final class RedisTrade extends JavaPlugin {
             dataCache = switch (settings.cacheType) {
                 case REDIS -> new RedisDataManager(this, craftRedisClient(),
                         settings.redis.poolSize());
-                case MEMORY -> ICacheData.createEmpty();
+                case MEMORY -> {
+                    this.integritySystem = new IntegritySystem(this, null);
+                    yield ICacheData.createEmpty();
+                }
                 case PLUGIN_MESSAGE -> null;
             };
         } catch (RedisConnectionException e) {
@@ -70,9 +73,7 @@ public final class RedisTrade extends JavaPlugin {
             case MYSQL -> new MySQLDatabase(this, this.settings.mysql);
             case SQLITE -> new SQLiteDatabase(this);
         };
-        if (dataStorage instanceof Database database) {
-            database.connect();
-        }
+        ((Database) dataStorage).connect();
 
 
         this.playerListManager = new PlayerListManager(this);
@@ -82,6 +83,8 @@ public final class RedisTrade extends JavaPlugin {
             getLogger().severe("Economy not found");
             getLogger().severe("Check your economy plugin and try again");
             this.economyHook = null;
+            getServer().getPluginManager().disablePlugin(this);
+            return;
         }
         this.tradeManager = new TradeManager(this);
         loadCommands();

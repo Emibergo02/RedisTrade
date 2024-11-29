@@ -70,7 +70,7 @@ public class NewTrade {
                 updateTraderItem(event.getSlot(), event.getNewItem(), true);
             }
         });
-        this.otherSide.getOrder().getVirtualInventory().setPostUpdateHandler(event -> retrievePhase(true, false));
+        this.traderSide.getOrder().getVirtualInventory().setPostUpdateHandler(event -> retrievePhase(true, false));
 
         this.otherSide.getOrder().getVirtualInventory().setPreUpdateHandler(event -> {
             if (virtualInventoryListener(event, false)) {

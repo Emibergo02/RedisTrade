@@ -20,24 +20,26 @@ public class IntegritySystem {
     public IntegritySystem(RedisTrade plugin, RedisClient redisClient) {
         this.plugin = plugin;
         this.faulted = false;
-        redisClient.addListener(new RedisConnectionStateListener() {
-            long lastFaulted = 0;
-            @Override
-            public void onRedisConnected(RedisChannelHandler<?, ?> connection, SocketAddress socketAddress) {
-                CompletableFuture.delayedExecutor(5, TimeUnit.SECONDS).execute(() -> {
-                    if (faulted && System.currentTimeMillis() - lastFaulted > 5000) {
-                        plugin.getLogger().warning("Redis connection restored");
-                        faulted = false;
-                    }
-                });
-            }
+        if (redisClient != null)
+            redisClient.addListener(new RedisConnectionStateListener() {
+                long lastFaulted = 0;
 
-            @Override
-            public void onRedisDisconnected(RedisChannelHandler<?, ?> connection) {
-                faulted = true;
-                lastFaulted = System.currentTimeMillis();
-            }
-        });
+                @Override
+                public void onRedisConnected(RedisChannelHandler<?, ?> connection, SocketAddress socketAddress) {
+                    CompletableFuture.delayedExecutor(5, TimeUnit.SECONDS).execute(() -> {
+                        if (faulted && System.currentTimeMillis() - lastFaulted > 5000) {
+                            plugin.getLogger().warning("Redis connection restored");
+                            faulted = false;
+                        }
+                    });
+                }
+
+                @Override
+                public void onRedisDisconnected(RedisChannelHandler<?, ?> connection) {
+                    faulted = true;
+                    lastFaulted = System.currentTimeMillis();
+                }
+            });
     }
 
     public void handleStorageException(RedisTradeStorageException exception) {

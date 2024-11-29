@@ -105,7 +105,7 @@ public class Settings {
     public String traderItemsIntestation = "<bold>Trader items: </bold>";
     public String targetItemsIntestation = "<bold>Target items: </bold>";
     @Comment("%item_name% - item name, %amount% - item amount, %display_name% - item display name")
-    public String itemFormat = "<reset>[x%amount% %item_name%]";
+    public String itemFormat = "<dark_gray>[x%amount% %item_name%]";
 
     public String tradeGuiTitle = "Trading with %player%";
     public List<String> tradeGuiStructure = List.of(
