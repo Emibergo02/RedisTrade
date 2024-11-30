@@ -28,8 +28,8 @@ public interface IStorageData {
      * @param trade the trade to archive
      * @return true if the trade was archived successfully
      */
-    default boolean archiveTrade(NewTrade trade) {
-        return true;
+    default CompletableFuture<Boolean> archiveTrade(NewTrade trade) {
+        return CompletableFuture.completedFuture(null);
     }
 
     /**

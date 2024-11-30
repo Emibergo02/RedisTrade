@@ -5,9 +5,9 @@ import de.exlll.configlib.Comment;
 import de.exlll.configlib.ConfigLib;
 import de.exlll.configlib.Configuration;
 import de.exlll.configlib.YamlConfigurations;
+import dev.unnm3d.redistrade.utils.MyItemBuilder;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import xyz.xenondevs.invui.item.builder.ItemBuilder;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -109,7 +109,7 @@ public class Settings {
 
     public String tradeGuiTitle = "Trading with %player%";
     public List<String> tradeGuiStructure = List.of(
-            "CM##D##mc",
+            "CMxxDxxmc",
             "LLLLxRRRR",
             "LLLLxRRRR",
             "LLLLxRRRR",
@@ -136,75 +136,80 @@ public class Settings {
     public boolean debug = false;
 
     public ItemStack getButton(ButtonType buttonType) {
-        return buttons.getOrDefault(buttonType, new ItemBuilder(Material.BARRIER).setDisplayName("§cItem is not set").get());
+        return buttons.getOrDefault(buttonType,
+                new MyItemBuilder(Material.BARRIER)
+                        .setMiniMessageDisplayName("<red>Item is not set")
+                        .get());
     }
 
     private ItemStack getTradeBackground() {
-        return new ItemBuilder(Material.LIGHT_GRAY_STAINED_GLASS_PANE).setDisplayName("").get();
+        return new MyItemBuilder(Material.LIGHT_GRAY_STAINED_GLASS_PANE)
+                .setMiniMessageDisplayName("")
+                .get();
     }
 
     public ItemStack getCloseButton() {
-        return new ItemBuilder(Material.BARRIER).setDisplayName("§cClose").get();
+        return new MyItemBuilder(Material.BARRIER).setMiniMessageDisplayName("<red>Close").get();
     }
 
     public ItemStack getNextPageButton() {
-        return new ItemBuilder(Material.ARROW).setDisplayName("§3Next Page").get();
+        return new MyItemBuilder(Material.ARROW).setMiniMessageDisplayName("<blue>Next Page").get();
     }
 
     public ItemStack getPreviousPageButton() {
-        return new ItemBuilder(Material.ARROW).setDisplayName("§3Previous Page").get();
+        return new MyItemBuilder(Material.ARROW).setMiniMessageDisplayName("<blue>Previous Page").get();
     }
 
     public ItemStack getRefuteButton() {
-        return new ItemBuilder(Material.RED_WOOL)
-                .setDisplayName("§cRefuted trade")
-                .setLegacyLore(List.of("", "§fClick to §2confirm §fthe trade"))
+        return new MyItemBuilder(Material.RED_WOOL)
+                .setMiniMessageDisplayName("<red>Refuted trade")
+                .addMiniMessageLoreLines("", "<white>Click to <dark_green>confirm</dark_green> the trade</white>")
                 .get();
     }
 
     public ItemStack getConfirmButton() {
-        return new ItemBuilder(Material.GREEN_WOOL)
-                .setDisplayName("§aConfirmed trade")
-                .setLegacyLore(List.of("", "§fClick to §crefute §fthe trade"))
+        return new MyItemBuilder(Material.GREEN_WOOL)
+                .setMiniMessageDisplayName("<green>Confirmed trade")
+                .addMiniMessageLoreLines("", "<white>Click to <red>refute</red> the trade</white>")
                 .get();
     }
 
     public ItemStack getCompletedButton() {
-        return new ItemBuilder(Material.BLUE_WOOL)
-                .setDisplayName("§bCompleted trade")
-                .setLegacyLore(List.of("", "§fThe trade has been completed"))
+        return new MyItemBuilder(Material.BLUE_WOOL)
+                .setMiniMessageDisplayName("<blue>Completed trade")
+                .addMiniMessageLoreLines("", "<white>The trade has been completed")
                 .get();
     }
 
     public ItemStack getRetrievedButton() {
-        return new ItemBuilder(Material.GRAY_WOOL)
-                .setDisplayName("§aItems retrieved")
+        return new MyItemBuilder(Material.GRAY_WOOL)
+                .setMiniMessageDisplayName("<green>Items retrieved")
                 .get();
     }
 
     public ItemStack getCancelTradeButton() {
-        return new ItemBuilder(Material.BARRIER)
-                .setDisplayName("§cCancel trade")
+        return new MyItemBuilder(Material.BARRIER)
+                .setMiniMessageDisplayName("<red>Cancel trade")
                 .get();
     }
 
     public ItemStack getMoneyButton() {
-        return new ItemBuilder(Material.GOLD_NUGGET)
-                .setDisplayName("§fCurrent price: §6%price%")
-                .setLegacyLore(List.of("", "§fClick to §2set §fthe price"))
+        return new MyItemBuilder(Material.GOLD_NUGGET)
+                .setMiniMessageDisplayName("<white>Current price: <gold>%price%")
+                .addMiniMessageLoreLines("", "<white>Click to <dark_green>set</dark_green> the price</white>")
                 .get();
     }
 
     public ItemStack getMoneyDisplay() {
-        return new ItemBuilder(Material.GOLD_NUGGET)
-                .setLegacyLore(List.of("§fClick to change currency", "§fSet your price"))
+        return new MyItemBuilder(Material.GOLD_NUGGET)
+                .addLegacyLoreLines('&', "&fClick to change currency", "&fSet your price")
                 .get();
     }
 
     public ItemStack getMoneyConfirmButton() {
-        return new ItemBuilder(Material.GREEN_WOOL)
-                .setDisplayName("§aConfirm price %price%")
-                .setLegacyLore(List.of("", "§fConfirm your trade price"))
+        return new MyItemBuilder(Material.GREEN_WOOL)
+                .setMiniMessageDisplayName("<green>Confirm price %price%")
+                .addMiniMessageLoreLines("", "<white>Confirm your trade price</white>")
                 .get();
     }
 

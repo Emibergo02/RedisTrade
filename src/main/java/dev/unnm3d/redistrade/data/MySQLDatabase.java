@@ -14,6 +14,7 @@ import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Setter
 @Getter
@@ -83,70 +84,78 @@ public class MySQLDatabase extends SQLiteDatabase {
     }
 
     @Override
-    public boolean archiveTrade(NewTrade trade) {
-        try (Connection connection = getConnection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     INSERT INTO `archived` (trade_uuid,trader_uuid,target_uuid,timestamp,serialized)
-                     VALUES (?,?,?,?,?)
-                     ON DUPLICATE KEY UPDATE trade_uuid=VALUES(trade_uuid), trader_uuid=VALUES(trader_uuid),
-                     target_uuid = VALUES(target_uuid), timestamp = VALUES(timestamp), serialized=VALUES(serialized)
-                     ;""")) {
-            statement.setString(1, trade.getUuid().toString());
-            statement.setString(2, trade.getTraderSide().getTraderUUID().toString());
-            statement.setString(3, trade.getOtherSide().getTraderUUID().toString());
-            statement.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
-            statement.setString(5, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
-            return statement.executeUpdate() != 0;
-        } catch (SQLException e) {
-            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.ARCHIVE_TRADE, trade.getUuid()));
-            return false;
-        }
+    public CompletableFuture<Boolean> archiveTrade(NewTrade trade) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection connection = getConnection();
+                 PreparedStatement statement = connection.prepareStatement("""
+                         INSERT INTO `archived` (trade_uuid,trader_uuid,target_uuid,timestamp,serialized)
+                         VALUES (?,?,?,?,?)
+                         ON DUPLICATE KEY UPDATE trade_uuid=VALUES(trade_uuid), trader_uuid=VALUES(trader_uuid),
+                         target_uuid = VALUES(target_uuid), timestamp = VALUES(timestamp), serialized=VALUES(serialized)
+                         ;""")) {
+                statement.setString(1, trade.getUuid().toString());
+                statement.setString(2, trade.getTraderSide().getTraderUUID().toString());
+                statement.setString(3, trade.getOtherSide().getTraderUUID().toString());
+                statement.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
+                statement.setString(5, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
+                return statement.executeUpdate() != 0;
+            } catch (SQLException e) {
+                plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.ARCHIVE_TRADE, trade.getUuid()));
+                return false;
+            }
+        });
     }
 
     @Override
     public void backupTrade(NewTrade trade) {
-        try (Connection connection = getConnection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     INSERT INTO `backup` (trade_uuid,server_id,serialized)
-                        VALUES (?,?,?)
-                     ON DUPLICATE KEY UPDATE trade_uuid = VALUES(trade_uuid),server_id = VALUES(server_id), serialized = VALUES(serialized);""")) {
-            statement.setString(1, trade.getUuid().toString());
-            statement.setInt(2, RedisTrade.getServerId());
-            statement.setString(3, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.BACKUP_TRADE, trade.getUuid()));
-        }
+        CompletableFuture.runAsync(() -> {
+            try (Connection connection = getConnection();
+                 PreparedStatement statement = connection.prepareStatement("""
+                         INSERT INTO `backup` (trade_uuid,server_id,serialized)
+                            VALUES (?,?,?)
+                         ON DUPLICATE KEY UPDATE trade_uuid = VALUES(trade_uuid),server_id = VALUES(server_id), serialized = VALUES(serialized);""")) {
+                statement.setString(1, trade.getUuid().toString());
+                statement.setInt(2, RedisTrade.getServerId());
+                statement.setString(3, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.BACKUP_TRADE, trade.getUuid()));
+            }
+        });
     }
 
     @Override
     public void updateStoragePlayerList(String playerName, UUID playerUUID) {
-        try (Connection connection = getConnection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     INSERT INTO `player_list` (player_name,player_uuid)
-                        VALUES (?,?)
-                     ON DUPLICATE KEY UPDATE player_name = VALUES(player_name), player_uuid = VALUES(player_uuid);""")) {
-            statement.setString(1, playerName);
-            statement.setString(2, playerUUID.toString());
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.PLAYERLIST));
-        }
+        CompletableFuture.runAsync(() -> {
+            try (Connection connection = getConnection();
+                 PreparedStatement statement = connection.prepareStatement("""
+                         INSERT INTO `player_list` (player_name,player_uuid)
+                            VALUES (?,?)
+                         ON DUPLICATE KEY UPDATE player_name = VALUES(player_name), player_uuid = VALUES(player_uuid);""")) {
+                statement.setString(1, playerName);
+                statement.setString(2, playerUUID.toString());
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.PLAYERLIST));
+            }
+        });
     }
 
     @Override
     public void ignorePlayer(String playerName, String targetName, boolean ignore) {
-        String query = ignore ?
-                "INSERT INTO `ignored_players` (ignorer,ignored) VALUES (?,?);" :
-                "DELETE FROM `ignored_players` WHERE ignored = ? AND ignorer = ?;";
-        try (Connection connection = getConnection();
-             PreparedStatement statement = connection.prepareStatement(query)) {
-            statement.setString(1, playerName);
-            statement.setString(2, targetName);
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.IGNORED_PLAYER));
-        }
+        CompletableFuture.runAsync(() -> {
+            String query = ignore ?
+                    "INSERT INTO `ignored_players` (ignorer,ignored) VALUES (?,?);" :
+                    "DELETE FROM `ignored_players` WHERE ignored = ? AND ignorer = ?;";
+            try (Connection connection = getConnection();
+                 PreparedStatement statement = connection.prepareStatement(query)) {
+                statement.setString(1, playerName);
+                statement.setString(2, targetName);
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.IGNORED_PLAYER));
+            }
+        });
     }
 
     @Override
