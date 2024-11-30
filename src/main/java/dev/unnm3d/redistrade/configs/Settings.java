@@ -36,7 +36,6 @@ public class Settings {
     }
 
     @Comment({"Storage type for the plugin",
-            "REDIS - Redis storage (you can't use archived trades with this storage type)",
             "MYSQL - MySQL storage",
             "SQLITE - SQLite storage"})
     public StorageType storageType = StorageType.SQLITE;
