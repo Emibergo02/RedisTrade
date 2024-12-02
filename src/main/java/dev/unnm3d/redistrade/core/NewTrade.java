@@ -152,7 +152,7 @@ public class NewTrade {
         notifyItem(isTrader ? 8 : 0, 0, false);
         confirmPhase();
 
-        if(status == OrderInfo.Status.RETRIEVED){
+        if (status == OrderInfo.Status.RETRIEVED) {
             RedisTrade.getInstance().getTradeManager().finishTrade(isTrader ? otherSide.getTraderUUID() : traderSide.getTraderUUID());
         }
 
@@ -377,13 +377,12 @@ public class NewTrade {
 
             if (traderSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED ||
                     traderSide.getOrder().getStatus() == OrderInfo.Status.RETRIEVED) return false;
-            OrderInfo.Status newStatus;
+
             if (traderSide.getOrder().getStatus() == OrderInfo.Status.REFUTED) {
-                newStatus = OrderInfo.Status.CONFIRMED;
-            } else {
-                newStatus = OrderInfo.Status.REFUTED;
+                changeAndSendStatus(OrderInfo.Status.CONFIRMED, traderSide.getOrder().getStatus(), true);
+            } else if (traderSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
+                changeAndSendStatus(OrderInfo.Status.REFUTED, traderSide.getOrder().getStatus(), true);
             }
-            changeAndSendStatus(newStatus, traderSide.getOrder().getStatus(), true);
             return true;
         });
     }
@@ -423,13 +422,12 @@ public class NewTrade {
 
             if (traderSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED ||
                     traderSide.getOrder().getStatus() == OrderInfo.Status.RETRIEVED) return false;
-            OrderInfo.Status newStatus;
+
             if (otherSide.getOrder().getStatus() == OrderInfo.Status.REFUTED) {
-                newStatus = OrderInfo.Status.CONFIRMED;
-            } else {
-                newStatus = OrderInfo.Status.REFUTED;
+                changeAndSendStatus(OrderInfo.Status.CONFIRMED, otherSide.getOrder().getStatus(), false);
+            } else if (otherSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
+                changeAndSendStatus(OrderInfo.Status.REFUTED, otherSide.getOrder().getStatus(), false);
             }
-            changeAndSendStatus(newStatus, otherSide.getOrder().getStatus(), false);
             return true;
         });
     }
