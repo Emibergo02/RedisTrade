@@ -21,7 +21,7 @@ public class OrderInfo {
     private double proposed;
 
     public OrderInfo(int orderSize) {
-        this(new VirtualInventory(orderSize), Status.REFUTED, 0);
+        this(new VirtualInventory(orderSize), Status.REFUSED, 0);
     }
 
     private OrderInfo(VirtualInventory virtualInventory, Status status, double proposed) {
@@ -60,7 +60,7 @@ public class OrderInfo {
     }
 
     public enum Status {
-        REFUTED((byte) 0),
+        REFUSED((byte) 0),
         CONFIRMED((byte) 1),
         COMPLETED((byte) 2),
         RETRIEVED((byte) 3);
@@ -77,7 +77,7 @@ public class OrderInfo {
 
         public static Status fromByte(byte status) {
             return switch (status) {
-                case 0 -> REFUTED;
+                case 0 -> REFUSED;
                 case 1 -> CONFIRMED;
                 case 2 -> COMPLETED;
                 case 3 -> RETRIEVED;

@@ -67,6 +67,7 @@ public class RedisDataManager extends RedisAbstract {
                         trade.retrievePhase(false,true);
                     }
                     case TARGET_STATUS -> trade.setStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)), false);
+                    case TRADE_CLOSE -> plugin.getTradeManager().removeTrade(tradeUUID);
                     default -> throw new IllegalStateException("Unexpected value: " + type);
                 }
             });
@@ -155,7 +156,8 @@ public class RedisDataManager extends RedisAbstract {
         TRADER_STATUS('C'),
         TARGET_MONEY('m'),
         TARGET_ITEM('i'),
-        TARGET_STATUS('c');
+        TARGET_STATUS('c'),
+        TRADE_CLOSE('X');
 
         private final char code;
 
@@ -177,6 +179,7 @@ public class RedisDataManager extends RedisAbstract {
                 case 'm' -> TARGET_MONEY;
                 case 'i' -> TARGET_ITEM;
                 case 'c' -> TARGET_STATUS;
+                case 'X' -> TRADE_CLOSE;
                 default -> null;
             };
         }

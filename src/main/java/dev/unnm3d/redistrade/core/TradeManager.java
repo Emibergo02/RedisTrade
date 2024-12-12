@@ -8,6 +8,8 @@ import dev.unnm3d.redistrade.guis.TradeBrowserGUI;
 import dev.unnm3d.redistrade.utils.ReceiptBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import xyz.xenondevs.invui.inventory.VirtualInventory;
 import xyz.xenondevs.invui.item.Item;
 
 import java.time.LocalDateTime;
@@ -22,7 +24,6 @@ public class TradeManager {
     private final ConcurrentHashMap<String, HashSet<String>> ignorePlayers;
 
     private final ConcurrentHashMap<Integer, List<UUID>> tradeServerOwners;
-    private long lastQuery;
 
     public TradeManager(RedisTrade plugin) {
         this.plugin = plugin;
@@ -34,7 +35,6 @@ public class TradeManager {
         plugin.getDataStorage().restoreTrades().thenAccept(trades -> {
                     trades.forEach(this::initializeTrade);
                     plugin.getDataCache().sendQuery();
-                    lastQuery = System.currentTimeMillis();
                 })
                 .exceptionally(e -> {
                     e.printStackTrace();
@@ -200,19 +200,6 @@ public class TradeManager {
         }
     }
 
-    public void cancelAllTimers() {
-        trades.values().forEach(trade -> {
-            trade.getCompletionTimer().cancel();
-            if (trade.getTraderSide().getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                trade.setStatus(OrderInfo.Status.REFUTED, true);
-            }
-            if (trade.getOtherSide().getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                trade.setStatus(OrderInfo.Status.REFUTED, false);
-            }
-        });
-    }
-
-
     public boolean openWindow(NewTrade trade, UUID playerUUID) {
         boolean isTrader = trade.isTrader(playerUUID);
         //If the other side is empty, do not add the trade to the current trades
@@ -225,10 +212,45 @@ public class TradeManager {
     }
 
     public void removeTrade(UUID tradeUUID) {
-        trades.remove(tradeUUID);
+        final NewTrade removedTrade = trades.remove(tradeUUID);
+        if (removedTrade == null) return;
+        removedTrade.cancelTimer();
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            removedTrade.getTraderGui().closeForAllViewers();
+            refundTrader(removedTrade.getTraderSide(), removedTrade.getOtherSide().getTraderUUID());
+
+            removedTrade.getOtherGui().closeForAllViewers();
+            refundTrader(removedTrade.getOtherSide(), removedTrade.getTraderSide().getTraderUUID());
+        });
         playerTrades.values().removeIf(uuid -> uuid.equals(tradeUUID));
         tradeServerOwners.values().forEach(uuids -> uuids.removeIf(uuid -> uuid.equals(tradeUUID)));
         plugin.getDataStorage().removeTradeBackup(tradeUUID);
+    }
+
+    public void refundTrader(TradeSide side, UUID oppositeTraderUUID) {
+        final UUID traderToRefund;
+        if (side.getOrder().getStatus() == OrderInfo.Status.COMPLETED) {
+            traderToRefund = oppositeTraderUUID;
+        } else {
+            traderToRefund = side.getTraderUUID();
+        }
+        Optional.ofNullable(plugin.getServer().getPlayer(traderToRefund))
+                .ifPresent(player -> {
+                    final VirtualInventory virtualInventory = side.getOrder().getVirtualInventory();
+                    final List<ItemStack> items = new ArrayList<>();
+                    for (int i = 0; i < virtualInventory.getSize(); i++) {
+                        if (virtualInventory.getItem(i) == null) continue;
+                        items.add(virtualInventory.getItem(i));
+                        virtualInventory.setItemSilently(i, null);
+                    }
+                    //Add items to the player inventory or drop them on the ground
+                    items.forEach(item -> player.getInventory().addItem(item).values().forEach(remaining ->
+                            player.getWorld().dropItem(player.getLocation(), remaining)));
+                    plugin.getEconomyHook().depositPlayer(
+                            traderToRefund,
+                            side.getOrder().getProposed(),
+                            "Trade refund");
+                });
     }
 
     public void loadIgnoredPlayers(String playerName) {

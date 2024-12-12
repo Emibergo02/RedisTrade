@@ -60,6 +60,13 @@ public class Settings {
             "RedisTrade",
             3);
 
+    @Comment({"Do like other trade plugins that cancels the trade when the inventory is closed",
+            "If the player has the inventory full, the item will be dropped on the ground!",
+            "This is why it is recommended to set this to false!",
+            "I need to keep this on true because players are used to other trade plugins"
+    })
+    public boolean cancelOnClose = true;
+
     @Comment("Timezone for the trade receipt")
     public String timeZone = "GMT+1";
     @Comment("Date format for trade timestamps")
@@ -121,7 +128,7 @@ public class Settings {
             Map.entry(ButtonType.PREVIOUS_PAGE, getPreviousPageButton()),
             Map.entry(ButtonType.BORDER, new ItemStack(Material.BLACK_STAINED_GLASS_PANE)),
             Map.entry(ButtonType.MONEY_BUTTON, getMoneyButton()),
-            Map.entry(ButtonType.REFUTE_BUTTON, getRefuteButton()),
+            Map.entry(ButtonType.REFUSE_BUTTON, getRefuseButton()),
             Map.entry(ButtonType.COMPLETED_BUTTON, getCompletedButton()),
             Map.entry(ButtonType.CONFIRM_BUTTON, getConfirmButton()),
             Map.entry(ButtonType.RETRIEVED_BUTTON, getRetrievedButton()),
@@ -159,9 +166,9 @@ public class Settings {
         return new MyItemBuilder(Material.ARROW).setMiniMessageDisplayName("<blue>Previous Page").get();
     }
 
-    public ItemStack getRefuteButton() {
+    public ItemStack getRefuseButton() {
         return new MyItemBuilder(Material.RED_WOOL)
-                .setMiniMessageDisplayName("<red>Refuted trade")
+                .setMiniMessageDisplayName("<red>Refused trade")
                 .addMiniMessageLoreLines("", "<white>Click to <dark_green>confirm</dark_green> the trade</white>")
                 .get();
     }
@@ -169,7 +176,7 @@ public class Settings {
     public ItemStack getConfirmButton() {
         return new MyItemBuilder(Material.GREEN_WOOL)
                 .setMiniMessageDisplayName("<green>Confirmed trade")
-                .addMiniMessageLoreLines("", "<white>Click to <red>refute</red> the trade</white>")
+                .addMiniMessageLoreLines("", "<white>Click to <red>refuse</red> the trade</white>")
                 .get();
     }
 
@@ -240,7 +247,7 @@ public class Settings {
         SEPARATOR,
         MONEY_BUTTON,
         CONFIRM_BUTTON,
-        REFUTE_BUTTON,
+        REFUSE_BUTTON,
         COMPLETED_BUTTON,
         RETRIEVED_BUTTON,
         CANCEL_TRADE_BUTTON,

@@ -199,7 +199,7 @@ public class NewTrade {
     /**
      * Called when a status is changed
      * Starts the completion timer if both are confirmed
-     * Terminates the completion timer if one is refuted
+     * Terminates the completion timer if one is refused
      */
     public void confirmPhase() {
         if (traderSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED && otherSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
@@ -207,9 +207,9 @@ public class NewTrade {
                 this.completionTimer = new CompletionTimer(this);
                 this.completionTimer.runTask(RedisTrade.getInstance(), traderSide.getTraderUUID(), otherSide.getTraderUUID());
             }
-        } else if (this.completionTimer != null && !this.completionTimer.isCancelled()) {
-            this.completionTimer.cancel();
+            return;
         }
+        cancelTimer();
     }
 
     /**
@@ -217,7 +217,7 @@ public class NewTrade {
      * It switches the sides of trader and target
      */
     public void completePhase() {
-        this.completionTimer.cancel();
+        cancelTimer();
         final BiConsumer<OrderInfo.Status, OrderInfo.Status> finallyConsumer = (status1, status2) -> {
             if (status1 == OrderInfo.Status.COMPLETED && status2 == OrderInfo.Status.COMPLETED) {
                 RedisTrade.getInstance().getEconomyHook()
@@ -234,11 +234,17 @@ public class NewTrade {
                 }
             }
         };
+
         //Check if both sides are confirmed
         changeAndSendStatus(OrderInfo.Status.COMPLETED, traderSide.getOrder().getStatus(), true)
                 .thenAcceptBothAsync(
                         changeAndSendStatus(OrderInfo.Status.COMPLETED, otherSide.getOrder().getStatus(), false),
                         finallyConsumer);
+        if(Settings.instance().cancelOnClose){
+            dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.TRADE_CLOSE, true);
+            RedisTrade.getInstance().getTradeManager().removeTrade(uuid);
+            return;
+        }
     }
 
     /**
@@ -252,7 +258,7 @@ public class NewTrade {
         final TradeSide operatingSide = traderSide ? this.traderSide : this.otherSide;
 
         //If the inventory is empty and the player is editing the opposite side
-        if ((operatingSide.getOrder().getStatus() == OrderInfo.Status.REFUTED && traderSide == isTrader) ||
+        if ((operatingSide.getOrder().getStatus() == OrderInfo.Status.REFUSED && traderSide == isTrader) ||
                 operatingSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED) {
             if (operatingSide.getOrder().getVirtualInventory().isEmpty()) {
                 changeAndSendStatus(OrderInfo.Status.RETRIEVED, operatingSide.getOrder().getStatus(), traderSide)
@@ -286,14 +292,14 @@ public class NewTrade {
                 case COMPLETED -> !editingPlayer.equals(otherSide.getTraderUUID());
                 case CONFIRMED, RETRIEVED -> true;
                 //If the trade is not completed, the trader can modify the trader inventory
-                case REFUTED -> !editingPlayer.equals(traderSide.getTraderUUID());
+                case REFUSED -> !editingPlayer.equals(traderSide.getTraderUUID());
             };
         }
         return switch (otherSide.getOrder().getStatus()) {
             case COMPLETED -> !editingPlayer.equals(traderSide.getTraderUUID());
             case CONFIRMED, RETRIEVED -> true;
             //If the trade is not completed, the target can modify the trader inventory
-            case REFUTED -> !editingPlayer.equals(otherSide.getTraderUUID());
+            case REFUSED -> !editingPlayer.equals(otherSide.getTraderUUID());
         };
     }
 
@@ -303,11 +309,18 @@ public class NewTrade {
             Window.single()
                     .setTitle(Settings.instance().tradeGuiTitle.replace("%player%", isTrader ? otherSide.getTraderName() : traderSide.getTraderName()))
                     .setGui(isTrader ? traderGui : otherGui)
+                    .addCloseHandler(() -> {
+                        if (Settings.instance().cancelOnClose) {
+                            dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.TRADE_CLOSE, false);
+                            RedisTrade.getInstance().getTradeManager().removeTrade(uuid);
+                        }
+                    })
                     .open(optionalPlayer.get());
             return true;
         }
         return false;
     }
+
 
     public TradeGuiImpl createTraderGui() {
         return new TradeGuiImpl.Builder()
@@ -357,7 +370,7 @@ public class NewTrade {
 
             @Override
             public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-                if (order.getStatus() == OrderInfo.Status.REFUTED)
+                if (order.getStatus() == OrderInfo.Status.REFUSED)
                     new MoneySelectorGUI(NewTrade.this, isTrader, order.getProposed(), (Player) event.getWhoClicked());
             }
         };
@@ -366,7 +379,7 @@ public class NewTrade {
     public Item getTraderConfirmButton() {
         return new SuppliedItem(() ->
                 switch (traderSide.getOrder().getStatus()) {
-                    case REFUTED -> new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.REFUTE_BUTTON));
+                    case REFUSED -> new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.REFUSE_BUTTON));
                     case CONFIRMED ->
                             new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.CONFIRM_BUTTON));
                     case COMPLETED ->
@@ -378,10 +391,10 @@ public class NewTrade {
             if (traderSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED ||
                     traderSide.getOrder().getStatus() == OrderInfo.Status.RETRIEVED) return false;
 
-            if (traderSide.getOrder().getStatus() == OrderInfo.Status.REFUTED) {
+            if (traderSide.getOrder().getStatus() == OrderInfo.Status.REFUSED) {
                 changeAndSendStatus(OrderInfo.Status.CONFIRMED, traderSide.getOrder().getStatus(), true);
             } else if (traderSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                changeAndSendStatus(OrderInfo.Status.REFUTED, traderSide.getOrder().getStatus(), true);
+                changeAndSendStatus(OrderInfo.Status.REFUSED, traderSide.getOrder().getStatus(), true);
             }
             return true;
         });
@@ -411,7 +424,7 @@ public class NewTrade {
     public Item getTargetConfirmButton() {
         return new SuppliedItem(() ->
                 switch (otherSide.getOrder().getStatus()) {
-                    case REFUTED -> new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.REFUTE_BUTTON));
+                    case REFUSED -> new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.REFUSE_BUTTON));
                     case CONFIRMED ->
                             new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.CONFIRM_BUTTON));
                     case COMPLETED ->
@@ -423,13 +436,19 @@ public class NewTrade {
             if (traderSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED ||
                     traderSide.getOrder().getStatus() == OrderInfo.Status.RETRIEVED) return false;
 
-            if (otherSide.getOrder().getStatus() == OrderInfo.Status.REFUTED) {
+            if (otherSide.getOrder().getStatus() == OrderInfo.Status.REFUSED) {
                 changeAndSendStatus(OrderInfo.Status.CONFIRMED, otherSide.getOrder().getStatus(), false);
             } else if (otherSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                changeAndSendStatus(OrderInfo.Status.REFUTED, otherSide.getOrder().getStatus(), false);
+                changeAndSendStatus(OrderInfo.Status.REFUSED, otherSide.getOrder().getStatus(), false);
             }
             return true;
         });
+    }
+
+    public void cancelTimer() {
+        if (completionTimer != null&&!completionTimer.isCancelled()) {
+            completionTimer.cancel();
+        }
     }
 
     public void notifyItem(int x, int y, boolean isTrader) {
@@ -478,27 +497,3 @@ public class NewTrade {
     }
 
 }
-//This is a XOR operation
-// isTrader selfRetrieve
-// 1 1 -> 1
-// 1 0 -> 0
-// 0 1 -> 0
-// 0 0 -> 1
-// where 1 is the trader uuid and 0 is the other uuid
-// trader is editing trader side
-
-// status is completed then drop
-// status is not completed then forward
-
-// target is editing target side
-//same
-
-// trader is editing target side
-
-// status is completed then check if empty and set RETRIEVED IN TARGET SIDE
-// and remove target from playerTrades
-
-// target is editing trader side
-
-// status is completed then check if empty and set RETRIEVED IN TRADER SIDE
-// and remove target from playerTrades
