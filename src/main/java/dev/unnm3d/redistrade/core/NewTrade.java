@@ -199,7 +199,7 @@ public class NewTrade {
     /**
      * Called when a status is changed
      * Starts the completion timer if both are confirmed
-     * Terminates the completion timer if one is refuted
+     * Terminates the completion timer if one is refused
      */
     public void confirmPhase() {
         if (traderSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED && otherSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
@@ -252,7 +252,7 @@ public class NewTrade {
         final TradeSide operatingSide = traderSide ? this.traderSide : this.otherSide;
 
         //If the inventory is empty and the player is editing the opposite side
-        if ((operatingSide.getOrder().getStatus() == OrderInfo.Status.REFUTED && traderSide == isTrader) ||
+        if ((operatingSide.getOrder().getStatus() == OrderInfo.Status.REFUSED && traderSide == isTrader) ||
                 operatingSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED) {
             if (operatingSide.getOrder().getVirtualInventory().isEmpty()) {
                 changeAndSendStatus(OrderInfo.Status.RETRIEVED, operatingSide.getOrder().getStatus(), traderSide)
@@ -286,14 +286,14 @@ public class NewTrade {
                 case COMPLETED -> !editingPlayer.equals(otherSide.getTraderUUID());
                 case CONFIRMED, RETRIEVED -> true;
                 //If the trade is not completed, the trader can modify the trader inventory
-                case REFUTED -> !editingPlayer.equals(traderSide.getTraderUUID());
+                case REFUSED -> !editingPlayer.equals(traderSide.getTraderUUID());
             };
         }
         return switch (otherSide.getOrder().getStatus()) {
             case COMPLETED -> !editingPlayer.equals(traderSide.getTraderUUID());
             case CONFIRMED, RETRIEVED -> true;
             //If the trade is not completed, the target can modify the trader inventory
-            case REFUTED -> !editingPlayer.equals(otherSide.getTraderUUID());
+            case REFUSED -> !editingPlayer.equals(otherSide.getTraderUUID());
         };
     }
 
@@ -357,7 +357,7 @@ public class NewTrade {
 
             @Override
             public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-                if (order.getStatus() == OrderInfo.Status.REFUTED)
+                if (order.getStatus() == OrderInfo.Status.REFUSED)
                     new MoneySelectorGUI(NewTrade.this, isTrader, order.getProposed(), (Player) event.getWhoClicked());
             }
         };
@@ -366,7 +366,7 @@ public class NewTrade {
     public Item getTraderConfirmButton() {
         return new SuppliedItem(() ->
                 switch (traderSide.getOrder().getStatus()) {
-                    case REFUTED -> new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.REFUTE_BUTTON));
+                    case REFUSED -> new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.REFUTE_BUTTON));
                     case CONFIRMED ->
                             new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.CONFIRM_BUTTON));
                     case COMPLETED ->
@@ -378,10 +378,10 @@ public class NewTrade {
             if (traderSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED ||
                     traderSide.getOrder().getStatus() == OrderInfo.Status.RETRIEVED) return false;
 
-            if (traderSide.getOrder().getStatus() == OrderInfo.Status.REFUTED) {
+            if (traderSide.getOrder().getStatus() == OrderInfo.Status.REFUSED) {
                 changeAndSendStatus(OrderInfo.Status.CONFIRMED, traderSide.getOrder().getStatus(), true);
             } else if (traderSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                changeAndSendStatus(OrderInfo.Status.REFUTED, traderSide.getOrder().getStatus(), true);
+                changeAndSendStatus(OrderInfo.Status.REFUSED, traderSide.getOrder().getStatus(), true);
             }
             return true;
         });
@@ -411,7 +411,7 @@ public class NewTrade {
     public Item getTargetConfirmButton() {
         return new SuppliedItem(() ->
                 switch (otherSide.getOrder().getStatus()) {
-                    case REFUTED -> new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.REFUTE_BUTTON));
+                    case REFUSED -> new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.REFUTE_BUTTON));
                     case CONFIRMED ->
                             new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.CONFIRM_BUTTON));
                     case COMPLETED ->
@@ -423,10 +423,10 @@ public class NewTrade {
             if (traderSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED ||
                     traderSide.getOrder().getStatus() == OrderInfo.Status.RETRIEVED) return false;
 
-            if (otherSide.getOrder().getStatus() == OrderInfo.Status.REFUTED) {
+            if (otherSide.getOrder().getStatus() == OrderInfo.Status.REFUSED) {
                 changeAndSendStatus(OrderInfo.Status.CONFIRMED, otherSide.getOrder().getStatus(), false);
             } else if (otherSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                changeAndSendStatus(OrderInfo.Status.REFUTED, otherSide.getOrder().getStatus(), false);
+                changeAndSendStatus(OrderInfo.Status.REFUSED, otherSide.getOrder().getStatus(), false);
             }
             return true;
         });

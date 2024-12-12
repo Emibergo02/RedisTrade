@@ -161,7 +161,7 @@ public class Settings {
 
     public ItemStack getRefuteButton() {
         return new MyItemBuilder(Material.RED_WOOL)
-                .setMiniMessageDisplayName("<red>Refuted trade")
+                .setMiniMessageDisplayName("<red>Refused trade")
                 .addMiniMessageLoreLines("", "<white>Click to <dark_green>confirm</dark_green> the trade</white>")
                 .get();
     }

@@ -139,6 +139,7 @@ public final class RedisTrade extends JavaPlugin {
         drink.register(new TradeIgnoreCommand(tradeManager), "trade-ignore");
         drink.register(new BrowseTradeCommand(this), "browse-trade");
         drink.register(new TradeReloadCommand(), "trade-reload");
+        drink.register(new StresserCommand(), "trade-stresser");
         drink.registerCommands();
     }
 

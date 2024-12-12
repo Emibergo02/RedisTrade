@@ -204,10 +204,10 @@ public class TradeManager {
         trades.values().forEach(trade -> {
             trade.getCompletionTimer().cancel();
             if (trade.getTraderSide().getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                trade.setStatus(OrderInfo.Status.REFUTED, true);
+                trade.setStatus(OrderInfo.Status.REFUSED, true);
             }
             if (trade.getOtherSide().getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                trade.setStatus(OrderInfo.Status.REFUTED, false);
+                trade.setStatus(OrderInfo.Status.REFUSED, false);
             }
         });
     }
