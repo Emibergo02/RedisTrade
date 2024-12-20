@@ -1,6 +1,6 @@
 package dev.unnm3d.redistrade.utils;
 
-import dev.unnm3d.redistrade.configs.Settings;
+import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;
@@ -33,7 +33,7 @@ public class ReceiptBuilder {
         String parsedDate = dateFormat.format(new Date(timestamp));
 
         //Create intestation
-        for (List<String> formatList : Settings.instance().receiptIntestationFormat) {
+        for (List<String> formatList : GuiSettings.instance().receiptIntestationFormat) {
             Component text = Component.empty();
             final Iterator<String> itStr = formatList.iterator();
             while (itStr.hasNext()) {
@@ -41,8 +41,8 @@ public class ReceiptBuilder {
                         .replace("%trader%", trade.getTraderSide().getTraderName())
                         .replace("%target%", trade.getOtherSide().getTraderName())
                         .replace("%timestamp%", parsedDate)
-                        .replace("%trader_price%", decimalFormat.format(trade.getTraderSide().getOrder().getProposed()))
-                        .replace("%target_price%", decimalFormat.format(trade.getOtherSide().getOrder().getProposed()))
+                        .replace("%trader_price%", decimalFormat.format(trade.getTraderSide().getOrder().getPrices()))
+                        .replace("%target_price%", decimalFormat.format(trade.getOtherSide().getOrder().getPrices()))
                 ));
                 if (itStr.hasNext()) {
                     text = text.append(Component.newline());
@@ -58,26 +58,26 @@ public class ReceiptBuilder {
                 .forEach(writtenMeta::addPages);
 
         writtenMeta.itemName(MiniMessage.miniMessage().deserialize(
-                Settings.instance().receiptBookDisplayName
+                GuiSettings.instance().receiptBookDisplayName
                         .replace("%trader%", trade.getTraderSide().getTraderName())
                         .replace("%target%", trade.getOtherSide().getTraderName())
                         .replace("%id%", String.valueOf(trade.getUuid().getMostSignificantBits()))
         ));
 
         final List<Component> lore = new ArrayList<>();
-        for (String loreString : Settings.instance().receiptBookLore) {
+        for (String loreString : GuiSettings.instance().receiptBookLore) {
             if (loreString.contains("%items%")) {
                 //Add items to lore
                 Arrays.stream(trade.getTraderSide().getOrder().getVirtualInventory().getItems())
                         .filter(Objects::nonNull)
-                        .map(item -> MiniMessage.miniMessage().deserialize(Settings.instance().itemDisplayLoreFormat
+                        .map(item -> MiniMessage.miniMessage().deserialize(GuiSettings.instance().itemDisplayLoreFormat
                                         .replace("%amount%", String.valueOf(item.getAmount())))
                                 .replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
                                         .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
-                                .forEach(lore::add);
+                        .forEach(lore::add);
                 Arrays.stream(trade.getOtherSide().getOrder().getVirtualInventory().getItems())
                         .filter(Objects::nonNull)
-                        .map(item -> MiniMessage.miniMessage().deserialize(Settings.instance().itemDisplayLoreFormat
+                        .map(item -> MiniMessage.miniMessage().deserialize(GuiSettings.instance().itemDisplayLoreFormat
                                         .replace("%amount%", String.valueOf(item.getAmount())))
                                 .replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
                                         .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
@@ -88,8 +88,8 @@ public class ReceiptBuilder {
                     .replace("%trader%", trade.getTraderSide().getTraderName())
                     .replace("%target%", trade.getOtherSide().getTraderName())
                     .replace("%timestamp%", parsedDate)
-                    .replace("%trader_price%", decimalFormat.format(trade.getTraderSide().getOrder().getProposed()))
-                    .replace("%target_price%", decimalFormat.format(trade.getOtherSide().getOrder().getProposed())))
+                    .replace("%trader_price%", decimalFormat.format(trade.getTraderSide().getOrder().getPrices()))
+                    .replace("%target_price%", decimalFormat.format(trade.getOtherSide().getOrder().getPrices())))
             );
         }
         writtenMeta.lore(lore);
@@ -112,7 +112,7 @@ public class ReceiptBuilder {
     private List<Component> buildPages(boolean trader, ItemStack... items) {
         final List<Component> pages = new ArrayList<>();
         Component currentPage = MiniMessage.miniMessage().deserialize(
-                trader ? Settings.instance().traderItemsIntestation : Settings.instance().targetItemsIntestation
+                trader ? GuiSettings.instance().traderItemsIntestation : GuiSettings.instance().targetItemsIntestation
         ).appendNewline();
         int line = 1;
         for (ItemStack item : items) {
@@ -120,14 +120,14 @@ public class ReceiptBuilder {
             if (line > 6) {//2*6=12 +1 title = 13 (14 is the line limit)
                 pages.add(currentPage);
                 currentPage = MiniMessage.miniMessage().deserialize(
-                        trader ? Settings.instance().traderItemsIntestation : Settings.instance().targetItemsIntestation
+                        trader ? GuiSettings.instance().traderItemsIntestation : GuiSettings.instance().targetItemsIntestation
                 ).appendNewline();
                 line = 1;
             }
 
             final ItemMeta itemMeta = item.getItemMeta();
 
-            Component itemName = MiniMessage.miniMessage().deserialize(Settings.instance().itemFormat
+            Component itemName = MiniMessage.miniMessage().deserialize(GuiSettings.instance().itemFormat
                     .replace("%amount%", String.valueOf(item.getAmount())));
             itemName = itemName.replaceText(rBuilder -> rBuilder.matchLiteral("%item_name%").replacement(
                     getItemDisplay(itemMeta, item.translationKey()))

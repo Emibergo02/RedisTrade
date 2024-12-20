@@ -3,19 +3,16 @@ package dev.unnm3d.redistrade.hooks;
 import dev.unnm3d.redistrade.RedisTrade;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
+import java.util.List;
 import java.util.UUID;
 
 public class EconomyHook {
-
-    private final RedisTrade plugin;
     private final Economy economy;
 
     public EconomyHook(RedisTrade plugin) {
-        this.plugin = plugin;
-        RegisteredServiceProvider<Economy> rsp = plugin.getServer().getServicesManager().getRegistration(Economy.class);
+        final RegisteredServiceProvider<Economy> rsp = plugin.getServer().getServicesManager().getRegistration(Economy.class);
         if (rsp == null) {
             throw new IllegalStateException("Economy not found");
         }
@@ -45,6 +42,18 @@ public class EconomyHook {
 
     public boolean withdrawPlayer(UUID playerUUID, double amount, String reason) {
         return economy.withdrawPlayer(Bukkit.getOfflinePlayer(playerUUID), amount).transactionSuccess();
+    }
+
+    public String getDefaultCurrencyName() {
+        return "default";
+    }
+
+    public List<String> getCurrencyNames() {
+        return List.of("default");
+    }
+
+    public String getCurrencySymbol(String currencyName) {
+        return economy.currencyNamePlural();
     }
 
 }

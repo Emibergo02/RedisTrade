@@ -21,7 +21,7 @@ public class TradeManager {
     private final ConcurrentHashMap<UUID, UUID> playerTrades;
     private final ConcurrentHashMap<String, HashSet<String>> ignorePlayers;
 
-    private final ConcurrentHashMap<Integer, List<UUID>> tradeServerOwners;
+    private final ConcurrentHashMap<Integer, Set<UUID>> tradeServerOwners;
     private long lastQuery;
 
     public TradeManager(RedisTrade plugin) {
@@ -32,14 +32,13 @@ public class TradeManager {
         this.ignorePlayers = new ConcurrentHashMap<>();
 
         plugin.getDataStorage().restoreTrades().thenAccept(trades -> {
-                    trades.forEach(this::initializeTrade);
-                    plugin.getDataCache().sendQuery();
-                    lastQuery = System.currentTimeMillis();
-                })
-                .exceptionally(e -> {
-                    e.printStackTrace();
-                    return null;
-                });
+            trades.forEach(this::initializeTrade);
+            plugin.getDataCache().sendQuery();
+            lastQuery = System.currentTimeMillis();
+        }).exceptionally(e -> {
+            e.printStackTrace();
+            return null;
+        });
     }
 
     public void startTrade(Player traderPlayer, String targetName) {
@@ -82,7 +81,7 @@ public class TradeManager {
      */
     public void sendAllCurrentTrades() {
 
-        tradeServerOwners.getOrDefault(RedisTrade.getServerId(), new ArrayList<>()).forEach(tradeUUID -> {
+        tradeServerOwners.getOrDefault(RedisTrade.getServerId(), new HashSet<>()).forEach(tradeUUID -> {
             NewTrade trade = trades.get(tradeUUID);
             if (trade == null) return;
             plugin.getDataCache().sendFullTrade(trade);
@@ -95,7 +94,7 @@ public class TradeManager {
     public void setTradeServerOwner(int serverId, UUID tradeUUID) {
         tradeServerOwners.compute(serverId, (key, value) -> {
             if (value == null) {
-                value = new ArrayList<>();
+                value = new HashSet<>();
             }
             value.add(tradeUUID);
             return value;
@@ -200,19 +199,6 @@ public class TradeManager {
         }
     }
 
-    public void cancelAllTimers() {
-        trades.values().forEach(trade -> {
-            trade.getCompletionTimer().cancel();
-            if (trade.getTraderSide().getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                trade.setStatus(OrderInfo.Status.REFUSED, true);
-            }
-            if (trade.getOtherSide().getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                trade.setStatus(OrderInfo.Status.REFUSED, false);
-            }
-        });
-    }
-
-
     public boolean openWindow(NewTrade trade, UUID playerUUID) {
         boolean isTrader = trade.isTrader(playerUUID);
         //If the other side is empty, do not add the trade to the current trades
@@ -268,8 +254,23 @@ public class TradeManager {
         }
 
         trade.initializeGuis();
+
+        //Remove the trade if it already exists
+        //This happens when the trade is taken from backup table,
+        // and we receive a full trade update from the query system
+        Optional.ofNullable(trades.get(trade.getUuid()))
+                .ifPresent(tradeFound -> {
+                    final Set<Player> traderViewers=tradeFound.getTraderGui().findAllCurrentViewers();
+                    final Set<Player> otherViewers=tradeFound.getOtherGui().findAllCurrentViewers();
+                    tradeFound.getTraderGui().closeForAllViewers();
+                    tradeFound.getOtherGui().closeForAllViewers();
+                    removeTrade(tradeFound.getUuid());
+                    traderViewers.forEach(player -> trade.openWindow(player.getUniqueId(), true));
+                    otherViewers.forEach(player -> trade.openWindow(player.getUniqueId(), false));
+                });
         setTradeServerOwner(serverId, trade.getUuid());
         playerTrades.put(trade.getTraderSide().getTraderUUID(), trade.getUuid());
+
         trades.put(trade.getUuid(), trade);
 
         //Send trade invite message
@@ -297,8 +298,10 @@ public class TradeManager {
     }
 
     public void close() {
+        plugin.getLogger().info("Saving active trades to database");
         trades.values().forEach(trade ->
                 plugin.getDataStorage().backupTrade(trade));
+        plugin.getLogger().info("Finished saving active trades to database");
     }
 
 

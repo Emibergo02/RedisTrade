@@ -6,11 +6,13 @@ import de.exlll.configlib.ConfigLib;
 import de.exlll.configlib.ConfigurationException;
 import de.exlll.configlib.YamlConfigurations;
 import dev.unnm3d.redistrade.commands.*;
+import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.TradeManager;
 import dev.unnm3d.redistrade.data.*;
 import dev.unnm3d.redistrade.hooks.EconomyHook;
+import dev.unnm3d.redistrade.hooks.RedisEconomyHook;
 import dev.unnm3d.redistrade.integrity.IntegritySystem;
 import dev.unnm3d.redistrade.utils.Metrics;
 import io.lettuce.core.RedisClient;
@@ -77,14 +79,11 @@ public final class RedisTrade extends JavaPlugin {
 
 
         this.playerListManager = new PlayerListManager(this);
-        try {
-            this.economyHook = new EconomyHook(this);
-        } catch (IllegalStateException e) {
+        if(!loadEconomy()){
             getLogger().severe("Economy not found");
             getLogger().severe("Check your economy plugin and try again");
             this.economyHook = null;
             getServer().getPluginManager().disablePlugin(this);
-            return;
         }
         this.tradeManager = new TradeManager(this);
         loadCommands();
@@ -130,6 +129,19 @@ public final class RedisTrade extends JavaPlugin {
         return redisClient;
     }
 
+    private boolean loadEconomy(){
+        if(this.getServer().getPluginManager().isPluginEnabled("RedisEconomy")){
+            this.economyHook = new RedisEconomyHook(this);
+            return true;
+        }
+        try {
+            this.economyHook = new EconomyHook(this);
+        } catch (IllegalStateException e) {
+            return false;
+        }
+        return true;
+    }
+
     private void loadCommands() {
         CommandService drink = Drink.get(this);
         drink.bind(PlayerListManager.Target.class).toProvider(new TargetProvider(playerListManager));
@@ -147,7 +159,9 @@ public final class RedisTrade extends JavaPlugin {
         Path configFile = new File(getDataFolder(), "config.yml").toPath();
         this.settings = Settings.initSettings(configFile);
         Path messagesFile = new File(getDataFolder(), "messages.yml").toPath();
-        Messages.initSettings(messagesFile);
+        Messages.loadMessages(messagesFile);
+        Path guisFile = new File(getDataFolder(), "guis.yml").toPath();
+        GuiSettings.loadGuiSettings(guisFile);
     }
 
     public void saveYML() {
@@ -159,6 +173,8 @@ public final class RedisTrade extends JavaPlugin {
                         .charset(StandardCharsets.UTF_8)
                         .build()
         );
+        Path guisFile = new File(getDataFolder(), "guis.yml").toPath();
+        GuiSettings.saveGuiSettings(guisFile);
     }
 
 

@@ -1,29 +1,22 @@
 package dev.unnm3d.redistrade.core;
 
 import dev.unnm3d.redistrade.RedisTrade;
+import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.data.Database;
 import dev.unnm3d.redistrade.data.ICacheData;
 import dev.unnm3d.redistrade.data.RedisDataManager;
-import dev.unnm3d.redistrade.guis.MoneySelectorGUI;
 import dev.unnm3d.redistrade.guis.TradeGuiImpl;
 import dev.unnm3d.redistrade.utils.Utils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
+import xyz.xenondevs.invui.gui.structure.Structure;
 import xyz.xenondevs.invui.inventory.event.ItemPreUpdateEvent;
 import xyz.xenondevs.invui.inventory.event.PlayerUpdateReason;
-import xyz.xenondevs.invui.item.Item;
-import xyz.xenondevs.invui.item.ItemProvider;
-import xyz.xenondevs.invui.item.builder.ItemBuilder;
-import xyz.xenondevs.invui.item.impl.AbstractItem;
-import xyz.xenondevs.invui.item.impl.SuppliedItem;
 import xyz.xenondevs.invui.window.Window;
 
 import java.nio.ByteBuffer;
@@ -70,7 +63,7 @@ public class NewTrade {
                 updateTraderItem(event.getSlot(), event.getNewItem(), true);
             }
         });
-        this.traderSide.getOrder().getVirtualInventory().setPostUpdateHandler(event -> retrievePhase(true, false));
+        this.traderSide.getOrder().getVirtualInventory().setPostUpdateHandler(event -> retrievedPhase(true, false));
 
         this.otherSide.getOrder().getVirtualInventory().setPreUpdateHandler(event -> {
             if (virtualInventoryListener(event, false)) {
@@ -79,7 +72,7 @@ public class NewTrade {
                 updateTargetItem(event.getSlot(), event.getNewItem(), true);
             }
         });
-        this.otherSide.getOrder().getVirtualInventory().setPostUpdateHandler(event -> retrievePhase(false, true));
+        this.otherSide.getOrder().getVirtualInventory().setPostUpdateHandler(event -> retrievedPhase(false, true));
 
         if (Settings.instance().debug) {
             RedisTrade.getInstance().getLogger()
@@ -92,9 +85,12 @@ public class NewTrade {
                     .info("OrderInfo target: " + otherSide.getOrder());
         }
 
-        this.traderGui = createTraderGui();
-        this.otherGui = createTargetGui();
+        this.traderGui = new TradeGuiImpl(this, true,
+                new Structure(GuiSettings.instance().tradeGuiStructure.toArray(new String[0])));
+        this.otherGui = new TradeGuiImpl(this, false,
+                new Structure(GuiSettings.instance().tradeGuiStructure.toArray(new String[0])));
     }
+
 
     //GETTERS
     public boolean isTrader(UUID playerUUID) {
@@ -109,6 +105,9 @@ public class NewTrade {
         return isTrader ? traderSide.getOrder() : otherSide.getOrder();
     }
 
+    public TradeGuiImpl getGui(boolean isTrader) {
+        return isTrader ? traderGui : otherGui;
+    }
 
     /**
      * Set the price of the trade
@@ -116,12 +115,12 @@ public class NewTrade {
      * @param price    The price to set
      * @param isTrader If the price is for the trader side
      */
-    public void setPrice(double price, boolean isTrader) {
-        OrderInfo order = isTrader ? traderSide.getOrder() : otherSide.getOrder();
-        order.setProposed(price);
-        notifyItem(isTrader ? 1 : 7, 0, true);
-        notifyItem(isTrader ? 7 : 1, 0, false);
+    public void setPrice(String currencyName, double price, boolean isTrader) {
+        getOrderInfo(isTrader).setPrice(currencyName, price);
+        traderGui.notifyMoneyButton(isTrader);
+        otherGui.notifyMoneyButton(isTrader);
     }
+
 
     /**
      * Set the price of the trade and send the update to the database/cache
@@ -129,13 +128,12 @@ public class NewTrade {
      * @param price    The price to set
      * @param isTrader If the price is for the trader side
      */
-    public void setAndSendPrice(double price, boolean isTrader) {
-        setPrice(price, isTrader);
+    public void setAndSendPrice(String currencyName, double price, boolean isTrader) {
+        setPrice(currencyName, price, isTrader);
         dataCacheManager.updateTrade(uuid,
                 isTrader ? RedisDataManager.TradeUpdateType.TRADER_MONEY :
                         RedisDataManager.TradeUpdateType.TARGET_MONEY,
-                price);
-
+                currencyName + ":" + price);
     }
 
     /**
@@ -145,13 +143,13 @@ public class NewTrade {
      * @param isTrader If the status is for the trader side
      */
     public void setStatus(OrderInfo.Status status, boolean isTrader) {
-        OrderInfo order = isTrader ? traderSide.getOrder() : otherSide.getOrder();
-        order.setStatus(status);
+        getOrderInfo(isTrader).setStatus(status);
         //Notify the confirm button on the opposite side and the current side
-        notifyItem(isTrader ? 0 : 8, 0, true);
-        notifyItem(isTrader ? 8 : 0, 0, false);
+        traderGui.notifyConfirm(isTrader);
+        otherGui.notifyConfirm(isTrader);
         confirmPhase();
 
+        //If you receive a remote retrieved status, try to finish and delete the trade
         if (status == OrderInfo.Status.RETRIEVED) {
             RedisTrade.getInstance().getTradeManager().finishTrade(isTrader ? otherSide.getTraderUUID() : traderSide.getTraderUUID());
         }
@@ -220,14 +218,16 @@ public class NewTrade {
         this.completionTimer.cancel();
         final BiConsumer<OrderInfo.Status, OrderInfo.Status> finallyConsumer = (status1, status2) -> {
             if (status1 == OrderInfo.Status.COMPLETED && status2 == OrderInfo.Status.COMPLETED) {
-                RedisTrade.getInstance().getEconomyHook()
-                        .depositPlayer(traderSide.getTraderUUID(), otherSide.getOrder().getProposed(),
-                                "default", "Trade price");
-                RedisTrade.getInstance().getEconomyHook()
-                        .depositPlayer(otherSide.getTraderUUID(), traderSide.getOrder().getProposed(),
-                                "default", "Trade price");
-                retrievePhase(true, false);
-                retrievePhase(false, true);
+                otherSide.getOrder().getPrices().forEach((currency, price) -> {
+                    RedisTrade.getInstance().getEconomyHook()
+                            .depositPlayer(traderSide.getTraderUUID(), price, currency, "Trade completion");
+                });
+                traderSide.getOrder().getPrices().forEach((currency, price) -> {
+                    RedisTrade.getInstance().getEconomyHook()
+                            .depositPlayer(otherSide.getTraderUUID(), price, currency, "Trade completion");
+                });
+                retrievedPhase(true, false);
+                retrievedPhase(false, true);
                 //Archive the completed trade
                 if (RedisTrade.getInstance().getDataStorage() instanceof Database database) {
                     database.archiveTrade(this);
@@ -248,7 +248,7 @@ public class NewTrade {
      * @param traderSide If the operating side is the trader side
      * @param isTrader   If the player who is editing the inventory is the trader
      */
-    public void retrievePhase(boolean traderSide, boolean isTrader) {
+    public void retrievedPhase(boolean traderSide, boolean isTrader) {
         final TradeSide operatingSide = traderSide ? this.traderSide : this.otherSide;
 
         //If the inventory is empty and the player is editing the opposite side
@@ -301,142 +301,19 @@ public class NewTrade {
         Optional<? extends Player> optionalPlayer = Optional.ofNullable(RedisTrade.getInstance().getServer().getPlayer(playerUUID));
         if (optionalPlayer.isPresent()) {
             Window.single()
-                    .setTitle(Settings.instance().tradeGuiTitle.replace("%player%", isTrader ? otherSide.getTraderName() : traderSide.getTraderName()))
-                    .setGui(isTrader ? traderGui : otherGui)
+                    .setTitle(GuiSettings.instance().tradeGuiTitle.replace("%player%", isTrader ? otherSide.getTraderName() : traderSide.getTraderName()))
+                    .setGui(getGui(isTrader))
+                    .addCloseHandler(() -> {
+                        OrderInfo traderOrder = getOrderInfo(isTrader);
+                        if (traderOrder.getStatus() != OrderInfo.Status.RETRIEVED) {
+                            optionalPlayer.get().sendRichMessage(Messages.instance().tradeRunning
+                                    .replace("%player%", isTrader ? otherSide.getTraderName() : traderSide.getTraderName()));
+                        }
+                    })
                     .open(optionalPlayer.get());
             return true;
         }
         return false;
-    }
-
-    public TradeGuiImpl createTraderGui() {
-        return new TradeGuiImpl.Builder()
-                .setStructure(Settings.instance().tradeGuiStructure.toArray(new String[0]))
-                .addIngredient('L', getTraderSide().getOrder().getVirtualInventory())
-                .addIngredient('R', getOtherSide().getOrder().getVirtualInventory())
-                .addIngredient('C', getTraderConfirmButton())
-                .addIngredient('M', getMoneyButton(true, true))
-                .addIngredient('m', getMoneyButton(false, false))
-                .addIngredient('c', getTargetConfirmButton())
-                .addIngredient('D', getTradeCancelButton(true))
-                .addIngredient('x', Settings.instance().getButton(Settings.ButtonType.SEPARATOR))
-                .build();
-    }
-
-    public TradeGuiImpl createTargetGui() {
-        return new TradeGuiImpl.Builder()
-                .setStructure(Settings.instance().tradeGuiStructure.toArray(new String[0]))
-                .addIngredient('L', getOtherSide().getOrder().getVirtualInventory())
-                .addIngredient('R', getTraderSide().getOrder().getVirtualInventory())
-                .addIngredient('C', getTargetConfirmButton())
-                .addIngredient('M', getMoneyButton(false, true))
-                .addIngredient('m', getMoneyButton(true, false))
-                .addIngredient('c', getTraderConfirmButton())
-                .addIngredient('D', getTradeCancelButton(false))
-                .addIngredient('x', Settings.instance().getButton(Settings.ButtonType.SEPARATOR))
-                .build();
-    }
-
-    /**
-     * Get the money button for the trade GUI
-     *
-     * @param isTrader   If the button links to the trader money
-     * @param playerSide If the button is for the right side or the left side
-     * @return The item for the money button
-     */
-    public Item getMoneyButton(boolean isTrader, boolean playerSide) {
-        final OrderInfo order = isTrader ? traderSide.getOrder() : otherSide.getOrder();
-        final String displayName = playerSide ? Messages.instance().playerMoneyDisplay : Messages.instance().otherPlayerMoneyDisplay;
-
-        return new AbstractItem() {
-            @Override
-            public ItemProvider getItemProvider() {
-                return new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.MONEY_BUTTON))
-                        .setDisplayName(displayName.replace("%amount%", Utils.parseDoubleFormat(order.getProposed())));
-            }
-
-            @Override
-            public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-                if (order.getStatus() == OrderInfo.Status.REFUSED)
-                    new MoneySelectorGUI(NewTrade.this, isTrader, order.getProposed(), (Player) event.getWhoClicked());
-            }
-        };
-    }
-
-    public Item getTraderConfirmButton() {
-        return new SuppliedItem(() ->
-                switch (traderSide.getOrder().getStatus()) {
-                    case REFUSED -> new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.REFUTE_BUTTON));
-                    case CONFIRMED ->
-                            new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.CONFIRM_BUTTON));
-                    case COMPLETED ->
-                            new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.COMPLETED_BUTTON));
-                    case RETRIEVED ->
-                            new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.RETRIEVED_BUTTON));
-                }, (inventoryClickEvent) -> {
-
-            if (traderSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED ||
-                    traderSide.getOrder().getStatus() == OrderInfo.Status.RETRIEVED) return false;
-
-            if (traderSide.getOrder().getStatus() == OrderInfo.Status.REFUSED) {
-                changeAndSendStatus(OrderInfo.Status.CONFIRMED, traderSide.getOrder().getStatus(), true);
-            } else if (traderSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                changeAndSendStatus(OrderInfo.Status.REFUSED, traderSide.getOrder().getStatus(), true);
-            }
-            return true;
-        });
-    }
-
-    public Item getTradeCancelButton(boolean isTrader) {
-        return new AbstractItem() {
-            @Override
-            public ItemProvider getItemProvider() {
-                return new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.CANCEL_TRADE_BUTTON));
-            }
-
-            @Override
-            public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-                retrievePhase(false, false);
-                retrievePhase(true, true);
-                RedisTrade.getInstance().getEconomyHook().depositPlayer(player.getUniqueId(),
-                        isTrader ? traderSide.getOrder().getProposed() : otherSide.getOrder().getProposed(),
-                        "default",
-                        "Trade price");
-                setAndSendPrice(0, isTrader);
-
-            }
-        };
-    }
-
-    public Item getTargetConfirmButton() {
-        return new SuppliedItem(() ->
-                switch (otherSide.getOrder().getStatus()) {
-                    case REFUSED -> new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.REFUTE_BUTTON));
-                    case CONFIRMED ->
-                            new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.CONFIRM_BUTTON));
-                    case COMPLETED ->
-                            new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.COMPLETED_BUTTON));
-                    case RETRIEVED ->
-                            new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.RETRIEVED_BUTTON));
-                }, (inventoryClickEvent) -> {
-
-            if (traderSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED ||
-                    traderSide.getOrder().getStatus() == OrderInfo.Status.RETRIEVED) return false;
-
-            if (otherSide.getOrder().getStatus() == OrderInfo.Status.REFUSED) {
-                changeAndSendStatus(OrderInfo.Status.CONFIRMED, otherSide.getOrder().getStatus(), false);
-            } else if (otherSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
-                changeAndSendStatus(OrderInfo.Status.REFUSED, otherSide.getOrder().getStatus(), false);
-            }
-            return true;
-        });
-    }
-
-    public void notifyItem(int x, int y, boolean isTrader) {
-        Item item = (isTrader ? traderGui : otherGui).getItem(x, y);
-        if (item != null) {
-            item.notifyWindows();
-        }
     }
 
     public byte[] serialize() {

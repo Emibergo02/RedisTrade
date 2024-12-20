@@ -108,20 +108,18 @@ public class MySQLDatabase extends SQLiteDatabase {
 
     @Override
     public void backupTrade(NewTrade trade) {
-        CompletableFuture.runAsync(() -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement statement = connection.prepareStatement("""
-                         INSERT INTO `backup` (trade_uuid,server_id,serialized)
-                            VALUES (?,?,?)
-                         ON DUPLICATE KEY UPDATE trade_uuid = VALUES(trade_uuid),server_id = VALUES(server_id), serialized = VALUES(serialized);""")) {
-                statement.setString(1, trade.getUuid().toString());
-                statement.setInt(2, RedisTrade.getServerId());
-                statement.setString(3, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.BACKUP_TRADE, trade.getUuid()));
-            }
-        });
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("""
+                     INSERT INTO `backup` (trade_uuid, server_id, serialized)
+                        VALUES (?,?,?)
+                     ON DUPLICATE KEY UPDATE trade_uuid = VALUES(trade_uuid),server_id = VALUES(server_id), serialized = VALUES(serialized);""")) {
+            statement.setString(1, trade.getUuid().toString());
+            statement.setInt(2, RedisTrade.getServerId());
+            statement.setString(3, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.BACKUP_TRADE, trade.getUuid()));
+        }
     }
 
     @Override

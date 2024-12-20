@@ -1,6 +1,6 @@
 package dev.unnm3d.redistrade.guis;
 
-import dev.unnm3d.redistrade.configs.Settings;
+import dev.unnm3d.redistrade.configs.GuiSettings;
 import org.bukkit.entity.Player;
 import xyz.xenondevs.invui.gui.PagedGui;
 import xyz.xenondevs.invui.gui.structure.Markers;
@@ -37,19 +37,20 @@ public class TradeBrowserGUI {
                 .open(player);
     }
 
-    public PageItem forwardItem(){
+    public PageItem forwardItem() {
         return new PageItem(true) {
             @Override
             public ItemProvider getItemProvider(PagedGui<?> gui) {
-                return new ItemWrapper(Settings.instance().getButton(Settings.ButtonType.NEXT_PAGE));
+                return new ItemWrapper(GuiSettings.instance().nextPage.toItemStack());
             }
         };
     }
-    public PageItem backItem(){
+
+    public PageItem backItem() {
         return new PageItem(false) {
             @Override
             public ItemProvider getItemProvider(PagedGui<?> gui) {
-                return new ItemWrapper(Settings.instance().getButton(Settings.ButtonType.PREVIOUS_PAGE));
+                return new ItemWrapper(GuiSettings.instance().previousPage.toItemStack());
             }
         };
     }

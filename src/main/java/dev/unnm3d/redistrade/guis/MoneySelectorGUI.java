@@ -1,20 +1,17 @@
 package dev.unnm3d.redistrade.guis;
 
 import dev.unnm3d.redistrade.RedisTrade;
+import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
-import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.jetbrains.annotations.NotNull;
-import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
 import xyz.xenondevs.invui.gui.Gui;
 import xyz.xenondevs.invui.item.Item;
 import xyz.xenondevs.invui.item.ItemProvider;
-import xyz.xenondevs.invui.item.builder.ItemBuilder;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
 import xyz.xenondevs.invui.window.AnvilWindow;
 
@@ -25,20 +22,21 @@ import java.util.Optional;
 public class MoneySelectorGUI implements Listener {
     private static final DecimalFormat df = new DecimalFormat("#.##");
 
-    private final NewTrade trade;
     private final Gui currentGui;
-    private final boolean isTrader;
+
+    private final NewTrade trade;
     private final Player viewer;
-    private final double previousPrice;
+    private final boolean isTrader;
+    private final String currencyName;
     private String changingPriceString;
 
-    public MoneySelectorGUI(NewTrade trade, boolean isTrader, double currentPrice, Player viewer) {
+    public MoneySelectorGUI(NewTrade trade, Player viewer, String currencyName) {
         this.trade = trade;
-        this.isTrader = isTrader;
         this.currentGui = Gui.empty(3, 1);
-        this.previousPrice = currentPrice;
-        this.changingPriceString = df.format(currentPrice);
+        this.isTrader = trade.isTrader(viewer.getUniqueId());
         this.viewer = viewer;
+        this.currencyName = currencyName;
+        this.changingPriceString = df.format(getPreviousPrice());
         currentGui.setItem(0, getMoneyDisplay());
         currentGui.setItem(2, getConfirmDisplay());
         AnvilWindow.single()
@@ -49,17 +47,25 @@ public class MoneySelectorGUI implements Listener {
                 .open(viewer);
     }
 
-    private void handleRename(String moneyString) {
-        this.changingPriceString = moneyString;
-        updateItems();
+    private double getPreviousPrice() {
+        return trade.getOrderInfo(isTrader).getPrice(currencyName);
     }
 
-    private AbstractItem getMoneyDisplay() {
+    private void handleRename(String moneyString) {
+        this.changingPriceString = moneyString;
+        notifyItem(2);
+    }
+
+    private void notifyItem(int index) {
+        Optional.ofNullable(currentGui.getItem(index)).ifPresent(Item::notifyWindows);
+    }
+
+    public Item getMoneyDisplay() {
         return new AbstractItem() {
             @Override
             public ItemProvider getItemProvider() {
-                return new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.MONEY_DISPLAY))
-                        .setDisplayName(changingPriceString);
+                return GuiSettings.instance().moneyDisplay
+                        .toItemBuilder().setLegacyDisplayName(changingPriceString);
             }
 
             @Override
@@ -69,48 +75,40 @@ public class MoneySelectorGUI implements Listener {
         };
     }
 
-    private void updateItems() {
-        Optional.ofNullable(currentGui.getItem(2)).ifPresent(Item::notifyWindows);
-    }
-
     private AbstractItem getConfirmDisplay() {
         return new AbstractItem() {
             @Override
             public ItemProvider getItemProvider() {
-                return new ItemBuilder(Settings.instance().getButton(Settings.ButtonType.MONEY_CONFIRM_BUTTON))
-                        .setDisplayName(new AdventureComponentWrapper(MiniMessage.miniMessage().deserialize(Messages.instance().confirmMoneyDisplay
-                                .replace("%amount%", changingPriceString))));
+                return GuiSettings.instance().moneyConfirmButton.toItemBuilder()
+                        .setMiniMessageItemName(Messages.instance().confirmMoneyDisplay
+                                .replace("%amount%", changingPriceString)
+                                .replace("%symbol%", RedisTrade.getInstance().getEconomyHook()
+                                        .getCurrencySymbol(currencyName))
+                        );
             }
 
             @Override
             public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
                 try {
                     double nextPrice = Math.abs(Double.parseDouble(changingPriceString));
-                    double balance = RedisTrade.getInstance().getEconomyHook().getBalance(viewer.getUniqueId(), "default");
-                    double deducedPrice = previousPrice - nextPrice;
-                    //If the player balance plus the money already present is less than the new price
-                    if (balance + previousPrice < nextPrice) {
-                        viewer.sendRichMessage(Messages.instance().notEnoughMoney
-                                .replace("%amount%", df.format(nextPrice)));
-                        MoneySelectorGUI.this.changingPriceString = df.format(balance);
-                        updateItems();
-                        return;
-                    }
+                    double balance = RedisTrade.getInstance().getEconomyHook()
+                            .getBalance(viewer.getUniqueId(), currencyName);
+                    //The price is the difference between the previous price and the new price
+                    double deducedPrice = getPreviousPrice() - nextPrice;
+
                     //Subtract the new price from the previous price
-                    //If the price is negative, then the player will pay more
-                    //If the price is positive, then the player will be refunded
                     boolean response;
-                    if (deducedPrice < 0) {
+                    if (deducedPrice < 0) {//If the price is negative, then the player will pay more
                         response = RedisTrade.getInstance().getEconomyHook().withdrawPlayer(
                                 player.getUniqueId(), Math.abs(deducedPrice),
-                                "default", "Trade price");
-                    } else {
+                                currencyName, "Trade price");
+                    } else {//If the price is positive, then the player will be refunded
                         response = RedisTrade.getInstance().getEconomyHook().depositPlayer(
                                 player.getUniqueId(), deducedPrice,
-                                "default", "Trade price");
+                                currencyName, "Trade price");
                     }
                     if (response) {
-                        trade.setAndSendPrice(nextPrice, isTrader);
+                        trade.setAndSendPrice(currencyName, nextPrice, isTrader);
 
                         player.getInventory().addItem(player.getItemOnCursor()).values().forEach(
                                 itemStack -> player.getWorld().dropItem(player.getLocation(), itemStack));
@@ -119,12 +117,17 @@ public class MoneySelectorGUI implements Listener {
                         return;
                     }
 
-                    player.sendRichMessage(Messages.instance().notEnoughMoney
+                    viewer.sendRichMessage(Messages.instance().notEnoughMoney
                             .replace("%amount%", df.format(nextPrice)));
+                    //Set the price as the maximum withdrawable from the player account
+                    changingPriceString = df.format(balance);
+                    notifyItem(0);
+                    notifyItem(2);
 
                 } catch (NumberFormatException ignored) {
-                    MoneySelectorGUI.this.changingPriceString = df.format(previousPrice);
-                    updateItems();
+                    changingPriceString = df.format(getPreviousPrice());
+                    notifyItem(0);
+                    notifyItem(2);
                 }
             }
         };

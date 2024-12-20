@@ -51,20 +51,26 @@ public class RedisDataManager extends RedisAbstract {
             plugin.getTradeManager().getTrade(tradeUUID).ifPresent(trade -> {
                 plugin.getTradeManager().setTradeServerOwner(packetServerId, tradeUUID);
                 switch (type) {
-                    case TRADER_MONEY -> trade.setPrice(Double.parseDouble(value), true);
+                    case TRADER_MONEY -> {
+                        String[] split = value.split(":");
+                        trade.setPrice(split[0], Double.parseDouble(split[1]), true);
+                    }
                     case TRADER_ITEM -> {
                         String[] split = value.split("§;");
                         int slot = Integer.parseInt(split[0]);
                         trade.updateTraderItem(slot, Utils.deserialize(split[1])[0], false);
-                        trade.retrievePhase(true,false);
+                        trade.retrievedPhase(true, false);
                     }
                     case TRADER_STATUS -> trade.setStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)), true);
-                    case TARGET_MONEY -> trade.setPrice(Double.parseDouble(value), false);
+                    case TARGET_MONEY -> {
+                        String[] split = value.split(":");
+                        trade.setPrice(split[0], Double.parseDouble(split[1]), false);
+                    }
                     case TARGET_ITEM -> {
                         String[] split = value.split("§;");
                         int slot = Integer.parseInt(split[0]);
                         trade.updateTargetItem(slot, Utils.deserialize(split[1])[0], false);
-                        trade.retrievePhase(false,true);
+                        trade.retrievedPhase(false, true);
                     }
                     case TARGET_STATUS -> trade.setStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)), false);
                     default -> throw new IllegalStateException("Unexpected value: " + type);

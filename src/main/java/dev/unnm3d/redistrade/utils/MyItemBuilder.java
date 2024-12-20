@@ -12,6 +12,8 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.util.Pair;
 
 import java.util.*;
@@ -19,7 +21,7 @@ import java.util.function.Function;
 
 @Getter
 @SuppressWarnings("unused")
-public class MyItemBuilder {
+public class MyItemBuilder implements ItemProvider {
     protected ItemStack base;
     protected Material material;
     protected int amount = 1;
@@ -27,10 +29,12 @@ public class MyItemBuilder {
     protected int customModelData;
     protected Boolean unbreakable;
     protected Component displayName;
+    protected Component itemName;
     protected List<Component> lore;
     protected List<ItemFlag> itemFlags;
     protected HashMap<Enchantment, Pair<Integer, Boolean>> enchantments;
     protected List<Function<ItemStack, ItemStack>> modifiers;
+
 
     public MyItemBuilder(@NotNull Material material) {
         this.material = material;
@@ -44,6 +48,11 @@ public class MyItemBuilder {
     public MyItemBuilder(@NotNull ItemStack base) {
         this.base = base.clone();
         this.amount = base.getAmount();
+    }
+
+    @Override
+    public @NotNull ItemStack get(@Nullable String lang) {
+        return get();
     }
 
     @Contract(
@@ -63,6 +72,10 @@ public class MyItemBuilder {
         if (itemMeta != null) {
             if (this.displayName != null) {
                 itemMeta.displayName(this.displayName);
+            }
+
+            if (this.itemName != null) {
+                itemMeta.itemName(this.itemName);
             }
 
             if (this.lore != null) {
@@ -142,6 +155,18 @@ public class MyItemBuilder {
     @Contract("_ -> this")
     public @NotNull MyItemBuilder setDisplayName(@NotNull Component displayName) {
         this.displayName = displayName;
+        return this;
+    }
+
+    @Contract("_ -> this")
+    public @NotNull MyItemBuilder setItemName(@NotNull Component itemName) {
+        this.itemName = itemName;
+        return this;
+    }
+
+    @Contract("_ -> this")
+    public @NotNull MyItemBuilder setMiniMessageItemName(@NotNull String itemName) {
+        this.itemName = MiniMessage.miniMessage().deserialize(itemName);
         return this;
     }
 
@@ -316,5 +341,68 @@ public class MyItemBuilder {
 
         return this;
     }
+
+    @Contract("_ -> this")
+    public @NotNull MyItemBuilder replacePlaceholders(@NotNull Map<String, String> replacements) {
+
+        if (this.displayName != null) {
+            this.displayName = this.displayName.replaceText(builder -> {
+                for (Map.Entry<String, String> entry : replacements.entrySet()) {
+                    builder.matchLiteral(entry.getKey()).replacement(entry.getValue());
+                }
+            });
+        }
+        if (this.itemName != null) {
+            this.itemName = this.itemName.replaceText(builder -> {
+                for (Map.Entry<String, String> entry : replacements.entrySet()) {
+                    builder.matchLiteral(entry.getKey()).replacement(entry.getValue());
+                }
+            });
+        }
+        if (this.lore != null) {
+            final List<Component> newLore = new ArrayList<>();
+            for (Component line : this.lore) {
+                newLore.add(line.replaceText(builder -> {
+                    for (Map.Entry<String, String> entry : replacements.entrySet()) {
+                        builder.matchLiteral(entry.getKey()).replacement(entry.getValue());
+                    }
+                }));
+            }
+            this.lore = newLore;
+        }
+        return this;
+    }
+
+    @Contract("_ -> this")
+    public @NotNull MyItemBuilder replaceComponentPlaceholders(@NotNull Map<String, Component> replacements) {
+
+        if (this.displayName != null) {
+            this.displayName = this.displayName.replaceText(builder -> {
+                for (Map.Entry<String, Component> entry : replacements.entrySet()) {
+                    builder.matchLiteral(entry.getKey()).replacement(entry.getValue());
+                }
+            });
+        }
+        if (this.itemName != null) {
+            this.itemName = this.itemName.replaceText(builder -> {
+                for (Map.Entry<String, Component> entry : replacements.entrySet()) {
+                    builder.matchLiteral(entry.getKey()).replacement(entry.getValue());
+                }
+            });
+        }
+        if (this.lore != null) {
+            final List<Component> newLore = new ArrayList<>();
+            for (Component line : this.lore) {
+                newLore.add(line.replaceText(builder -> {
+                    for (Map.Entry<String, Component> entry : replacements.entrySet()) {
+                        builder.matchLiteral(entry.getKey()).replacement(entry.getValue());
+                    }
+                }));
+            }
+            this.lore = newLore;
+        }
+        return this;
+    }
+
 
 }

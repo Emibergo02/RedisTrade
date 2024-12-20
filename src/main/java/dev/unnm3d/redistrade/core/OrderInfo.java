@@ -4,10 +4,11 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.bukkit.inventory.ItemStack;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 
 
 @Getter
@@ -17,44 +18,60 @@ public class OrderInfo {
     @Setter
     private Status status;
     private final VirtualInventory virtualInventory;
-    @Setter
-    private double proposed;
+    private final LinkedHashMap<String, Double> prices;
 
     public OrderInfo(int orderSize) {
-        this(new VirtualInventory(orderSize), Status.REFUSED, 0);
+        this(new VirtualInventory(orderSize), Status.REFUSED, new LinkedHashMap<>());
     }
 
-    private OrderInfo(VirtualInventory virtualInventory, Status status, double proposed) {
+    private OrderInfo(VirtualInventory virtualInventory, Status status, LinkedHashMap<String, Double> prices) {
         this.virtualInventory = virtualInventory;
         this.status = status;
-        this.proposed = proposed;
+        this.prices = prices;
     }
 
-    public void replaceAllItems(ItemStack[] items) {
-        for (int i = 0; i < items.length; i++) {
-            virtualInventory.setItemSilently(i, items[i]);
-        }
+    public void setPrice(String currency, double price) {
+        prices.put(currency, price);
     }
 
+    public double getPrice(String currency) {
+        return prices.getOrDefault(currency, 0.0);
+    }
 
     public byte[] serialize() {
         byte[] serializedInventory = virtualInventory.serialize();
-        byte[] finalData = new byte[1 + serializedInventory.length + 8];
-        finalData[0] = status.getStatusByte();
-        System.arraycopy(serializedInventory, 0, finalData,
-                1, serializedInventory.length);
-        System.arraycopy(ByteBuffer.allocate(8).putDouble(proposed).array(), 0,
-                finalData, 1 + serializedInventory.length, 8);
+        // 1 byte for status, 2 bytes for proposed size
+        // 16 bytes for each proposed currency name, 8 bytes for each proposed double
+        final ByteBuffer buffer = ByteBuffer.allocate(1 + 2 + (prices.size() * (16 + 8)) + serializedInventory.length);
 
-        return finalData;
+        buffer.put(status.getStatusByte());
+
+        buffer.putShort((short) prices.size());
+
+        prices.forEach((s, aDouble) -> {
+            buffer.put(s.getBytes(StandardCharsets.ISO_8859_1));
+            buffer.putDouble(aDouble);
+        });
+
+        buffer.put(serializedInventory);
+
+        return buffer.array();
     }
 
     public static OrderInfo deserialize(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        Status status = Status.fromByte(buffer.get());
+        short proposedSize = buffer.getShort();
+        final LinkedHashMap<String, Double> proposed = new LinkedHashMap<>();
+        for (int i = 0; i < proposedSize; i++) {
+            byte[] currencyName = new byte[16];
+            buffer.get(currencyName);
+            proposed.put(new String(currencyName, StandardCharsets.ISO_8859_1),
+                    buffer.getDouble());
+        }
 
-        Status status = Status.fromByte(data[0]);
-        byte[] serializedInventory = new byte[data.length - 9];
-        System.arraycopy(data, 1, serializedInventory, 0, serializedInventory.length);
-        double proposed = ByteBuffer.wrap(data, data.length - 8, 8).getDouble();
+        byte[] serializedInventory = new byte[buffer.remaining()];
+        buffer.get(serializedInventory);
 
         return new OrderInfo(VirtualInventory.deserialize(serializedInventory), status, proposed);
     }
