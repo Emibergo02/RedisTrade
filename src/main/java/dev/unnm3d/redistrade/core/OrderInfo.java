@@ -4,11 +4,13 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
+import java.util.Arrays;
+import java.util.HashMap;
 
 
 @Getter
@@ -18,24 +20,24 @@ public class OrderInfo {
     @Setter
     private Status status;
     private final VirtualInventory virtualInventory;
-    private final LinkedHashMap<String, Double> prices;
+    private final HashMap<String, Double> prices;
 
     public OrderInfo(int orderSize) {
-        this(new VirtualInventory(orderSize), Status.REFUSED, new LinkedHashMap<>());
+        this(new VirtualInventory(orderSize), Status.REFUSED, new HashMap<>());
     }
 
-    private OrderInfo(VirtualInventory virtualInventory, Status status, LinkedHashMap<String, Double> prices) {
+    private OrderInfo(VirtualInventory virtualInventory, Status status, HashMap<String, Double> prices) {
         this.virtualInventory = virtualInventory;
         this.status = status;
         this.prices = prices;
     }
 
     public void setPrice(String currency, double price) {
-        prices.put(currency, price);
+        prices.put(currency.trim(), price);
     }
 
-    public double getPrice(String currency) {
-        return prices.getOrDefault(currency, 0.0);
+    public double getPrice(@NotNull String currency) {
+        return prices.getOrDefault(currency, 0.0d);
     }
 
     public byte[] serialize() {
@@ -48,9 +50,10 @@ public class OrderInfo {
 
         buffer.putShort((short) prices.size());
 
-        prices.forEach((s, aDouble) -> {
-            buffer.put(s.getBytes(StandardCharsets.ISO_8859_1));
-            buffer.putDouble(aDouble);
+        prices.forEach((currency, price) -> {
+            //Keep the string size to 16 bytes
+            buffer.put(Arrays.copyOf(currency.getBytes(StandardCharsets.ISO_8859_1), 16));
+            buffer.putDouble(price);
         });
 
         buffer.put(serializedInventory);
@@ -62,18 +65,25 @@ public class OrderInfo {
         ByteBuffer buffer = ByteBuffer.wrap(data);
         Status status = Status.fromByte(buffer.get());
         short pricesSize = buffer.getShort();
-        final LinkedHashMap<String, Double> prices = new LinkedHashMap<>();
+        final HashMap<String, Double> prices = new HashMap<>();
         for (int i = 0; i < pricesSize; i++) {
             byte[] currencyName = new byte[16];
             buffer.get(currencyName);
-            prices.put(new String(currencyName, StandardCharsets.ISO_8859_1),
+            //Remove trailing 0s
+            prices.put(new String(trim(currencyName), StandardCharsets.ISO_8859_1),
                     buffer.getDouble());
         }
-
         byte[] serializedInventory = new byte[buffer.remaining()];
-        buffer.get();
-
+        buffer.get(serializedInventory);
         return new OrderInfo(VirtualInventory.deserialize(serializedInventory), status, prices);
+    }
+
+    private static byte[] trim(byte[] bytes) {
+        int i = bytes.length - 1;
+        while (i >= 0 && bytes[i] == 0) {
+            --i;
+        }
+        return Arrays.copyOf(bytes, i + 1);
     }
 
     public enum Status {

@@ -19,7 +19,6 @@ public class TradeSide {
         byte[] orderBytes = order.serialize();
         //Allocate bytes for TraderUUID, TraderName, TraderData size, TraderData
         ByteBuffer bb = ByteBuffer.allocate(16 + 16 + 4 + orderBytes.length);
-
         bb.putLong(traderUUID.getMostSignificantBits());
         bb.putLong(traderUUID.getLeastSignificantBits());
 
@@ -39,8 +38,8 @@ public class TradeSide {
         bb.get(traderNameBytes);
         String traderName = new String(traderNameBytes, StandardCharsets.ISO_8859_1).trim();
 
-        int traderSize = bb.getInt();
-        byte[] orderBytes = new byte[traderSize];
+        int orderSize = bb.getInt();
+        byte[] orderBytes = new byte[orderSize];
         bb.get(orderBytes);
         return new TradeSide(traderUUID, traderName, OrderInfo.deserialize(orderBytes));
     }
