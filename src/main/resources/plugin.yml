@@ -25,3 +25,17 @@ permissions:
   redistrade.getitem:
     description: Get a gui item to your hand
     default: op
+  redistrade.stresser:
+    description: Stress test the plugin
+    default: op
+  redistrade.usecurrency.default:
+    description: Use the default currency
+    default: true
+  redistrade.admin:
+    description: Use the default currency
+    default: op
+    children:
+      redistrade.browse: true
+      redistrade.setitem: true
+      redistrade.getitem: true
+      redistrade.stresser: true

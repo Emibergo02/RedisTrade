@@ -220,7 +220,7 @@ public class MyItemBuilder implements ItemProvider {
         }
 
         for (String line : lines) {
-            this.lore.add(MiniMessage.miniMessage().deserialize(line));
+            this.lore.add(MiniMessage.miniMessage().deserialize("<!i><white>" + line));
         }
 
         return this;
