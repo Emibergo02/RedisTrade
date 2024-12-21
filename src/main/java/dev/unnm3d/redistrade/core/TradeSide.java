@@ -5,6 +5,7 @@ import lombok.Getter;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -15,22 +16,21 @@ public class TradeSide {
     private final OrderInfo order;
 
     public byte[] serialize() {
-        byte[] traderData = order.serialize();
+        byte[] orderBytes = order.serialize();
         //Allocate bytes for TraderUUID, TraderName, TraderData size, TraderData
-        ByteBuffer bb = ByteBuffer.allocate(16 + 16 + 4 + traderData.length);
+        ByteBuffer bb = ByteBuffer.allocate(16 + 16 + 4 + orderBytes.length);
 
         bb.putLong(traderUUID.getMostSignificantBits());
         bb.putLong(traderUUID.getLeastSignificantBits());
 
-        byte[] paddedTraderName = new byte[16];
-        System.arraycopy(traderName.getBytes(StandardCharsets.ISO_8859_1), 0, paddedTraderName, 0, traderName.length());
-        bb.put(paddedTraderName);
+        bb.put(Arrays.copyOf(traderName.getBytes(StandardCharsets.ISO_8859_1), 16));
 
-        bb.putInt(traderData.length);
+        bb.putInt(orderBytes.length);
 
-        bb.put(traderData);
+        bb.put(orderBytes);
         return bb.array();
     }
+
     public static TradeSide deserialize(byte[] data) {
         ByteBuffer bb = ByteBuffer.wrap(data);
         UUID traderUUID = new UUID(bb.getLong(), bb.getLong());
@@ -40,8 +40,8 @@ public class TradeSide {
         String traderName = new String(traderNameBytes, StandardCharsets.ISO_8859_1).trim();
 
         int traderSize = bb.getInt();
-        byte[] traderData = new byte[traderSize];
-        bb.get(traderData);
-        return new TradeSide(traderUUID, traderName, OrderInfo.deserialize(traderData));
+        byte[] orderBytes = new byte[traderSize];
+        bb.get(orderBytes);
+        return new TradeSide(traderUUID, traderName, OrderInfo.deserialize(orderBytes));
     }
 }

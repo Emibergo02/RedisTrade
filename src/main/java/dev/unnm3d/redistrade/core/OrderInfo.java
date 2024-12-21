@@ -61,19 +61,19 @@ public class OrderInfo {
     public static OrderInfo deserialize(byte[] data) {
         ByteBuffer buffer = ByteBuffer.wrap(data);
         Status status = Status.fromByte(buffer.get());
-        short proposedSize = buffer.getShort();
-        final LinkedHashMap<String, Double> proposed = new LinkedHashMap<>();
-        for (int i = 0; i < proposedSize; i++) {
+        short pricesSize = buffer.getShort();
+        final LinkedHashMap<String, Double> prices = new LinkedHashMap<>();
+        for (int i = 0; i < pricesSize; i++) {
             byte[] currencyName = new byte[16];
             buffer.get(currencyName);
-            proposed.put(new String(currencyName, StandardCharsets.ISO_8859_1),
+            prices.put(new String(currencyName, StandardCharsets.ISO_8859_1),
                     buffer.getDouble());
         }
 
         byte[] serializedInventory = new byte[buffer.remaining()];
-        buffer.get(serializedInventory);
+        buffer.get();
 
-        return new OrderInfo(VirtualInventory.deserialize(serializedInventory), status, proposed);
+        return new OrderInfo(VirtualInventory.deserialize(serializedInventory), status, prices);
     }
 
     public enum Status {

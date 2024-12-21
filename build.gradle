@@ -34,10 +34,17 @@ dependencies {
 
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.2'
-    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.11.2'
-    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.11.2'
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testImplementation(platform("org.junit:junit-bom:5.10.2"))
     testImplementation 'io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT'
+    testImplementation 'com.github.seeseemelk:MockBukkit-v1.20:3.93.2'
+    testImplementation 'com.zaxxer:HikariCP:5.1.0'
+    testImplementation 'org.xerial:sqlite-jdbc:3.46.0.0'
+    testImplementation 'org.projectlombok:lombok:1.18.34'
+    testImplementation 'io.lettuce:lettuce-core:6.4.0.RELEASE'
+    testImplementation "com.github.MilkBowl:VaultAPI:1.7.1"
+    testImplementation "com.github.Emibergo02:RedisEconomy:4.3.19"
+
 }
 
 test {

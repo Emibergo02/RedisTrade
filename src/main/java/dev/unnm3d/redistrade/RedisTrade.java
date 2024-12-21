@@ -29,7 +29,7 @@ import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-public final class RedisTrade extends JavaPlugin {
+public class RedisTrade extends JavaPlugin {
     @Getter
     private static final int serverId = new Random().nextInt();
     @Getter

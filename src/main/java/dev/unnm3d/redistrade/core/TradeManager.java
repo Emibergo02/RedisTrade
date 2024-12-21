@@ -299,8 +299,7 @@ public class TradeManager {
 
     public void close() {
         plugin.getLogger().info("Saving active trades to database");
-        trades.values().forEach(trade ->
-                plugin.getDataStorage().backupTrade(trade));
+        trades.values().forEach(trade -> plugin.getDataStorage().backupTrade(trade));
         plugin.getLogger().info("Finished saving active trades to database");
     }
 
