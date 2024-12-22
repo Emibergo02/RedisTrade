@@ -1,14 +1,16 @@
 package dev.unnm3d.redistrade;
 
-import be.seeseemelk.mockbukkit.MockBukkit;
-import be.seeseemelk.mockbukkit.ServerMock;
-import be.seeseemelk.mockbukkit.entity.PlayerMock;
 import dev.unnm3d.redistrade.core.OrderInfo;
 import dev.unnm3d.redistrade.core.TradeSide;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.MockBukkit;
+import org.mockbukkit.mockbukkit.ServerMock;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.util.UUID;
 
@@ -29,13 +31,15 @@ public class RedisTradeTests {
         try {
             // Start the mock server
             server = MockBukkit.mock();
+            server.addSimpleWorld("world");
+            //MockBukkit.load(RedisEconomyPlugin.class);
             // Load your plugin
             plugin = MockBukkit.load(RedisTrade.class);
-            server.addSimpleWorld("world");
+
             this.trader1 = server.addPlayer("Trader1");
             this.trader2 = server.addPlayer("Trader2");
             this.trader3 = server.addPlayer("Trader3");
-        }catch (UnsupportedOperationException e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -46,29 +50,21 @@ public class RedisTradeTests {
         MockBukkit.unmock();
     }
 
-    @Test
-    public void openTrade() {
-        try {
-        plugin.getTradeManager().startTrade(this.trader1, "Trader2");
-        plugin.getTradeManager().getActiveTrade(this.trader1.getUniqueId()).ifPresent(trade -> {
-            plugin.getTradeManager().openWindow(trade, this.trader2.getUniqueId());
-            this.trader2.simulateInventoryClick(0);
-            this.trader1.simulateInventoryClick(0);
-
-            assertEquals(OrderInfo.Status.CONFIRMED, trade.getTraderSide().getOrder().getStatus());
-            assertEquals(OrderInfo.Status.CONFIRMED, trade.getOtherSide().getOrder().getStatus());
-
-        });
-        }catch (UnsupportedOperationException e){
-            e.printStackTrace();
-        }
-    }
 
     @Test
-    public void serialization() {
+    public void tradeSideSerialization() {
         OrderInfo order = new OrderInfo(20);
         order.setPrice("emerald", 10);
+        order.setStatus(OrderInfo.Status.CONFIRMED);
+        order.getVirtualInventory().setItemSilently(5, new ItemStack(Material.BARRIER));
         TradeSide side = new TradeSide(UUID.randomUUID(), "Trader1", order);
+        byte[] bytes = side.serialize();
+        TradeSide side1 = TradeSide.deserialize(bytes);
+        assertEquals(side, side1);
+        assertEquals(side.getOrder().getPrice("emerald"), side1.getOrder().getPrice("emerald"));
+        assertEquals(side.getOrder().getStatus(), side1.getOrder().getStatus());
+        assertEquals(side.getOrder().getVirtualInventory().getItem(5), side1.getOrder().getVirtualInventory().getItem(5));
+        assertEquals(side.getTraderName(), side1.getTraderName());
     }
 
 

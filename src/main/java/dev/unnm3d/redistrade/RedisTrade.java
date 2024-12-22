@@ -12,6 +12,7 @@ import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.TradeManager;
 import dev.unnm3d.redistrade.data.*;
 import dev.unnm3d.redistrade.hooks.EconomyHook;
+import dev.unnm3d.redistrade.hooks.VaultEconomyHook;
 import dev.unnm3d.redistrade.hooks.RedisEconomyHook;
 import dev.unnm3d.redistrade.integrity.IntegritySystem;
 import dev.unnm3d.redistrade.utils.Metrics;
@@ -135,7 +136,7 @@ public class RedisTrade extends JavaPlugin {
             return true;
         }
         try {
-            this.economyHook = new EconomyHook(this);
+            this.economyHook = new VaultEconomyHook(this);
         } catch (IllegalStateException e) {
             return false;
         }

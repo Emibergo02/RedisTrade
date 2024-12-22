@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class RedisEconomyHook extends EconomyHook {
+public class RedisEconomyHook extends VaultEconomyHook {
 
     private final RedisEconomyAPI api;
 

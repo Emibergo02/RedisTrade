@@ -1,7 +1,5 @@
 package dev.unnm3d.redistrade.commands;
 
-import com.github.Anon8281.universalScheduler.UniversalRunnable;
-import com.github.Anon8281.universalScheduler.scheduling.tasks.MyScheduledTask;
 import dev.unnm3d.redistrade.RedisTrade;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.HumanEntity;
@@ -9,6 +7,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerListManager implements Listener {
     private final RedisTrade plugin;
-    private final MyScheduledTask task;
+    private final BukkitTask task;
     private final ConcurrentHashMap<String, Long> onlinePlayerList;
     private final ConcurrentHashMap<String, UUID> nameUUIDs;
 
@@ -25,7 +25,7 @@ public class PlayerListManager implements Listener {
         this.plugin = plugin;
         this.onlinePlayerList = new ConcurrentHashMap<>();
         this.nameUUIDs = new ConcurrentHashMap<>();
-        this.task = new UniversalRunnable() {
+        this.task = new BukkitRunnable() {
             @Override
             public void run() {
                 onlinePlayerList.entrySet().removeIf(stringLongEntry -> System.currentTimeMillis() - stringLongEntry.getValue() > 1000 * 4);

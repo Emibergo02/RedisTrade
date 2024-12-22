@@ -16,8 +16,10 @@ public class StresserCommand {
         if (task != null) {
             task.cancel();
             task = null;
+            sender.sendMessage("§2Stress test stopped");
             return;
         }
+        sender.sendMessage("§2Stress test started");
         task = RedisTrade.getInstance().getServer().getScheduler().runTaskTimer(RedisTrade.getInstance(), () -> {
             try {
                 Thread.sleep(1000);
