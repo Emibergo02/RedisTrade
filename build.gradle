@@ -16,7 +16,7 @@ repositories {
         name = "sonatype"
         url = "https://oss.sonatype.org/content/groups/public/"
     }
-
+    maven { url = "https://repo.codemc.io/repository/maven-public/" }
     maven { url 'https://repo.xenondevs.xyz/releases' }
 }
 
@@ -31,6 +31,7 @@ dependencies {
     implementation 'de.exlll:configlib-paper:4.5.0'
     implementation 'com.github.alexdev03:drink:1.5.3'
     implementation 'xyz.xenondevs.invui:invui:1.43'
+    implementation 'de.tr7zw:item-nbt-api:2.14.1'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 
@@ -62,6 +63,8 @@ shadowJar {
     relocate 'com.jonahseguin.drink', 'dev.unnm3d.redistrade.libraries.drink'
     relocate 'xyz.xenondevs.invui', 'dev.unnm3d.redistrade.libraries.invui'
     relocate 'xyz.xenondevs.inventoryaccess', 'dev.unnm3d.redistrade.libraries.inventoryaccess'
+    relocate("de.tr7zw.changeme.nbtapi", "dev.unnm3d.redistrade.libraries.nbtapi")
+    exclude 'colors.bin'
 }
 
 def targetJavaVersion = 21

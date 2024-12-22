@@ -5,11 +5,16 @@ import de.exlll.configlib.Comment;
 import de.exlll.configlib.ConfigLib;
 import de.exlll.configlib.Configuration;
 import de.exlll.configlib.YamlConfigurations;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.NBTType;
+import de.tr7zw.changeme.nbtapi.iface.ReadableItemNBT;
 import dev.unnm3d.redistrade.utils.MyItemBuilder;
 import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 @Configuration
@@ -65,13 +70,16 @@ public class Settings {
     @Comment("Decimal format for the trade receipt")
     public String decimalFormat = "#.##";
 
-
-    public String defaultCurrency = "default";
     @Comment("Allowed currencies for trades")
     public Map<String, CurrencyItemSerializable> allowedCurrencies = Map.of("default",
             new CurrencyItemSerializable("GOLD_INGOT", 0, "<gold>Money"),
             "emerald",
             new CurrencyItemSerializable("EMERALD", 0, "<green>Emeralds"));
+
+    public List<BlacklistedItem> blacklistedItems = List.of(
+            new BlacklistedItem("BARRIER", 0, List.of())
+    );
+
     public boolean debug = false;
 
     public record CurrencyItemSerializable(String material, int customModelData, String displayName) {
@@ -91,6 +99,35 @@ public class Settings {
     public record Redis(String host, int port, String user, String password,
                         int database, int timeout,
                         String clientName, int poolSize) {
+    }
+
+    public record Tuple<T, U>(T first, U second) {
+    }
+
+    public record BlacklistedItem(String material, int customModelData, List<Tuple<String, String>> nbtBlacklist) {
+        private boolean hasAllBlackListedNBTs(ReadableItemNBT NBTs) {
+            for (Tuple<String, String> tuple : nbtBlacklist) {
+                final String key = tuple.first;
+                final String value = tuple.second;
+                final NBTType type = NBTs.getType(value);
+                //If the NBT is not present or the value is different return false
+                if ((type == NBTType.NBTTagString && !NBTs.getString(key).equals(value)) ||
+                        (type == NBTType.NBTTagInt && NBTs.getInteger(key) != Integer.parseInt(value)) ||
+                        (type == NBTType.NBTTagByte && NBTs.getByte(key) != Byte.parseByte(value)) ||
+                        (type == NBTType.NBTTagDouble && NBTs.getDouble(key) != Double.parseDouble(value)) ||
+                        (type == NBTType.NBTTagFloat && NBTs.getFloat(key) != Float.parseFloat(value)) ||
+                        (type == NBTType.NBTTagLong && NBTs.getLong(key) != Long.parseLong(value))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public boolean isSimilar(ItemStack item) {
+            return item.getType() == Material.valueOf(material) &&
+                    item.getItemMeta().getCustomModelData() == customModelData &&
+                    NBT.get(item, this::hasAllBlackListedNBTs);
+        }
     }
 
     public enum ButtonType {

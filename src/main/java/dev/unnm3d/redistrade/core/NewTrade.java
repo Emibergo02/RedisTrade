@@ -280,6 +280,15 @@ public class NewTrade {
             playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().newTradesLock);
             return true;
         }
+
+        if (event.getNewItem() != null)
+            for (Settings.BlacklistedItem blacklistedItem : Settings.instance().blacklistedItems) {
+                if (blacklistedItem.isSimilar(event.getNewItem())) {
+                    playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().blacklistedItem);
+                    return true;
+                }
+            }
+
         if (isTrader) {
             //If the trade is completed, the target can modify the trader inventory
             return switch (traderSide.getOrder().getStatus()) {

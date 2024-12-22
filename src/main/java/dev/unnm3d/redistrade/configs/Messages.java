@@ -35,6 +35,7 @@ public class Messages {
     public String tradeUnignored = "<green>You unignored %player% trades";
     public String tradeIgnored = "<green>You ignored %player% trades";
     public String tradeIgnoreList = "<green>Ignored players: %list%";
+    public String blacklistedItem = "<red>You can't trade this item, it's blacklisted";
     public String notSupported = "<red>This feature is not supported with %feature%";
     public List<String> moneyButtonLore = List.of("<white>Name: %currency%",
             "Value: <gold>%amount%",
