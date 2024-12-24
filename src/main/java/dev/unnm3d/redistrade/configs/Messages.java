@@ -24,9 +24,9 @@ public class Messages {
     public String alreadyInTrade = "<red>You already trading with %player% <click:run_command:'/trade'><dark_aqua>[Click to resume or execute /trade]</dark_aqua></click>";
     public String noPendingTrades = "<red>You don't have any pending trades";
     public String targetAlreadyInTrade = "<red>The player %player% is already trading with someone else";
-    public String tradeCreated = "<red>You started a trade with %player% <click:run_command:'/trade %player%'><dark_aqua>[Click to open or execute /trade %player%]</dark_aqua></click>";
+    public String tradeCreated = "<gradient:green:gray>You started a trade with %player%<br><dark_aqua><click:run_command:'/trade %player%'>[Click to open]</click> <white>or </white>execute /trade %player%</dark_aqua>";
     public String tradeReceived = "<green>%player% wants to trade with you <click:run_command:'/trade %player%'><dark_aqua>[Click to open or execute /trade %player%]</dark_aqua></click>";
-    public String setItemField = "<green>You successfully set the item for the field %field%";
+    public String setItemField = "<green>You successfully set the item as %field%";
     public String getItemField = "<green>You successfully get the item %field% to your inventory";
     public String completionTimer = "<green>The trade will be finalized in %time% seconds";
     public String playerNotFound = "<red>Player %player% not found";
@@ -37,10 +37,9 @@ public class Messages {
     public String tradeIgnoreList = "<green>Ignored players: %list%";
     public String blacklistedItem = "<red>You can't trade this item, it's blacklisted";
     public String notSupported = "<red>This feature is not supported with %feature%";
-    public List<String> moneyButtonLore = List.of("<white>Name: %currency%",
-            "Value: <gold>%amount%",
-            "Symbol: <green>%symbol%");
+    public List<String> moneyButtonLore = List.of("<white>Currency: %currency%",
+            "Value: <gold>%amount%%symbol%");
     public String confirmMoneyDisplay = "<green>Confirm the price %amount%%symbol%";
-    public String tradeRunning = "<red>The trade is still opened in background. <click:run_command:'/trade %player%'><dark_aqua>[Click to resume or execute /trade %player%]</dark_aqua></click>";
+    public String tradeRunning = "<color:#39abab>The trade is still opened in background</color><br><color:#bfbfbf><click:run_command:'/trade %player%'>[Click to resume]</click> or <click:suggest_command:'/trade'>[/trade]</click>";
     public String newTradesLock = "<red>Sorry for the inconvenience. There are temporary synchronization issues<br> Please try again in a few seconds";
 }

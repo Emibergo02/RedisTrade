@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'dev.unnm3d'
-version = '1.0.3'
+version = '1.1.0'
 
 repositories {
     mavenCentral()
@@ -30,7 +30,11 @@ dependencies {
 
     implementation 'de.exlll:configlib-paper:4.5.0'
     implementation 'com.github.alexdev03:drink:1.5.3'
-    implementation 'xyz.xenondevs.invui:invui:2.0.0-alpha.6'
+    implementation 'xyz.xenondevs.invui:invui-core:1.43'
+    implementation 'xyz.xenondevs.invui:inventory-access-r19:1.43'
+    implementation 'xyz.xenondevs.invui:inventory-access-r20:1.43'
+    implementation 'xyz.xenondevs.invui:inventory-access-r21:1.43'
+    implementation 'xyz.xenondevs.invui:inventory-access-r22:1.43'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 
@@ -40,7 +44,7 @@ dependencies {
     testImplementation 'org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.21.0'
     testImplementation 'com.zaxxer:HikariCP:5.1.0'
     testImplementation 'org.xerial:sqlite-jdbc:3.46.0.0'
-    testImplementation 'xyz.xenondevs.invui:invui:2.0.0-alpha.6'
+    testImplementation 'xyz.xenondevs.invui:invui:1.43'
     testImplementation 'org.projectlombok:lombok:1.18.34'
     testImplementation 'io.lettuce:lettuce-core:6.4.0.RELEASE'
     testImplementation "com.github.MilkBowl:VaultAPI:1.7.1"

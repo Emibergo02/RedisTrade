@@ -15,7 +15,6 @@ import xyz.xenondevs.invui.gui.AbstractGui;
 import xyz.xenondevs.invui.gui.structure.Structure;
 import xyz.xenondevs.invui.item.Item;
 import xyz.xenondevs.invui.item.ItemProvider;
-import xyz.xenondevs.invui.item.builder.ItemBuilder;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
 import xyz.xenondevs.invui.item.impl.SuppliedItem;
 
@@ -29,7 +28,7 @@ public final class TradeGuiImpl extends AbstractGui {
         super(structure.getWidth(), structure.getHeight());
         structure.addIngredient('L', trade.getOrderInfo(isTraderGui).getVirtualInventory())
                 .addIngredient('R', trade.getOrderInfo(!isTraderGui).getVirtualInventory())
-                .addIngredient('x', GuiSettings.instance().separator.toItemStack());
+                .addIngredient('x', GuiSettings.instance().separator.toItemBuilder());
         applyStructure(structure);
         this.trade = trade;
         this.isTraderGui = isTraderGui;
@@ -51,10 +50,10 @@ public final class TradeGuiImpl extends AbstractGui {
         OrderInfo orderInfo = trade.getOrderInfo(isTraderConfirmation);
         return new SuppliedItem(() ->
                 switch (orderInfo.getStatus()) {
-                    case REFUSED -> new ItemBuilder(GuiSettings.instance().refuseButton.toItemStack());
-                    case CONFIRMED -> new ItemBuilder(GuiSettings.instance().confirmButton.toItemStack());
-                    case COMPLETED -> new ItemBuilder(GuiSettings.instance().completedButton.toItemStack());
-                    case RETRIEVED -> new ItemBuilder(GuiSettings.instance().retrievedButton.toItemStack());
+                    case REFUSED -> GuiSettings.instance().refuseButton.toItemBuilder();
+                    case CONFIRMED -> GuiSettings.instance().confirmButton.toItemBuilder();
+                    case COMPLETED -> GuiSettings.instance().completedButton.toItemBuilder();
+                    case RETRIEVED -> GuiSettings.instance().retrievedButton.toItemBuilder();
                 }, (inventoryClickEvent) -> switch (orderInfo.getStatus()) {
             case REFUSED -> {
                 trade.changeAndSendStatus(OrderInfo.Status.CONFIRMED, orderInfo.getStatus(), isTraderConfirmation);
@@ -72,7 +71,7 @@ public final class TradeGuiImpl extends AbstractGui {
         return new AbstractItem() {
             @Override
             public ItemProvider getItemProvider() {
-                return new ItemBuilder(GuiSettings.instance().cancelTradeButton.toItemStack());
+                return GuiSettings.instance().cancelTradeButton.toItemBuilder();
             }
 
             @Override

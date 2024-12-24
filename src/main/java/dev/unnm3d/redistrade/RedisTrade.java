@@ -23,6 +23,7 @@ import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -133,10 +134,12 @@ public class RedisTrade extends JavaPlugin {
     private boolean loadEconomy(){
         if(this.getServer().getPluginManager().isPluginEnabled("RedisEconomy")){
             this.economyHook = new RedisEconomyHook(this);
+            getLogger().info("Economy hooked into RedisEconomy");
             return true;
         }
         try {
             this.economyHook = new VaultEconomyHook(this);
+            getLogger().info("Economy hooked into Vault");
         } catch (IllegalStateException e) {
             return false;
         }
@@ -147,6 +150,7 @@ public class RedisTrade extends JavaPlugin {
         CommandService drink = Drink.get(this);
         drink.bind(PlayerListManager.Target.class).toProvider(new TargetProvider(playerListManager));
         drink.bind(LocalDateTime.class).toProvider(new LocalDateProvider(settings.dateFormat, settings.timeZone));
+        drink.bind(Field.class).toProvider(new ItemFieldProvider());
         drink.register(new TradeCommand(this), "trade", "t");
         drink.register(new TradeGuiCommand(this), "trade-gui");
         drink.register(new TradeIgnoreCommand(tradeManager), "trade-ignore");

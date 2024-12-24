@@ -31,7 +31,6 @@ public class RedisTradeTests {
         try {
             // Start the mock server
             server = MockBukkit.mock();
-            server.addSimpleWorld("world");
             //MockBukkit.load(RedisEconomyPlugin.class);
             // Load your plugin
             plugin = MockBukkit.load(RedisTrade.class);

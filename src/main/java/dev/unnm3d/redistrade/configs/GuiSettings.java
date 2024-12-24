@@ -6,8 +6,11 @@ import de.exlll.configlib.Configuration;
 import de.exlll.configlib.YamlConfigurationProperties;
 import de.exlll.configlib.YamlConfigurations;
 import dev.unnm3d.redistrade.utils.MyItemBuilder;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -105,8 +108,28 @@ public class GuiSettings {
 
     public record SimpleSerializableItem(String material, int amount, int customModelData, String itemName,
                                          List<String> lore) {
-        public ItemStack toItemStack() {
-            return toItemBuilder().get();
+        public static SimpleSerializableItem fromItemStack(@NotNull ItemStack item) {
+            final String serializedItemName = MiniMessage.miniMessage().serialize(
+                    item.getItemMeta().hasDisplayName() ?
+                            item.getItemMeta().displayName() :
+                            item.getItemMeta().hasItemName() ?
+                                    item.getItemMeta().itemName() :
+                                    Component.empty());
+            final List<String> serializedLore = item.getItemMeta().hasLore() ?
+                    item.getItemMeta().lore().stream()
+                            .map(MiniMessage.miniMessage()::serialize)
+                            .toList() :
+                    List.of();
+
+            return new SimpleSerializableItem(
+                    item.getType().name(),
+                    item.getAmount(),
+                    item.getItemMeta().hasCustomModelData() ?
+                            item.getItemMeta().getCustomModelData() :
+                            0,
+                    serializedItemName,
+                    serializedLore
+            );
         }
 
         public MyItemBuilder toItemBuilder() {

@@ -6,7 +6,6 @@ import xyz.xenondevs.invui.gui.PagedGui;
 import xyz.xenondevs.invui.gui.structure.Markers;
 import xyz.xenondevs.invui.item.Item;
 import xyz.xenondevs.invui.item.ItemProvider;
-import xyz.xenondevs.invui.item.ItemWrapper;
 import xyz.xenondevs.invui.item.impl.controlitem.PageItem;
 import xyz.xenondevs.invui.window.Window;
 
@@ -41,7 +40,7 @@ public class TradeBrowserGUI {
         return new PageItem(true) {
             @Override
             public ItemProvider getItemProvider(PagedGui<?> gui) {
-                return new ItemWrapper(GuiSettings.instance().nextPage.toItemStack());
+                return GuiSettings.instance().nextPage.toItemBuilder();
             }
         };
     }
@@ -50,7 +49,7 @@ public class TradeBrowserGUI {
         return new PageItem(false) {
             @Override
             public ItemProvider getItemProvider(PagedGui<?> gui) {
-                return new ItemWrapper(GuiSettings.instance().previousPage.toItemStack());
+                return GuiSettings.instance().previousPage.toItemBuilder();
             }
         };
     }

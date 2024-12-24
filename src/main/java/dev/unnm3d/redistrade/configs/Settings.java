@@ -69,9 +69,7 @@ public class Settings {
 
     @Comment("Allowed currencies for trades")
     public Map<String, CurrencyItemSerializable> allowedCurrencies = Map.of("default",
-            new CurrencyItemSerializable("GOLD_INGOT", 0, "<gold>Money"),
-            "emerald",
-            new CurrencyItemSerializable("EMERALD", 0, "<green>Emeralds"));
+            new CurrencyItemSerializable("GOLD_INGOT", 0, "<gold>Money"));
 
     @Comment("Component blacklist will come in the future")
     public List<BlacklistedItem> blacklistedItems = List.of(
@@ -106,35 +104,6 @@ public class Settings {
             return item.getType() == Material.valueOf(material) &&
                     modelData;
         }
-    }
-
-    public enum ButtonType {
-        /**
-         * GENERAL BUTTONS
-         */
-        CLOSE,
-        NEXT_PAGE,
-        PREVIOUS_PAGE,
-        SCROLL_NEXT,
-        SCROLL_PREVIOUS,
-        BACK,
-        BORDER,
-        /**
-         * TRADE MENU BUTTONS
-         */
-        SEPARATOR,
-        MONEY_BUTTON,
-        CONFIRM_BUTTON,
-        REFUTE_BUTTON,
-        COMPLETED_BUTTON,
-        RETRIEVED_BUTTON,
-        CANCEL_TRADE_BUTTON,
-        /**
-         * MONEY EDITOR
-         */
-        MONEY_DISPLAY,
-        MONEY_CONFIRM_BUTTON
-
     }
 
     public enum CacheType {
