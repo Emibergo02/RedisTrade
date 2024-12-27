@@ -23,7 +23,7 @@ public class TradeCommand {
                             plugin.getServer().getScheduler().runTask(plugin, () ->
                                     plugin.getTradeManager().openWindow(trade, player.getUniqueId()
                                     ));
-                            if(!trade.getOtherSide().getTraderName().equals(targetName.playerName()))
+                            if(!trade.getCustomerSide().getTraderName().equals(targetName.playerName()))
                                 player.sendRichMessage(Messages.instance().alreadyInTrade
                                     .replace("%player%", trade.getTraderSide().getTraderName()));
                         },

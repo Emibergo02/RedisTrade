@@ -115,7 +115,7 @@ public class SQLiteDatabase implements Database {
                          VALUES (?,?,?,?,?);""")) {
                 statement.setString(1, trade.getUuid().toString());
                 statement.setString(2, trade.getTraderSide().getTraderUUID().toString());
-                statement.setString(3, trade.getOtherSide().getTraderUUID().toString());
+                statement.setString(3, trade.getCustomerSide().getTraderUUID().toString());
                 statement.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
                 statement.setString(5, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
                 return statement.executeUpdate() != 0;
@@ -142,9 +142,12 @@ public class SQLiteDatabase implements Database {
                 try (ResultSet result = statement.executeQuery()) {
                     final Map<Long, NewTrade> trades = new LinkedHashMap<>();
                     while (result.next()) {
-                        trades.put(result.getTimestamp("timestamp").getTime(),
-                                NewTrade.deserialize(RedisTrade.getInstance().getDataCache(),
-                                        result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
+                        try {
+                            trades.put(result.getTimestamp("timestamp").getTime(),
+                                    NewTrade.deserialize(result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
+                        } catch (Exception e) {
+                            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.SERIALIZATION));
+                        }
                     }
                     return trades;
                 }
@@ -231,9 +234,12 @@ public class SQLiteDatabase implements Database {
                 try (ResultSet result = statement.executeQuery()) {
                     final HashMap<Integer, NewTrade> trades = new HashMap<>();
                     while (result.next()) {
+                        try {
                         trades.put(result.getInt("server_id"),
-                                NewTrade.deserialize(RedisTrade.getInstance().getDataCache(),
-                                        result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
+                                NewTrade.deserialize(result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
+                        }catch (Exception e) {
+                            plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.SERIALIZATION));
+                        }
                     }
                     return trades;
                 }

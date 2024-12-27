@@ -20,17 +20,23 @@ permissions:
     default: true
   redistrade.browse:
     description: Browse the trades
-    default: op
+    default: false
   redistrade.setitem:
     description: Set a gui item from your hand
-    default: op
+    default: false
   redistrade.getitem:
     description: Get a gui item to your hand
-    default: op
+    default: false
+  redistrade.reload:
+    description: Get a gui item to your hand
+    default: false
   redistrade.stresser:
     description: Stress test the plugin
-    default: op
+    default: false
   redistrade.usecurrency.default:
+    description: Use the default currency
+    default: true
+  redistrade.usecurrency.vault:
     description: Use the default currency
     default: true
   redistrade.admin:
@@ -41,3 +47,4 @@ permissions:
       redistrade.setitem: true
       redistrade.getitem: true
       redistrade.stresser: true
+      redistrade.reload: true

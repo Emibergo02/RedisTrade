@@ -22,6 +22,7 @@ public class RedisTradeStorageException extends Exception {
     public enum ExceptionSource {
         BACKUP_TRADE,
         RESTORE_TRADE,
+        SERIALIZATION,
         ARCHIVE_TRADE,
         UNARCHIVE_TRADE,
         IGNORED_PLAYER,

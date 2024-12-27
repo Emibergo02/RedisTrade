@@ -36,7 +36,7 @@ public class TradeBrowserGUI {
                 .open(player);
     }
 
-    public PageItem forwardItem() {
+    public Item forwardItem() {
         return new PageItem(true) {
             @Override
             public ItemProvider getItemProvider(PagedGui<?> gui) {
@@ -45,7 +45,7 @@ public class TradeBrowserGUI {
         };
     }
 
-    public PageItem backItem() {
+    public Item backItem() {
         return new PageItem(false) {
             @Override
             public ItemProvider getItemProvider(PagedGui<?> gui) {

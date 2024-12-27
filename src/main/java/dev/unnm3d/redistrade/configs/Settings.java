@@ -57,6 +57,7 @@ public class Settings {
             "",
             0,
             1000,
+            false,
             "RedisTrade",
             3);
 
@@ -93,7 +94,7 @@ public class Settings {
     }
 
     public record Redis(String host, int port, String user, String password,
-                        int database, int timeout,
+                        int database, int timeout, boolean ssl,
                         String clientName, int poolSize) {
     }
 

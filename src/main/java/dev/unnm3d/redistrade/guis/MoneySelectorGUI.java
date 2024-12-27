@@ -25,30 +25,27 @@ public class MoneySelectorGUI implements Listener {
     private final Gui currentGui;
 
     private final NewTrade trade;
-    private final Player viewer;
-    private final boolean isTrader;
     private final String currencyName;
+    private final double previousPrice;
     private String changingPriceString;
 
-    public MoneySelectorGUI(NewTrade trade, Player viewer, String currencyName) {
+    public MoneySelectorGUI(NewTrade trade, ViewerType viewerType, String currencyName) {
         this.trade = trade;
         this.currentGui = Gui.empty(3, 1);
-        this.isTrader = trade.isTrader(viewer.getUniqueId());
-        this.viewer = viewer;
         this.currencyName = currencyName;
-        this.changingPriceString = df.format(getPreviousPrice());
+        this.previousPrice = trade.getOrderInfo(viewerType).getPrice(currencyName);
+        this.changingPriceString = df.format(previousPrice);
         currentGui.setItem(0, getMoneyDisplay());
         currentGui.setItem(2, getConfirmDisplay());
+    }
+
+    public void openWindow(Player player) {
         AnvilWindow.single()
                 .setRenameHandlers(List.of(this::handleRename))
                 .setGui(currentGui)
                 .setTitle("Money editor")
                 .setCloseable(true)
-                .open(viewer);
-    }
-
-    private double getPreviousPrice() {
-        return trade.getOrderInfo(isTrader).getPrice(currencyName);
+                .open(player);
     }
 
     private void handleRename(String moneyString) {
@@ -64,8 +61,8 @@ public class MoneySelectorGUI implements Listener {
         return new AbstractItem() {
             @Override
             public ItemProvider getItemProvider() {
-                return GuiSettings.instance().moneyDisplay
-                        .toItemBuilder().setLegacyDisplayName(changingPriceString);
+                return GuiSettings.instance().moneyDisplay.toItemBuilder()
+                        .setLegacyDisplayName(changingPriceString);
             }
 
             @Override
@@ -75,16 +72,16 @@ public class MoneySelectorGUI implements Listener {
         };
     }
 
-    private AbstractItem getConfirmDisplay() {
+    private Item getConfirmDisplay() {
         return new AbstractItem() {
+
             @Override
             public ItemProvider getItemProvider() {
                 return GuiSettings.instance().moneyConfirmButton.toItemBuilder()
                         .setMiniMessageItemName(Messages.instance().confirmMoneyDisplay
                                 .replace("%amount%", changingPriceString)
                                 .replace("%symbol%", RedisTrade.getInstance().getEconomyHook()
-                                        .getCurrencySymbol(currencyName))
-                        );
+                                        .getCurrencySymbol(currencyName)));
             }
 
             @Override
@@ -92,9 +89,9 @@ public class MoneySelectorGUI implements Listener {
                 try {
                     double nextPrice = Math.abs(Double.parseDouble(changingPriceString));
                     double balance = RedisTrade.getInstance().getEconomyHook()
-                            .getBalance(viewer.getUniqueId(), currencyName);
+                            .getBalance(player.getUniqueId(), currencyName);
                     //The price is the difference between the previous price and the new price
-                    double deducedPrice = getPreviousPrice() - nextPrice;
+                    double deducedPrice = previousPrice - nextPrice;
 
                     //Subtract the new price from the previous price
                     boolean response;
@@ -108,16 +105,17 @@ public class MoneySelectorGUI implements Listener {
                                 currencyName, "Trade price");
                     }
                     if (response) {
-                        trade.setAndSendPrice(currencyName, nextPrice, isTrader);
+                        trade.setAndSendPrice(currencyName, nextPrice, trade.getViewerType(player.getUniqueId()));
 
-                        player.getInventory().addItem(player.getItemOnCursor()).values().forEach(
-                                itemStack -> player.getWorld().dropItem(player.getLocation(), itemStack));
+                        player.getInventory().addItem(player.getItemOnCursor()).values()
+                                .forEach(itemStack -> player.getWorld()
+                                        .dropItem(player.getLocation(), itemStack));
                         player.setItemOnCursor(null);
-                        trade.openWindow(viewer.getUniqueId(), isTrader);
+                        trade.openWindow(player.getUniqueId(), trade.getViewerType(player.getUniqueId()));
                         return;
                     }
 
-                    viewer.sendRichMessage(Messages.instance().notEnoughMoney
+                    player.sendRichMessage(Messages.instance().notEnoughMoney
                             .replace("%amount%", df.format(nextPrice)));
                     //Set the price as the maximum withdrawable from the player account
                     changingPriceString = df.format(balance);
@@ -125,7 +123,7 @@ public class MoneySelectorGUI implements Listener {
                     notifyItem(2);
 
                 } catch (NumberFormatException ignored) {
-                    changingPriceString = df.format(getPreviousPrice());
+                    changingPriceString = df.format(previousPrice);
                     notifyItem(0);
                     notifyItem(2);
                 }

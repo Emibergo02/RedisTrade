@@ -1,6 +1,8 @@
 package dev.unnm3d.redistrade.utils;
 
+import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.GuiSettings;
+import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;
@@ -34,35 +36,28 @@ public class ReceiptBuilder {
 
         //Create intestation
         for (List<String> formatList : GuiSettings.instance().receiptIntestationFormat) {
-            Component text = Component.empty();
+            Component componentText = Component.empty();
             final Iterator<String> itStr = formatList.iterator();
             while (itStr.hasNext()) {
-                text = text.append(MiniMessage.miniMessage().deserialize(itStr.next()
-                        .replace("%trader%", trade.getTraderSide().getTraderName())
-                        .replace("%target%", trade.getOtherSide().getTraderName())
-                        .replace("%timestamp%", parsedDate)
-                        .replace("%trader_price%", decimalFormat.format(trade.getTraderSide().getOrder().getPrices()))
-                        .replace("%target_price%", decimalFormat.format(trade.getOtherSide().getOrder().getPrices()))
+                componentText = componentText.append(MiniMessage.miniMessage().deserialize(
+                        tradePlaceholders(trade, itStr.next()).replace("%timestamp%", parsedDate)
                 ));
                 if (itStr.hasNext()) {
-                    text = text.append(Component.newline());
+                    componentText = componentText.append(Component.newline());
                 }
             }
-            writtenMeta.addPages(text);
+            writtenMeta.addPages(componentText);
         }
 
         buildPages(true, trade.getTraderSide().getOrder().getVirtualInventory().getItems())
                 .forEach(writtenMeta::addPages);
 
-        buildPages(false, trade.getOtherSide().getOrder().getVirtualInventory().getItems())
+        buildPages(false, trade.getCustomerSide().getOrder().getVirtualInventory().getItems())
                 .forEach(writtenMeta::addPages);
 
         writtenMeta.itemName(MiniMessage.miniMessage().deserialize(
-                GuiSettings.instance().receiptBookDisplayName
-                        .replace("%trader%", trade.getTraderSide().getTraderName())
-                        .replace("%target%", trade.getOtherSide().getTraderName())
-                        .replace("%id%", String.valueOf(trade.getUuid().getMostSignificantBits()))
-        ));
+                tradePlaceholders(trade, GuiSettings.instance().receiptBookDisplayName)
+                        .replace("%timestamp%", parsedDate)));
 
         final List<Component> lore = new ArrayList<>();
         for (String loreString : GuiSettings.instance().receiptBookLore) {
@@ -75,7 +70,7 @@ public class ReceiptBuilder {
                                 .replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
                                         .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
                         .forEach(lore::add);
-                Arrays.stream(trade.getOtherSide().getOrder().getVirtualInventory().getItems())
+                Arrays.stream(trade.getCustomerSide().getOrder().getVirtualInventory().getItems())
                         .filter(Objects::nonNull)
                         .map(item -> MiniMessage.miniMessage().deserialize(GuiSettings.instance().itemDisplayLoreFormat
                                         .replace("%amount%", String.valueOf(item.getAmount())))
@@ -84,18 +79,14 @@ public class ReceiptBuilder {
                         .forEach(lore::add);
                 continue;
             }
-            lore.add(MiniMessage.miniMessage().deserialize("<white><!i>" + loreString
-                    .replace("%trader%", trade.getTraderSide().getTraderName())
-                    .replace("%target%", trade.getOtherSide().getTraderName())
-                    .replace("%timestamp%", parsedDate)
-                    .replace("%trader_price%", decimalFormat.format(trade.getTraderSide().getOrder().getPrices()))
-                    .replace("%target_price%", decimalFormat.format(trade.getOtherSide().getOrder().getPrices())))
-            );
+
+            lore.add(MiniMessage.miniMessage().deserialize("<white><!i>" +
+                    tradePlaceholders(trade, loreString)
+                            .replace("%timestamp%", parsedDate)));
         }
         writtenMeta.lore(lore);
 
         receipt.setItemMeta(writtenMeta);
-
         return new AbstractItem() {
             @Override
             public ItemProvider getItemProvider() {
@@ -107,6 +98,22 @@ public class ReceiptBuilder {
                 player.openBook(receipt);
             }
         };
+    }
+
+    public String tradePlaceholders(NewTrade trade, String toParse) {
+        String strText = toParse.replace("%trader%", trade.getTraderSide().getTraderName())
+                .replace("%customer%", trade.getCustomerSide().getTraderName())
+                .replace("%id%", String.valueOf(trade.getUuid().getMostSignificantBits()));
+
+        for (String currencyName : Settings.instance().allowedCurrencies.keySet()) {
+            strText = strText.replace("%price_" + currencyName + "_trader%",
+                            decimalFormat.format(trade.getTraderSide().getOrder().getPrice(currencyName)))
+                    .replace("%price_" + currencyName + "_customer%",
+                            decimalFormat.format(trade.getCustomerSide().getOrder().getPrice(currencyName)))
+                    .replace("%symbol_" + currencyName + "%",
+                            RedisTrade.getInstance().getEconomyHook().getCurrencySymbol(currencyName));
+        }
+        return strText;
     }
 
     private List<Component> buildPages(boolean trader, ItemStack... items) {
@@ -129,9 +136,9 @@ public class ReceiptBuilder {
 
             Component itemName = MiniMessage.miniMessage().deserialize(GuiSettings.instance().itemFormat
                     .replace("%amount%", String.valueOf(item.getAmount())));
-            itemName = itemName.replaceText(rBuilder -> rBuilder.matchLiteral("%item_name%").replacement(
-                    getItemDisplay(itemMeta, item.translationKey()))
-            ).hoverEvent(item.asHoverEvent());
+            itemName = itemName.replaceText(rBuilder -> rBuilder.matchLiteral("%item_name%")
+                            .replacement(getItemDisplay(itemMeta, item.translationKey())))
+                    .hoverEvent(item.asHoverEvent());
 
             currentPage = currentPage.append(itemName);
             currentPage = currentPage.appendNewline();
@@ -142,6 +149,7 @@ public class ReceiptBuilder {
     }
 
     private Component getItemDisplay(ItemMeta itemMeta, String translationKey) {
+        if (itemMeta.hasDisplayName()) return itemMeta.displayName();
         if (itemMeta.hasItemName()) return itemMeta.itemName();
         return Component.translatable(translationKey);
     }

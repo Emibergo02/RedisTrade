@@ -122,7 +122,7 @@ public class Metrics {
                         logSentData,
                         logResponseStatusText,
                         false);
-        addCustomChart(new SimplePie("jar_origin", () -> "compiled"));
+        addCustomChart(new SimplePie("jar_origin", () -> "SpigotMC"));
     }
 
     /** Shuts down the underlying scheduler service. */

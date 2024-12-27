@@ -65,6 +65,10 @@ public class IntegritySystem {
             case PLAYERLIST:
                 plugin.getLogger().warning("Error in storage system, trying to update player list");
                 break;
+            case SERIALIZATION:
+                plugin.getLogger().warning("Error in deserialization or serialization of trade " + exception.getTradeUUID());
+                plugin.getLogger().warning("The data is probably from a different version of Minecraft or RedisTrade");
+                break;
         }
     }
 }

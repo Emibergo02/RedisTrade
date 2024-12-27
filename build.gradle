@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'dev.unnm3d'
-version = '1.1.0'
+version = '1.2.0'
 
 repositories {
     mavenCentral()
@@ -30,6 +30,7 @@ dependencies {
 
     implementation 'de.exlll:configlib-paper:4.5.0'
     implementation 'com.github.alexdev03:drink:1.5.3'
+    //implementation 'xyz.xenondevs.invui:invui:2.0.0-alpha.6'
     implementation 'xyz.xenondevs.invui:invui-core:1.43'
     implementation 'xyz.xenondevs.invui:inventory-access-r19:1.43'
     implementation 'xyz.xenondevs.invui:inventory-access-r20:1.43'
@@ -50,6 +51,7 @@ dependencies {
     testImplementation "com.github.MilkBowl:VaultAPI:1.7.1"
     testImplementation "com.github.Emibergo02:RedisEconomy:4.3.19"
     testImplementation 'com.github.alexdev03:drink:1.5.3'
+    testImplementation 'org.awaitility:awaitility:4.2.2'
 
 }
 
@@ -101,10 +103,10 @@ publishing {
 modrinth {
     token = System.getenv("MODRINTH_TOKEN") // Remember to have the MODRINTH_TOKEN environment variable set or else this will fail - just make sure it stays private!
     projectId = "redistrade" // This can be the project ID or the slug. Either will work!
-    versionType = "release" // This is the default -- can also be `beta` or `alpha`
+    versionType = "beta" // This is the default -- can also be `beta` or `alpha`
     uploadFile = jar // With Loom, this MUST be set to `remapJar` instead of `jar`!
-    gameVersions = ["1.21.4", "1.21.3","1.21.2","1.21.1","1.21","1.20.6",] // Must be an array, even with only one version
-    loaders = ["bukkit","spigot","paper"] // Must also be an array - no need to specify this if you're using Loom or ForgeGradle
+    gameVersions = ["1.21.4", "1.21.3"] // Must be an array, even with only one version
+    loaders = ["paper"] // Must also be an array - no need to specify this if you're using Loom or ForgeGradle
 }
 
 processResources {

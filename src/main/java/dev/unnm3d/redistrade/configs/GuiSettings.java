@@ -46,7 +46,6 @@ public class GuiSettings {
         );
     }
 
-    public SimpleSerializableItem close = new SimpleSerializableItem("BARRIER", 1, 0, "<red>Close", List.of());
     public SimpleSerializableItem nextPage = new SimpleSerializableItem("ARROW", 1, 0, "<blue>Next Page", List.of());
     public SimpleSerializableItem previousPage = new SimpleSerializableItem("ARROW", 1, 0, "<blue>Previous Page", List.of());
     public SimpleSerializableItem refuseButton = new SimpleSerializableItem("RED_WOOL", 1, 0, "<red>Refused trade", List.of("", "<white>Click to <dark_green>confirm</dark_green> the trade</white>"));
@@ -59,43 +58,45 @@ public class GuiSettings {
     public SimpleSerializableItem separator = new SimpleSerializableItem("GRAY_STAINED_GLASS_PANE", 1, 0, "", List.of());
 
     @Comment({"Remember that a book line contains 20 large characters",
-            "(if you use 'i's or 'l's it will be contain more characters)"})
+            "(if you use 'i's or 'l's it will be contain more characters)",
+            "\"default\" is the name of the currency name of the displayed price or symbol"})
     public List<List<String>> receiptIntestationFormat = List.of(
             List.of(
                     "Trade Receipt",
                     "",
                     "<black>Trader: <blue>%trader%</blue>",
                     "",
-                    "<black>Target: <blue>%target%</blue>",
+                    "<black>Customer: <blue>%customer%</blue>",
                     "",
                     "Date: ",
                     "<blue>%timestamp%</blue>",
                     "",
-                    "Trader price: <gold>%trader_price%</gold>",
-                    "Target price: <gold>%target_price%</gold>"
+                    "Trader price: <gold>%price_default_trader%%symbol_default%</gold>",
+                    "Customer price: <gold>%price_default_customer%%symbol_default%</gold>"
             )
     );
 
     public String receiptBookDisplayName = "<white>%trader%'s Receipt";
 
     @Comment({"Remember that a book line contains 20 large characters",
-            "(if you use 'i's or 'l's it will be contain more characters)"})
+            "(if you use 'i's or 'l's it will be contain more characters)",
+            "\"default\" is the name of the currency name of the displayed price or symbol"})
     public List<String> receiptBookLore = List.of(
             "Trader: <blue>%trader%</blue>",
-            "Target: <blue>%target%</blue>",
+            "Customer: <blue>%customer%</blue>",
             "Date: ",
             "<blue>%timestamp%</blue>",
-            "Trader price: <gold>%trader_price%</gold>",
-            "Target price: <gold>%target_price%</gold>",
+            "Trader price: <gold>%price_default_trader%%symbol_default%</gold>",
+            "Customer price: <gold>%price_default_customer%%symbol_default%</gold>",
             "Exchanged items:",
             "%items%"
     );
     public String itemDisplayLoreFormat = "<!i><gray>[x%amount% %item_display%]";
 
     public String traderItemsIntestation = "<bold>Trader items: </bold>";
-    public String targetItemsIntestation = "<bold>Target items: </bold>";
-    @Comment("%item_name% - item name, %amount% - item amount, %display_name% - item display name")
-    public String itemFormat = "<dark_gray>[x%amount% %item_name%]";
+    public String targetItemsIntestation = "<bold>Customer items: </bold>";
+    @Comment("%item_name% - item displayname or itemname or , %amount% - item amount")
+    public String itemFormat = "<gray>[x%amount% %item_name%]";
 
     public String tradeGuiTitle = "Trading with %player%";
     public List<String> tradeGuiStructure = List.of(

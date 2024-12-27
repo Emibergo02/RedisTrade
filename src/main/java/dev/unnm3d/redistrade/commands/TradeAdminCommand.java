@@ -7,19 +7,23 @@ import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
 import lombok.AllArgsConstructor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.reflect.Field;
 
-@SuppressWarnings("unused")
 @AllArgsConstructor
-public class TradeGuiCommand {
-    private RedisTrade plugin;
+@SuppressWarnings("unused")
+public class TradeAdminCommand {
+    private static BukkitTask task;
+    private final RedisTrade plugin;
 
-
-    @Command(name = "", desc = "Set the item")
-    @Require("redistrade.setitem")
-    public void defaultItem(@Sender Player player) {
+    @Command(name = "reload", desc = "Reload RedisTrade")
+    @Require("redistrade.reload")
+    public void reload(@Sender CommandSender sender) {
+        plugin.loadYML();
+        sender.sendMessage("§2RedisTrade reloaded");
     }
 
     @Command(name = "setitem", desc = "Set the item")
@@ -47,6 +51,25 @@ public class TradeGuiCommand {
         }
 
         player.sendRichMessage(Messages.instance().getItemField.replace("%field%", itemField.getName()));
+    }
+
+    @Command(name = "stresser", desc = "Stress test")
+    @Require("redistrade.admin")
+    public void toggleStress(@Sender CommandSender sender) {
+        if (task != null) {
+            task.cancel();
+            task = null;
+            sender.sendMessage("§2Stress test stopped");
+            return;
+        }
+        sender.sendMessage("§2Stress test started");
+        task = RedisTrade.getInstance().getServer().getScheduler().runTaskTimer(RedisTrade.getInstance(), () -> {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }, 0, 20);
     }
 
 }
