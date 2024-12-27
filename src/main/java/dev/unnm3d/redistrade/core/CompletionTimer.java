@@ -1,16 +1,16 @@
 package dev.unnm3d.redistrade.core;
 
-import com.github.Anon8281.universalScheduler.UniversalRunnable;
 import dev.unnm3d.redistrade.configs.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 import java.util.UUID;
 
 
-public class CompletionTimer extends UniversalRunnable {
+public class CompletionTimer extends BukkitRunnable {
     private final NewTrade trade;
     private int iteration;
     private UUID traderUUID;

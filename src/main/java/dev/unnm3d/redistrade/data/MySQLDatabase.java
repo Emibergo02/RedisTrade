@@ -95,7 +95,7 @@ public class MySQLDatabase extends SQLiteDatabase {
                          ;""")) {
                 statement.setString(1, trade.getUuid().toString());
                 statement.setString(2, trade.getTraderSide().getTraderUUID().toString());
-                statement.setString(3, trade.getOtherSide().getTraderUUID().toString());
+                statement.setString(3, trade.getCustomerSide().getTraderUUID().toString());
                 statement.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
                 statement.setString(5, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
                 return statement.executeUpdate() != 0;

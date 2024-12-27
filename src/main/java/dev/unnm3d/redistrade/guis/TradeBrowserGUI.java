@@ -2,11 +2,10 @@ package dev.unnm3d.redistrade.guis;
 
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import org.bukkit.entity.Player;
+import xyz.xenondevs.invui.gui.Markers;
 import xyz.xenondevs.invui.gui.PagedGui;
-import xyz.xenondevs.invui.gui.structure.Markers;
+import xyz.xenondevs.invui.item.BoundItem;
 import xyz.xenondevs.invui.item.Item;
-import xyz.xenondevs.invui.item.ItemProvider;
-import xyz.xenondevs.invui.item.impl.controlitem.PageItem;
 import xyz.xenondevs.invui.window.Window;
 
 import java.util.List;
@@ -36,21 +35,15 @@ public class TradeBrowserGUI {
                 .open(player);
     }
 
-    public PageItem forwardItem() {
-        return new PageItem(true) {
-            @Override
-            public ItemProvider getItemProvider(PagedGui<?> gui) {
-                return GuiSettings.instance().nextPage.toItemBuilder();
-            }
-        };
+    public Item forwardItem() {
+        return BoundItem.pagedGui()
+                .setItemProvider(player -> GuiSettings.instance().nextPage.toItemBuilder())
+                .build();
     }
 
-    public PageItem backItem() {
-        return new PageItem(false) {
-            @Override
-            public ItemProvider getItemProvider(PagedGui<?> gui) {
-                return GuiSettings.instance().previousPage.toItemBuilder();
-            }
-        };
+    public Item backItem() {
+        return BoundItem.pagedGui()
+                .setItemProvider(player -> GuiSettings.instance().previousPage.toItemBuilder())
+                .build();
     }
 }

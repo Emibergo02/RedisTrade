@@ -6,17 +6,11 @@ import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Material;
-import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.item.Item;
-import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.item.ItemWrapper;
-import xyz.xenondevs.invui.item.impl.AbstractItem;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -39,10 +33,10 @@ public class ReceiptBuilder {
             while (itStr.hasNext()) {
                 text = text.append(MiniMessage.miniMessage().deserialize(itStr.next()
                         .replace("%trader%", trade.getTraderSide().getTraderName())
-                        .replace("%target%", trade.getOtherSide().getTraderName())
+                        .replace("%target%", trade.getCustomerSide().getTraderName())
                         .replace("%timestamp%", parsedDate)
                         .replace("%trader_price%", decimalFormat.format(trade.getTraderSide().getOrder().getPrices()))
-                        .replace("%target_price%", decimalFormat.format(trade.getOtherSide().getOrder().getPrices()))
+                        .replace("%target_price%", decimalFormat.format(trade.getCustomerSide().getOrder().getPrices()))
                 ));
                 if (itStr.hasNext()) {
                     text = text.append(Component.newline());
@@ -54,13 +48,13 @@ public class ReceiptBuilder {
         buildPages(true, trade.getTraderSide().getOrder().getVirtualInventory().getItems())
                 .forEach(writtenMeta::addPages);
 
-        buildPages(false, trade.getOtherSide().getOrder().getVirtualInventory().getItems())
+        buildPages(false, trade.getCustomerSide().getOrder().getVirtualInventory().getItems())
                 .forEach(writtenMeta::addPages);
 
         writtenMeta.itemName(MiniMessage.miniMessage().deserialize(
                 GuiSettings.instance().receiptBookDisplayName
                         .replace("%trader%", trade.getTraderSide().getTraderName())
-                        .replace("%target%", trade.getOtherSide().getTraderName())
+                        .replace("%target%", trade.getCustomerSide().getTraderName())
                         .replace("%id%", String.valueOf(trade.getUuid().getMostSignificantBits()))
         ));
 
@@ -75,7 +69,7 @@ public class ReceiptBuilder {
                                 .replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
                                         .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
                         .forEach(lore::add);
-                Arrays.stream(trade.getOtherSide().getOrder().getVirtualInventory().getItems())
+                Arrays.stream(trade.getCustomerSide().getOrder().getVirtualInventory().getItems())
                         .filter(Objects::nonNull)
                         .map(item -> MiniMessage.miniMessage().deserialize(GuiSettings.instance().itemDisplayLoreFormat
                                         .replace("%amount%", String.valueOf(item.getAmount())))
@@ -86,27 +80,20 @@ public class ReceiptBuilder {
             }
             lore.add(MiniMessage.miniMessage().deserialize("<white><!i>" + loreString
                     .replace("%trader%", trade.getTraderSide().getTraderName())
-                    .replace("%target%", trade.getOtherSide().getTraderName())
+                    .replace("%target%", trade.getCustomerSide().getTraderName())
                     .replace("%timestamp%", parsedDate)
                     .replace("%trader_price%", decimalFormat.format(trade.getTraderSide().getOrder().getPrices()))
-                    .replace("%target_price%", decimalFormat.format(trade.getOtherSide().getOrder().getPrices())))
+                    .replace("%target_price%", decimalFormat.format(trade.getCustomerSide().getOrder().getPrices())))
             );
         }
         writtenMeta.lore(lore);
 
         receipt.setItemMeta(writtenMeta);
 
-        return new AbstractItem() {
-            @Override
-            public ItemProvider getItemProvider() {
-                return new ItemWrapper(receipt);
-            }
-
-            @Override
-            public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-                player.openBook(receipt);
-            }
-        };
+        return Item.builder()
+                .setItemProvider(player -> new ItemWrapper(receipt))
+                .addClickHandler((item, click) -> click.getPlayer().openBook(receipt))
+                .build();
     }
 
     private List<Component> buildPages(boolean trader, ItemStack... items) {

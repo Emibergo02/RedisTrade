@@ -115,7 +115,7 @@ public class SQLiteDatabase implements Database {
                          VALUES (?,?,?,?,?);""")) {
                 statement.setString(1, trade.getUuid().toString());
                 statement.setString(2, trade.getTraderSide().getTraderUUID().toString());
-                statement.setString(3, trade.getOtherSide().getTraderUUID().toString());
+                statement.setString(3, trade.getCustomerSide().getTraderUUID().toString());
                 statement.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
                 statement.setString(5, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
                 return statement.executeUpdate() != 0;
@@ -143,8 +143,7 @@ public class SQLiteDatabase implements Database {
                     final Map<Long, NewTrade> trades = new LinkedHashMap<>();
                     while (result.next()) {
                         trades.put(result.getTimestamp("timestamp").getTime(),
-                                NewTrade.deserialize(RedisTrade.getInstance().getDataCache(),
-                                        result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
+                                NewTrade.deserialize(result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
                     }
                     return trades;
                 }
@@ -232,8 +231,7 @@ public class SQLiteDatabase implements Database {
                     final HashMap<Integer, NewTrade> trades = new HashMap<>();
                     while (result.next()) {
                         trades.put(result.getInt("server_id"),
-                                NewTrade.deserialize(RedisTrade.getInstance().getDataCache(),
-                                        result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
+                                NewTrade.deserialize(result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
                     }
                     return trades;
                 }

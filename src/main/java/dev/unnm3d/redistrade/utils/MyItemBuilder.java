@@ -12,9 +12,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import xyz.xenondevs.invui.item.ItemProvider;
-import xyz.xenondevs.invui.util.Pair;
 
 import java.util.*;
 import java.util.function.Function;
@@ -32,7 +30,7 @@ public class MyItemBuilder implements ItemProvider {
     protected Component itemName;
     protected List<Component> lore;
     protected List<ItemFlag> itemFlags;
-    protected HashMap<Enchantment, Pair<Integer, Boolean>> enchantments;
+    protected HashMap<Enchantment, Map.Entry<Integer, Boolean>> enchantments;
     protected List<Function<ItemStack, ItemStack>> modifiers;
 
 
@@ -51,7 +49,7 @@ public class MyItemBuilder implements ItemProvider {
     }
 
     @Override
-    public @NotNull ItemStack get(@Nullable String lang) {
+    public @NotNull ItemStack get(@NotNull Locale locale) {
         return get();
     }
 
@@ -101,7 +99,7 @@ public class MyItemBuilder implements ItemProvider {
                 }
 
                 this.enchantments.forEach((enchantment, pair) ->
-                        itemMeta.addEnchant(enchantment, pair.getFirst(), pair.getSecond()));
+                        itemMeta.addEnchant(enchantment, pair.getKey(), pair.getValue()));
             }
 
             if (this.itemFlags != null) {
@@ -290,7 +288,7 @@ public class MyItemBuilder implements ItemProvider {
     }
 
     @Contract("_ -> this")
-    public @NotNull MyItemBuilder setEnchantments(@NotNull HashMap<Enchantment, Pair<Integer, Boolean>> enchantments) {
+    public @NotNull MyItemBuilder setEnchantments(@NotNull HashMap<Enchantment, Map.Entry<Integer, Boolean>> enchantments) {
         this.enchantments = enchantments;
         return this;
     }
@@ -301,7 +299,7 @@ public class MyItemBuilder implements ItemProvider {
             this.enchantments = new HashMap<>();
         }
 
-        this.enchantments.put(enchantment, new Pair<>(level, ignoreLevelRestriction));
+        this.enchantments.put(enchantment, Map.entry(level, ignoreLevelRestriction));
         return this;
     }
 

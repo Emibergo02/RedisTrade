@@ -7,7 +7,6 @@ import dev.unnm3d.redistrade.core.OrderInfo;
 import dev.unnm3d.redistrade.redistools.RedisAbstract;
 import dev.unnm3d.redistrade.utils.Utils;
 import io.lettuce.core.RedisClient;
-import lombok.Getter;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -50,30 +49,20 @@ public class RedisDataManager extends RedisAbstract {
             if (type == null) throw new IllegalStateException("Unexpected value: " + null);
             plugin.getTradeManager().getTrade(tradeUUID).ifPresent(trade -> {
                 plugin.getTradeManager().setTradeServerOwner(packetServerId, tradeUUID);
-                switch (type) {
-                    case TRADER_MONEY -> {
+                switch (type.getUpdateType()) {
+                    case OPEN -> trade.setOpened(Boolean.parseBoolean(value), type.getViewerType());
+                    case PRICE -> {
                         String[] split = value.split(":");
-                        trade.setPrice(split[0], Double.parseDouble(split[1]), true);
+                        trade.setPrice(split[0], Double.parseDouble(split[1]), type.getViewerType());
                     }
-                    case TRADER_ITEM -> {
+                    case ITEM -> {
                         String[] split = value.split("§;");
                         int slot = Integer.parseInt(split[0]);
-                        trade.updateTraderItem(slot, Utils.deserialize(split[1])[0], false);
-                        trade.retrievedPhase(true, false);
+                        trade.updateItem(slot, Utils.deserialize(split[1])[0], type.getViewerType(), false);
+                        trade.retrievedPhase(type.getViewerType(), type.getViewerType().opposite());
                     }
-                    case TRADER_STATUS -> trade.setStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)), true);
-                    case TARGET_MONEY -> {
-                        String[] split = value.split(":");
-                        trade.setPrice(split[0], Double.parseDouble(split[1]), false);
-                    }
-                    case TARGET_ITEM -> {
-                        String[] split = value.split("§;");
-                        int slot = Integer.parseInt(split[0]);
-                        trade.updateTargetItem(slot, Utils.deserialize(split[1])[0], false);
-                        trade.retrievedPhase(false, true);
-                    }
-                    case TARGET_STATUS -> trade.setStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)), false);
-                    default -> throw new IllegalStateException("Unexpected value: " + type);
+                    case STATUS ->
+                            trade.setStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)), type.getViewerType());
                 }
             });
         } else if (channel.equals(DataKeys.IGNORE_PLAYER_UPDATE.toString())) {
@@ -87,7 +76,7 @@ public class RedisDataManager extends RedisAbstract {
             int packetServerId = bb.getInt();
             if (packetServerId == RedisTrade.getServerId()) return;
 
-            final NewTrade trade = NewTrade.deserialize(this, message.substring(4).getBytes(StandardCharsets.ISO_8859_1));
+            final NewTrade trade = NewTrade.deserialize(message.substring(4).getBytes(StandardCharsets.ISO_8859_1));
             plugin.getTradeManager().initializeTrade(packetServerId, trade);
         } else if (channel.equals(DataKeys.TRADE_QUERY.toString())) {
             int packetServerId = Integer.parseInt(message);
@@ -153,38 +142,5 @@ public class RedisDataManager extends RedisAbstract {
         });
     }
 
-    @Getter
-    public enum TradeUpdateType {
-        TRADE_CREATE('S'),
-        TRADER_MONEY('M'),
-        TRADER_ITEM('I'),
-        TRADER_STATUS('C'),
-        TARGET_MONEY('m'),
-        TARGET_ITEM('i'),
-        TARGET_STATUS('c');
 
-        private final char code;
-
-        TradeUpdateType(char code) {
-            this.code = code;
-        }
-
-        @Override
-        public String toString() {
-            return String.valueOf(code);
-        }
-
-        public static TradeUpdateType valueOf(char code) {
-            return switch (code) {
-                case 'S' -> TRADE_CREATE;
-                case 'M' -> TRADER_MONEY;
-                case 'I' -> TRADER_ITEM;
-                case 'C' -> TRADER_STATUS;
-                case 'm' -> TARGET_MONEY;
-                case 'i' -> TARGET_ITEM;
-                case 'c' -> TARGET_STATUS;
-                default -> null;
-            };
-        }
-    }
 }

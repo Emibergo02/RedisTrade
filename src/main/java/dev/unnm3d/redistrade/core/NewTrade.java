@@ -6,17 +6,14 @@ import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.data.Database;
 import dev.unnm3d.redistrade.data.ICacheData;
-import dev.unnm3d.redistrade.data.RedisDataManager;
-import dev.unnm3d.redistrade.guis.TradeGuiImpl;
+import dev.unnm3d.redistrade.data.TradeUpdateType;
+import dev.unnm3d.redistrade.guis.ViewerType;
 import dev.unnm3d.redistrade.utils.Utils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import xyz.xenondevs.invui.gui.structure.Structure;
-import xyz.xenondevs.invui.inventory.event.ItemPreUpdateEvent;
-import xyz.xenondevs.invui.inventory.event.PlayerUpdateReason;
 import xyz.xenondevs.invui.window.Window;
 
 import java.nio.ByteBuffer;
@@ -30,67 +27,38 @@ import java.util.function.BiConsumer;
 @EqualsAndHashCode
 @ToString
 public class NewTrade {
-
-    private final ICacheData dataCacheManager;
     private CompletionTimer completionTimer;
 
     private final UUID uuid;
     private final TradeSide traderSide;
-    private final TradeSide otherSide;
-
-    private TradeGuiImpl traderGui;
-    private TradeGuiImpl otherGui;
+    private final TradeSide customerSide;
 
 
-    public NewTrade(ICacheData dataCacheManager, UUID traderUUID, UUID targetUUID, String traderName, String targetName) {
-        this(dataCacheManager, UUID.randomUUID(), new TradeSide(traderUUID, traderName, new OrderInfo(20)),
-                new TradeSide(targetUUID, targetName, new OrderInfo(20)));
+    public NewTrade(UUID traderUUID, UUID targetUUID, String traderName, String targetName) {
+        this(UUID.randomUUID(), new TradeSide(traderUUID, traderName, new OrderInfo(20),true),
+                new TradeSide(targetUUID, targetName, new OrderInfo(20),false));
     }
 
-    public NewTrade(ICacheData dataCacheManager, UUID uuid, TradeSide traderSide, TradeSide otherSide) {
-        this.dataCacheManager = dataCacheManager;
+    public NewTrade(UUID uuid, TradeSide traderSide, TradeSide customerSide) {
         this.completionTimer = null;
         this.uuid = uuid;
         this.traderSide = traderSide;
-        this.otherSide = otherSide;
+        this.customerSide = customerSide;
     }
 
-    public void initializeGuis() {
-        this.traderSide.getOrder().getVirtualInventory().setPreUpdateHandler(event -> {
-            if (virtualInventoryListener(event, true)) {
-                event.setCancelled(true);
-            } else {
-                updateTraderItem(event.getSlot(), event.getNewItem(), true);
-            }
-        });
-        this.traderSide.getOrder().getVirtualInventory().setPostUpdateHandler(event -> retrievedPhase(true, false));
-
-        this.otherSide.getOrder().getVirtualInventory().setPreUpdateHandler(event -> {
-            if (virtualInventoryListener(event, false)) {
-                event.setCancelled(true);
-            } else {
-                updateTargetItem(event.getSlot(), event.getNewItem(), true);
-            }
-        });
-        this.otherSide.getOrder().getVirtualInventory().setPostUpdateHandler(event -> retrievedPhase(false, true));
-
-        if (Settings.instance().debug) {
-            RedisTrade.getInstance().getLogger()
-                    .info("VirtualInventory trader hash: " + traderSide.getOrder().getVirtualInventory().hashCode());
-            RedisTrade.getInstance().getLogger()
-                    .info("VirtualInventory target hash: " + otherSide.getOrder().getVirtualInventory().hashCode());
-            RedisTrade.getInstance().getLogger()
-                    .info("OrderInfo trader: " + traderSide.getOrder());
-            RedisTrade.getInstance().getLogger()
-                    .info("OrderInfo target: " + otherSide.getOrder());
-        }
-
-        this.traderGui = new TradeGuiImpl(this, true,
-                new Structure(GuiSettings.instance().tradeGuiStructure.toArray(new String[0])));
-        this.otherGui = new TradeGuiImpl(this, false,
-                new Structure(GuiSettings.instance().tradeGuiStructure.toArray(new String[0])));
+    public ViewerType getViewerType(UUID playerUUID) {
+        if (traderSide.getTraderUUID().equals(playerUUID)) return ViewerType.TRADER;
+        if (customerSide.getTraderUUID().equals(playerUUID)) return ViewerType.CUSTOMER;
+        return ViewerType.SPECTATOR;
     }
 
+    public TradeSide getTradeSide(ViewerType viewerType) {
+        return switch (viewerType) {
+            case TRADER -> traderSide;
+            case CUSTOMER -> customerSide;
+            case SPECTATOR -> null;
+        };
+    }
 
     //GETTERS
     public boolean isTrader(UUID playerUUID) {
@@ -98,62 +66,60 @@ public class NewTrade {
     }
 
     public boolean isTarget(UUID playerUUID) {
-        return otherSide.getTraderUUID().equals(playerUUID);
+        return customerSide.getTraderUUID().equals(playerUUID);
     }
 
-    public OrderInfo getOrderInfo(boolean isTrader) {
-        return isTrader ? traderSide.getOrder() : otherSide.getOrder();
-    }
-
-    public TradeGuiImpl getGui(boolean isTrader) {
-        return isTrader ? traderGui : otherGui;
+    public OrderInfo getOrderInfo(ViewerType viewerType) {
+        return switch (viewerType) {
+            case TRADER -> traderSide.getOrder();
+            case CUSTOMER -> customerSide.getOrder();
+            case SPECTATOR -> null;
+        };
     }
 
     /**
      * Set the price of the trade
      *
-     * @param price    The price to set
-     * @param isTrader If the price is for the trader side
+     * @param price      The price to set
+     * @param viewerType If the price is for the trader side
      */
-    public void setPrice(String currencyName, double price, boolean isTrader) {
-        getOrderInfo(isTrader).setPrice(currencyName, price);
-        traderGui.notifyMoneyButton(isTrader);
-        otherGui.notifyMoneyButton(isTrader);
+    public void setPrice(String currencyName, double price, ViewerType viewerType) {
+        getTradeSide(viewerType).setPrice(currencyName, price);
+        getTradeSide(viewerType).notifyOppositePrice();
+        getTradeSide(viewerType.opposite()).notifyOppositePrice();
     }
 
 
     /**
      * Set the price of the trade and send the update to the database/cache
      *
-     * @param price    The price to set
-     * @param isTrader If the price is for the trader side
+     * @param price      The price to set
+     * @param viewerType If the price is for the trader side
      */
-    public void setAndSendPrice(String currencyName, double price, boolean isTrader) {
-        setPrice(currencyName, price, isTrader);
-        dataCacheManager.updateTrade(uuid,
-                isTrader ? RedisDataManager.TradeUpdateType.TRADER_MONEY :
-                        RedisDataManager.TradeUpdateType.TARGET_MONEY,
+    public void setAndSendPrice(String currencyName, double price, ViewerType viewerType) {
+        setPrice(currencyName, price, viewerType);
+        final TradeUpdateType updateType = TradeUpdateType.valueOf(viewerType, TradeUpdateType.UpdateType.PRICE);
+        RedisTrade.getInstance().getDataCache().updateTrade(uuid,
+                updateType,
                 currencyName + ":" + price);
     }
 
     /**
      * Set the status of the trade
      *
-     * @param status   The status to set
-     * @param isTrader If the status is for the trader side
+     * @param status     The status to set
+     * @param viewerType If the status is for the trader side
      */
-    public void setStatus(OrderInfo.Status status, boolean isTrader) {
-        getOrderInfo(isTrader).setStatus(status);
+    public void setStatus(OrderInfo.Status status, ViewerType viewerType) {
+        getTradeSide(viewerType).setStatus(status);
         //Notify the confirm button on the opposite side and the current side
-        traderGui.notifyConfirm(isTrader);
-        otherGui.notifyConfirm(isTrader);
+        getTradeSide(viewerType.opposite()).notifyOppositeStatus();
         confirmPhase();
 
         //If you receive a remote retrieved status, try to finish and delete the trade
         if (status == OrderInfo.Status.RETRIEVED) {
-            RedisTrade.getInstance().getTradeManager().finishTrade(isTrader ? otherSide.getTraderUUID() : traderSide.getTraderUUID());
+            RedisTrade.getInstance().getTradeManager().finishTrade(getTradeSide(viewerType.opposite()).getTraderUUID());
         }
-
     }
 
     /**
@@ -161,36 +127,35 @@ public class NewTrade {
      *
      * @param newStatus      The status to set
      * @param previousStatus The previous status
-     * @param isTrader       If the status is for the trader side
+     * @param viewerType     If the status is for the trader side
      * @return The new status
      */
-    public CompletionStage<OrderInfo.Status> changeAndSendStatus(OrderInfo.Status newStatus, OrderInfo.Status previousStatus, boolean isTrader) {
+    public CompletionStage<OrderInfo.Status> changeAndSendStatus(OrderInfo.Status newStatus, OrderInfo.Status previousStatus, ViewerType viewerType) {
         if (newStatus == previousStatus) return CompletableFuture.completedFuture(newStatus);
-        return dataCacheManager.updateTrade(uuid, isTrader ? RedisDataManager.TradeUpdateType.TRADER_STATUS : RedisDataManager.TradeUpdateType.TARGET_STATUS, newStatus.getStatusByte())
+        TradeUpdateType updateType = TradeUpdateType
+                .valueOf(viewerType, TradeUpdateType.UpdateType.STATUS);
+        return RedisTrade.getInstance().getDataCache().updateTrade(uuid, updateType, newStatus.getStatusByte())
                 .thenApply(aLong -> {
                     if (aLong != -1) {
-                        setStatus(newStatus, isTrader);
+                        setStatus(newStatus, viewerType);
                         return newStatus;
                     } else {
-                        setStatus(previousStatus, isTrader);
+                        setStatus(previousStatus, viewerType);
                         return previousStatus;
                     }
                 });
     }
 
-    public void updateTraderItem(int slot, ItemStack item, boolean sendUpdate) {
-        if (sendUpdate) {
-            dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.TRADER_ITEM, slot + "§;" + Utils.serialize(item));
-        } else {
-            traderSide.getOrder().getVirtualInventory().setItemSilently(slot, item);
-        }
+    public void setOpened(boolean opened, ViewerType viewerType) {
+        getTradeSide(viewerType).setOpened(opened);
     }
 
-    public void updateTargetItem(int slot, ItemStack item, boolean sendUpdate) {
+    public void updateItem(int slot, ItemStack item, ViewerType viewerType, boolean sendUpdate) {
+        final TradeUpdateType updateType = TradeUpdateType.valueOf(viewerType, TradeUpdateType.UpdateType.ITEM);
         if (sendUpdate) {
-            dataCacheManager.updateTrade(uuid, RedisDataManager.TradeUpdateType.TARGET_ITEM, slot + "§;" + Utils.serialize(item));
+            RedisTrade.getInstance().getDataCache().updateTrade(uuid, updateType, slot + "§;" + Utils.serialize(item));
         } else {
-            otherSide.getOrder().getVirtualInventory().setItemSilently(slot, item);
+            getTradeSide(viewerType).getOrder().getVirtualInventory().setItemSilently(slot, item);
         }
     }
 
@@ -200,10 +165,10 @@ public class NewTrade {
      * Terminates the completion timer if one is refused
      */
     public void confirmPhase() {
-        if (traderSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED && otherSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
+        if (traderSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED && customerSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
             if (this.completionTimer == null || this.completionTimer.isCancelled()) {
                 this.completionTimer = new CompletionTimer(this);
-                this.completionTimer.runTask(RedisTrade.getInstance(), traderSide.getTraderUUID(), otherSide.getTraderUUID());
+                this.completionTimer.runTask(RedisTrade.getInstance(), traderSide.getTraderUUID(), customerSide.getTraderUUID());
             }
         } else if (this.completionTimer != null && !this.completionTimer.isCancelled()) {
             this.completionTimer.cancel();
@@ -218,16 +183,16 @@ public class NewTrade {
         this.completionTimer.cancel();
         final BiConsumer<OrderInfo.Status, OrderInfo.Status> finallyConsumer = (status1, status2) -> {
             if (status1 == OrderInfo.Status.COMPLETED && status2 == OrderInfo.Status.COMPLETED) {
-                otherSide.getOrder().getPrices().forEach((currency, price) -> {
+                customerSide.getOrder().getPrices().forEach((currency, price) -> {
                     RedisTrade.getInstance().getEconomyHook()
                             .depositPlayer(traderSide.getTraderUUID(), price, currency, "Trade completion");
                 });
                 traderSide.getOrder().getPrices().forEach((currency, price) -> {
                     RedisTrade.getInstance().getEconomyHook()
-                            .depositPlayer(otherSide.getTraderUUID(), price, currency, "Trade completion");
+                            .depositPlayer(customerSide.getTraderUUID(), price, currency, "Trade completion");
                 });
-                retrievedPhase(true, false);
-                retrievedPhase(false, true);
+                retrievedPhase(ViewerType.TRADER, ViewerType.CUSTOMER);
+                retrievedPhase(ViewerType.CUSTOMER, ViewerType.TRADER);
                 //Archive the completed trade
                 if (RedisTrade.getInstance().getDataStorage() instanceof Database database) {
                     database.archiveTrade(this);
@@ -235,9 +200,9 @@ public class NewTrade {
             }
         };
         //Check if both sides are confirmed
-        changeAndSendStatus(OrderInfo.Status.COMPLETED, traderSide.getOrder().getStatus(), true)
+        changeAndSendStatus(OrderInfo.Status.COMPLETED, traderSide.getOrder().getStatus(), ViewerType.TRADER)
                 .thenAcceptBothAsync(
-                        changeAndSendStatus(OrderInfo.Status.COMPLETED, otherSide.getOrder().getStatus(), false),
+                        changeAndSendStatus(OrderInfo.Status.COMPLETED, customerSide.getOrder().getStatus(), ViewerType.CUSTOMER),
                         finallyConsumer);
     }
 
@@ -245,81 +210,39 @@ public class NewTrade {
      * Check if an inventory is empty and the status is completed
      * Then it resets the trade for the player and locks the whole GUI
      *
-     * @param traderSide If the operating side is the trader side
-     * @param isTrader   If the player who is editing the inventory is the trader
+     * @param tradeSideType The side of the player
+     * @param whoIsEditing  The side of the player that is editing
+     * @return If the phase was successful
      */
-    public void retrievedPhase(boolean traderSide, boolean isTrader) {
-        final TradeSide operatingSide = traderSide ? this.traderSide : this.otherSide;
-
+    public CompletionStage<Boolean> retrievedPhase(ViewerType tradeSideType, ViewerType whoIsEditing) {
+        TradeSide operatingSide = getTradeSide(tradeSideType);
         //If the inventory is empty and the player is editing the opposite side
-        if ((operatingSide.getOrder().getStatus() == OrderInfo.Status.REFUSED && traderSide == isTrader) ||
+        if ((operatingSide.getOrder().getStatus() == OrderInfo.Status.REFUSED && tradeSideType == whoIsEditing) ||
                 operatingSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED) {
             if (operatingSide.getOrder().getVirtualInventory().isEmpty()) {
-                changeAndSendStatus(OrderInfo.Status.RETRIEVED, operatingSide.getOrder().getStatus(), traderSide)
-                        .thenAccept(status -> {
-                            if (status == OrderInfo.Status.RETRIEVED) {
-                                RedisTrade.getInstance().getTradeManager().finishTrade(
-                                        isTrader ? this.traderSide.getTraderUUID() : otherSide.getTraderUUID());
-                            }
-                        });
+                return changeAndSendStatus(OrderInfo.Status.RETRIEVED, operatingSide.getOrder().getStatus(), tradeSideType)
+                        .thenApply(status -> status == OrderInfo.Status.RETRIEVED);
             }
         }
+        return CompletableFuture.completedFuture(false);
     }
 
-    /**
-     * This method is called when an item is updated in the virtual inventory
-     *
-     * @param event    The event that triggered the update
-     * @param isTrader If the inventory to check is the trader side
-     * @return If the event should be cancelled
-     */
-    public boolean virtualInventoryListener(ItemPreUpdateEvent event, boolean isTrader) {
-        if (!(event.getUpdateReason() instanceof PlayerUpdateReason playerUpdateReason)) return false;
-        final UUID editingPlayer = playerUpdateReason.getPlayer().getUniqueId();
-        if (RedisTrade.getInstance().getIntegritySystem().isFaulted()) {
-            playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().newTradesLock);
-            return true;
-        }
-
-        if (event.getNewItem() != null)
-            for (Settings.BlacklistedItem blacklistedItem : Settings.instance().blacklistedItems) {
-                if (blacklistedItem.isSimilar(event.getNewItem())) {
-                    playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().blacklistedItem);
-                    return true;
-                }
-            }
-
-        if (isTrader) {
-            //If the trade is completed, the target can modify the trader inventory
-            return switch (traderSide.getOrder().getStatus()) {
-                case COMPLETED -> !editingPlayer.equals(otherSide.getTraderUUID());
-                case CONFIRMED, RETRIEVED -> true;
-                //If the trade is not completed, the trader can modify the trader inventory
-                case REFUSED -> !editingPlayer.equals(traderSide.getTraderUUID());
-            };
-        }
-        return switch (otherSide.getOrder().getStatus()) {
-            case COMPLETED -> !editingPlayer.equals(traderSide.getTraderUUID());
-            case CONFIRMED, RETRIEVED -> true;
-            //If the trade is not completed, the target can modify the trader inventory
-            case REFUSED -> !editingPlayer.equals(otherSide.getTraderUUID());
-        };
-    }
-
-    public boolean openWindow(UUID playerUUID, boolean isTrader) {
+    public boolean openWindow(UUID playerUUID, ViewerType viewerType) {
         Optional<? extends Player> optionalPlayer = Optional.ofNullable(RedisTrade.getInstance().getServer().getPlayer(playerUUID));
         if (optionalPlayer.isPresent()) {
             Window.single()
-                    .setTitle(GuiSettings.instance().tradeGuiTitle.replace("%player%", isTrader ? otherSide.getTraderName() : traderSide.getTraderName()))
-                    .setGui(getGui(isTrader))
+                    .setTitle(GuiSettings.instance().tradeGuiTitle.replace("%player%",
+                            getTradeSide(viewerType.opposite()).getTraderName()))
+                    .setGui(getTradeSide(viewerType).getSidePerspective())
                     .addCloseHandler(() -> {
-                        OrderInfo traderOrder = getOrderInfo(isTrader);
+                        final OrderInfo traderOrder = getTradeSide(viewerType).getOrder();
                         if (traderOrder.getStatus() != OrderInfo.Status.RETRIEVED) {
                             optionalPlayer.get().sendRichMessage(Messages.instance().tradeRunning
-                                    .replace("%player%", isTrader ? otherSide.getTraderName() : traderSide.getTraderName()));
+                                    .replace("%player%", getTradeSide(viewerType.opposite()).getTraderName()));
                         }
                     })
                     .open(optionalPlayer.get());
+            setOpened(true, viewerType);
             return true;
         }
         return false;
@@ -330,37 +253,37 @@ public class NewTrade {
             RedisTrade.getInstance().getLogger()
                     .info("Serializing OrderInfo trader: " + traderSide.getOrder());
             RedisTrade.getInstance().getLogger()
-                    .info("Serializing OrderInfo target: " + otherSide.getOrder());
+                    .info("Serializing OrderInfo target: " + customerSide.getOrder());
         }
         byte[] traderSide = this.traderSide.serialize();
-        byte[] otherSide = this.otherSide.serialize();
+        byte[] customerSide = this.customerSide.serialize();
 
         //Allocate bytes for TradeUUID, TraderSideSize, OtherSideSize, TraderSide, OtherSide
-        ByteBuffer bb = ByteBuffer.allocate(16 + 4 + 4 + traderSide.length + otherSide.length);
+        ByteBuffer bb = ByteBuffer.allocate(16 + 4 + 4 + traderSide.length + customerSide.length);
         bb.putLong(uuid.getMostSignificantBits());
         bb.putLong(uuid.getLeastSignificantBits());
 
         bb.putInt(traderSide.length);
-        bb.putInt(otherSide.length);
+        bb.putInt(customerSide.length);
 
         bb.put(traderSide);
-        bb.put(otherSide);
+        bb.put(customerSide);
 
         return bb.array();
     }
 
-    public static NewTrade deserialize(ICacheData dataManager, byte[] data) {
+    public static NewTrade deserialize(byte[] data) {
         ByteBuffer bb = ByteBuffer.wrap(data);
         UUID uuid = new UUID(bb.getLong(), bb.getLong());
         int traderSideSize = bb.getInt();
-        int otherSideSize = bb.getInt();
+        int customerSideSize = bb.getInt();
 
         byte[] traderSideData = new byte[traderSideSize];
-        byte[] otherSideData = new byte[otherSideSize];
+        byte[] customerSideData = new byte[customerSideSize];
         bb.get(traderSideData);
-        bb.get(otherSideData);
+        bb.get(customerSideData);
 
-        return new NewTrade(dataManager, uuid, TradeSide.deserialize(traderSideData), TradeSide.deserialize(otherSideData));
+        return new NewTrade(uuid, TradeSide.deserialize(traderSideData), TradeSide.deserialize(customerSideData));
     }
 
 }

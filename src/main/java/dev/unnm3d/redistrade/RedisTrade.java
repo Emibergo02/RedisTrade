@@ -12,8 +12,8 @@ import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.TradeManager;
 import dev.unnm3d.redistrade.data.*;
 import dev.unnm3d.redistrade.hooks.EconomyHook;
-import dev.unnm3d.redistrade.hooks.VaultEconomyHook;
 import dev.unnm3d.redistrade.hooks.RedisEconomyHook;
+import dev.unnm3d.redistrade.hooks.VaultEconomyHook;
 import dev.unnm3d.redistrade.integrity.IntegritySystem;
 import dev.unnm3d.redistrade.utils.Metrics;
 import io.lettuce.core.RedisClient;
@@ -81,14 +81,19 @@ public class RedisTrade extends JavaPlugin {
 
 
         this.playerListManager = new PlayerListManager(this);
-        if(!loadEconomy()){
+        if (!loadEconomy()) {
             getLogger().severe("Economy not found");
             getLogger().severe("Check your economy plugin and try again");
             this.economyHook = null;
             getServer().getPluginManager().disablePlugin(this);
         }
         this.tradeManager = new TradeManager(this);
-        loadCommands();
+        try {
+            loadCommands();
+        } catch (Exception e) {
+            getLogger().severe("Error loading commands");
+            getLogger().severe("Check your configuration and try again");
+        }
         //bStats
         this.metrics = new Metrics(this, 23912);
         metrics.addCustomChart(new Metrics.SimplePie("storage_type", () -> this.settings.storageType.name()));
@@ -131,8 +136,8 @@ public class RedisTrade extends JavaPlugin {
         return redisClient;
     }
 
-    private boolean loadEconomy(){
-        if(this.getServer().getPluginManager().isPluginEnabled("RedisEconomy")){
+    private boolean loadEconomy() {
+        if (this.getServer().getPluginManager().isPluginEnabled("RedisEconomy")) {
             this.economyHook = new RedisEconomyHook(this);
             getLogger().info("Economy hooked into RedisEconomy");
             return true;
