@@ -1,5 +1,6 @@
 package dev.unnm3d.redistrade.core;
 
+import dev.unnm3d.redistrade.core.enums.Status;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -42,18 +43,16 @@ public class OrderInfo {
 
     public byte[] serialize() {
         byte[] serializedInventory = virtualInventory.serialize();
-        // 1 byte for status, 2 bytes for proposed size
-        // 16 bytes for each proposed currency name, 8 bytes for each proposed double
         final ByteBuffer buffer = ByteBuffer.allocate(1 + 2 + (prices.size() * (16 + 8)) + serializedInventory.length);
 
-        buffer.put(status.getStatusByte());
+        buffer.put((byte) status.getStatus());//1 byte
 
-        buffer.putShort((short) prices.size());
+        buffer.putShort((short) prices.size());//2 bytes
 
         prices.forEach((currency, price) -> {
             //Keep the string size to 16 bytes
-            buffer.put(Arrays.copyOf(currency.getBytes(StandardCharsets.ISO_8859_1), 16));
-            buffer.putDouble(price);
+            buffer.put(Arrays.copyOf(currency.getBytes(StandardCharsets.ISO_8859_1), 16));//16 bytes
+            buffer.putDouble(price);//8 bytes
         });
 
         buffer.put(serializedInventory);
@@ -63,7 +62,7 @@ public class OrderInfo {
 
     public static OrderInfo deserialize(byte[] data) {
         ByteBuffer buffer = ByteBuffer.wrap(data);
-        Status status = Status.fromByte(buffer.get());
+        Status status = Status.valueOf((char) buffer.get());
         short pricesSize = buffer.getShort();
         final HashMap<String, Double> prices = new HashMap<>();
         for (int i = 0; i < pricesSize; i++) {
@@ -84,32 +83,5 @@ public class OrderInfo {
             --i;
         }
         return Arrays.copyOf(bytes, i + 1);
-    }
-
-    public enum Status {
-        REFUSED((byte) 0),
-        CONFIRMED((byte) 1),
-        COMPLETED((byte) 2),
-        RETRIEVED((byte) 3);
-
-        private final byte status;
-
-        Status(byte status) {
-            this.status = status;
-        }
-
-        public byte getStatusByte() {
-            return status;
-        }
-
-        public static Status fromByte(byte status) {
-            return switch (status) {
-                case 0 -> REFUSED;
-                case 1 -> CONFIRMED;
-                case 2 -> COMPLETED;
-                case 3 -> RETRIEVED;
-                default -> throw new IllegalArgumentException("Invalid status byte");
-            };
-        }
     }
 }

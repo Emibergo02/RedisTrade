@@ -3,7 +3,9 @@ package dev.unnm3d.redistrade.guis;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
+import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
+import dev.unnm3d.redistrade.core.enums.Actor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
@@ -15,13 +17,11 @@ import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
 import xyz.xenondevs.invui.window.AnvilWindow;
 
-import java.text.DecimalFormat;
+import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
 
 public class MoneySelectorGUI implements Listener {
-    private static final DecimalFormat df = new DecimalFormat("#.##");
-
     private final Gui currentGui;
 
     private final NewTrade trade;
@@ -29,12 +29,12 @@ public class MoneySelectorGUI implements Listener {
     private final double previousPrice;
     private String changingPriceString;
 
-    public MoneySelectorGUI(NewTrade trade, ViewerType viewerType, String currencyName) {
+    public MoneySelectorGUI(NewTrade trade, Actor actor, String currencyName) {
         this.trade = trade;
         this.currentGui = Gui.empty(3, 1);
         this.currencyName = currencyName;
-        this.previousPrice = trade.getOrderInfo(viewerType).getPrice(currencyName);
-        this.changingPriceString = df.format(previousPrice);
+        this.previousPrice = trade.getOrderInfo(actor).getPrice(currencyName);
+        this.changingPriceString = Settings.getDecimalFormat().format(previousPrice);
         currentGui.setItem(0, getMoneyDisplay());
         currentGui.setItem(2, getConfirmDisplay());
     }
@@ -87,46 +87,54 @@ public class MoneySelectorGUI implements Listener {
             @Override
             public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
                 try {
-                    double nextPrice = Math.abs(Double.parseDouble(changingPriceString));
-                    double balance = RedisTrade.getInstance().getEconomyHook()
-                            .getBalance(player.getUniqueId(), currencyName);
-                    //The price is the difference between the previous price and the new price
-                    double deducedPrice = previousPrice - nextPrice;
+                    // Parse the next price and ensure it's positive
+                    double nextPrice = Math.abs(Settings.getDecimalFormat().parse(changingPriceString).doubleValue());
+                    double balance = RedisTrade.getInstance().getEconomyHook().getBalance(player.getUniqueId(), currencyName);
+                    double priceDifference = previousPrice - nextPrice; // Calculate price difference
 
-                    //Subtract the new price from the previous price
-                    boolean response;
-                    if (deducedPrice < 0) {//If the price is negative, then the player will pay more
-                        response = RedisTrade.getInstance().getEconomyHook().withdrawPlayer(
-                                player.getUniqueId(), Math.abs(deducedPrice),
-                                currencyName, "Trade price");
-                    } else {//If the price is positive, then the player will be refunded
-                        response = RedisTrade.getInstance().getEconomyHook().depositPlayer(
-                                player.getUniqueId(), deducedPrice,
-                                currencyName, "Trade price");
+                    boolean transactionSuccessful = true;
+
+                    // Handle price adjustment (deduction or refund)
+                    if (priceDifference < 0) {
+                        transactionSuccessful = RedisTrade.getInstance().getEconomyHook().withdrawPlayer(
+                                player.getUniqueId(), Math.abs(priceDifference), currencyName, "Trade price");
+                    } else if (priceDifference > 0) {
+                        transactionSuccessful = RedisTrade.getInstance().getEconomyHook().depositPlayer(
+                                player.getUniqueId(), priceDifference, currencyName, "Trade price");
                     }
-                    if (response) {
-                        trade.setAndSendPrice(currencyName, nextPrice, trade.getViewerType(player.getUniqueId()));
 
-                        player.getInventory().addItem(player.getItemOnCursor()).values()
-                                .forEach(itemStack -> player.getWorld()
-                                        .dropItem(player.getLocation(), itemStack));
+                    // Proceed if the transaction was successful
+                    if (transactionSuccessful) {
+                        if (priceDifference != 0) {
+                            trade.setAndSendPrice(currencyName, nextPrice, trade.getViewerType(player.getUniqueId()));
+                        }
+
+                        // Return the cursor item to the player's inventory or drop it if full
+                        player.getInventory().addItem(player.getItemOnCursor()).values().forEach(itemStack ->
+                                player.getWorld().dropItem(player.getLocation(), itemStack)
+                        );
                         player.setItemOnCursor(null);
+
+                        // Reopen the trade window
                         trade.openWindow(player.getUniqueId(), trade.getViewerType(player.getUniqueId()));
                         return;
                     }
 
+                    // Notify the player if they lack sufficient funds
                     player.sendRichMessage(Messages.instance().notEnoughMoney
-                            .replace("%amount%", df.format(nextPrice)));
-                    //Set the price as the maximum withdrawable from the player account
-                    changingPriceString = df.format(balance);
-                    notifyItem(0);
-                    notifyItem(2);
+                            .replace("%amount%", Settings.getDecimalFormat().format(nextPrice)));
 
-                } catch (NumberFormatException ignored) {
-                    changingPriceString = df.format(previousPrice);
-                    notifyItem(0);
-                    notifyItem(2);
+                    // Adjust the price string to reflect the player's maximum balance
+                    changingPriceString = Settings.getDecimalFormat().format(balance);
+
+                } catch (NumberFormatException | ParseException ignored) {
+                    // Revert to the previous price on error
+                    changingPriceString = Settings.getDecimalFormat().format(previousPrice);
                 }
+
+                //Update item display in the end
+                notifyItem(0);
+                notifyItem(2);
             }
         };
     }

@@ -3,7 +3,8 @@ package dev.unnm3d.redistrade.data;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
-import dev.unnm3d.redistrade.core.OrderInfo;
+import dev.unnm3d.redistrade.core.enums.StatusActor;
+import dev.unnm3d.redistrade.core.enums.ViewerUpdate;
 import dev.unnm3d.redistrade.redistools.RedisAbstract;
 import dev.unnm3d.redistrade.utils.Utils;
 import io.lettuce.core.RedisClient;
@@ -42,27 +43,26 @@ public class RedisDataManager extends RedisAbstract {
             int packetServerId = ByteBuffer.wrap(message.substring(0, 4).getBytes(StandardCharsets.ISO_8859_1)).getInt();
             if (packetServerId == RedisTrade.getServerId()) return;
 
-            UUID tradeUUID = UUID.fromString(message.substring(4, 40));
-            TradeUpdateType type = TradeUpdateType.valueOf(message.charAt(40));
-            String value = message.substring(41);
+            final UUID tradeUUID = UUID.fromString(message.substring(4, 40));
+            final ViewerUpdate viewerUpdate = ViewerUpdate.valueOf(message.charAt(40));
+            final String value = message.substring(41);
 
-            if (type == null) throw new IllegalStateException("Unexpected value: " + null);
             plugin.getTradeManager().getTrade(tradeUUID).ifPresent(trade -> {
                 plugin.getTradeManager().setTradeServerOwner(tradeUUID, packetServerId);
-                switch (type.getUpdateType()) {
-                    case OPEN -> trade.setOpened(Boolean.parseBoolean(value), type.getViewerType());
+                switch (viewerUpdate.getUpdateType()) {
+                    case OPEN -> trade.setOpened(Boolean.parseBoolean(value), viewerUpdate.getActorSide());
                     case PRICE -> {
                         String[] split = value.split(":");
-                        trade.setPrice(split[0], Double.parseDouble(split[1]), type.getViewerType());
+                        trade.setPrice(split[0], Double.parseDouble(split[1]), viewerUpdate.getActorSide());
                     }
                     case ITEM -> {
                         String[] split = value.split("§;");
                         int slot = Integer.parseInt(split[0]);
-                        trade.updateItem(slot, Utils.deserialize(split[1])[0], type.getViewerType(), false);
-                        trade.retrievedPhase(type.getViewerType(), type.getViewerType().opposite());
+                        trade.updateItem(slot, Utils.deserialize(split[1])[0], viewerUpdate.getActorSide(), false);
+                        trade.retrievedPhase(viewerUpdate.getActorSide(), viewerUpdate.getActorSide().opposite());
                     }
-                    case STATUS ->
-                            trade.setStatus(OrderInfo.Status.fromByte(Byte.parseByte(value)), type.getViewerType());
+                    case STATUS -> trade.setStatus(StatusActor.fromChar(value.charAt(0)), viewerUpdate.getActorSide());
+                    case CLOSE -> plugin.getTradeManager().closeTrade(tradeUUID, viewerUpdate.getActorSide());
                 }
             });
         } else if (channel.equals(DataKeys.IGNORE_PLAYER_UPDATE.toString())) {
@@ -110,7 +110,7 @@ public class RedisDataManager extends RedisAbstract {
     }
 
     @Override
-    public CompletionStage<Long> updateTrade(UUID tradeUUID, TradeUpdateType type, Object value) {
+    public CompletionStage<Long> updateTrade(UUID tradeUUID, ViewerUpdate type, Object value) {
         plugin.getTradeManager().setTradeServerOwner(tradeUUID, RedisTrade.getServerId());
         return getConnectionAsync(connection ->
                 connection.publish(DataKeys.FIELD_UPDATE_TRADE.toString(),

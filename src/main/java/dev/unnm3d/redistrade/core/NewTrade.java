@@ -4,9 +4,8 @@ import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
+import dev.unnm3d.redistrade.core.enums.*;
 import dev.unnm3d.redistrade.data.Database;
-import dev.unnm3d.redistrade.data.TradeUpdateType;
-import dev.unnm3d.redistrade.guis.ViewerType;
 import dev.unnm3d.redistrade.utils.Utils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -46,14 +45,14 @@ public class NewTrade {
         this.customerSide = customerSide;
     }
 
-    public ViewerType getViewerType(UUID playerUUID) {
-        if (traderSide.getTraderUUID().equals(playerUUID)) return ViewerType.TRADER;
-        if (customerSide.getTraderUUID().equals(playerUUID)) return ViewerType.CUSTOMER;
-        return ViewerType.SPECTATOR;
+    public Actor getViewerType(UUID playerUUID) {
+        if (traderSide.getTraderUUID().equals(playerUUID)) return Actor.TRADER;
+        if (customerSide.getTraderUUID().equals(playerUUID)) return Actor.CUSTOMER;
+        return Actor.SPECTATOR;
     }
 
-    public TradeSide getTradeSide(ViewerType viewerType) {
-        return switch (viewerType) {
+    public TradeSide getTradeSide(Actor actor) {
+        return switch (actor) {
             case TRADER -> traderSide;
             case CUSTOMER -> customerSide;
             case SPECTATOR -> null;
@@ -69,8 +68,8 @@ public class NewTrade {
         return customerSide.getTraderUUID().equals(playerUUID);
     }
 
-    public OrderInfo getOrderInfo(ViewerType viewerType) {
-        return switch (viewerType) {
+    public OrderInfo getOrderInfo(Actor actor) {
+        return switch (actor) {
             case TRADER -> traderSide.getOrder();
             case CUSTOMER -> customerSide.getOrder();
             case SPECTATOR -> null;
@@ -81,12 +80,12 @@ public class NewTrade {
      * Set the price of the trade
      *
      * @param price      The price to set
-     * @param viewerType If the price is for the trader side
+     * @param actor If the price is for the trader side
      */
-    public void setPrice(String currencyName, double price, ViewerType viewerType) {
-        getTradeSide(viewerType).setPrice(currencyName, price);
-        getTradeSide(viewerType).notifyOppositePrice();
-        getTradeSide(viewerType.opposite()).notifyOppositePrice();
+    public void setPrice(String currencyName, double price, Actor actor) {
+        getTradeSide(actor).setPrice(currencyName, price);
+        getTradeSide(actor).notifyOppositePrice();
+        getTradeSide(actor.opposite()).notifyOppositePrice();
     }
 
 
@@ -94,11 +93,11 @@ public class NewTrade {
      * Set the price of the trade and send the update to the database/cache
      *
      * @param price      The price to set
-     * @param viewerType If the price is for the trader side
+     * @param actor If the price is for the trader side
      */
-    public void setAndSendPrice(String currencyName, double price, ViewerType viewerType) {
-        setPrice(currencyName, price, viewerType);
-        final TradeUpdateType updateType = TradeUpdateType.valueOf(viewerType, TradeUpdateType.UpdateType.PRICE);
+    public void setAndSendPrice(String currencyName, double price, Actor actor) {
+        setPrice(currencyName, price, actor);
+        final ViewerUpdate updateType = ViewerUpdate.valueOf(actor, UpdateType.PRICE);
         RedisTrade.getInstance().getDataCache().updateTrade(uuid,
                 updateType,
                 currencyName + ":" + price);
@@ -108,17 +107,17 @@ public class NewTrade {
      * Set the status of the trade
      *
      * @param status     The status to set
-     * @param viewerType If the status is for the trader side
+     * @param viewerSide The side of the trade to set the status for
      */
-    public void setStatus(OrderInfo.Status status, ViewerType viewerType) {
-        getTradeSide(viewerType).setStatus(status);
+    public void setStatus(StatusActor status, Actor viewerSide) {
+        getTradeSide(viewerSide).setStatus(status.getStatus());
         //Notify the confirm button on the opposite side and the current side
-        getTradeSide(viewerType.opposite()).notifyOppositeStatus();
+        getTradeSide(viewerSide.opposite()).notifyOppositeStatus();
         confirmPhase();
 
         //If you receive a remote retrieved status, try to finish and delete the trade
-        if (status == OrderInfo.Status.RETRIEVED) {
-            RedisTrade.getInstance().getTradeManager().finishTrade(getTradeSide(viewerType.opposite()).getTraderUUID());
+        if (status.getStatus() == Status.RETRIEVED ) {
+            RedisTrade.getInstance().getTradeManager().closeTrade(uuid, status.getViewerActor());
         }
     }
 
@@ -127,35 +126,36 @@ public class NewTrade {
      *
      * @param newStatus      The status to set
      * @param previousStatus The previous status
-     * @param viewerType     If the status is for the trader side
+     * @param viewerSide     The side of the trade to set the status for
      * @return The new status
      */
-    public CompletionStage<OrderInfo.Status> changeAndSendStatus(OrderInfo.Status newStatus, OrderInfo.Status previousStatus, ViewerType viewerType) {
-        if (newStatus == previousStatus) return CompletableFuture.completedFuture(newStatus);
-        TradeUpdateType updateType = TradeUpdateType
-                .valueOf(viewerType, TradeUpdateType.UpdateType.STATUS);
-        return RedisTrade.getInstance().getDataCache().updateTrade(uuid, updateType, newStatus.getStatusByte())
+    public CompletionStage<Status> changeAndSendStatus(StatusActor newStatus, Status previousStatus, Actor viewerSide) {
+        if (newStatus.getStatus() == previousStatus) return CompletableFuture.completedFuture(newStatus.getStatus());
+        final ViewerUpdate updateType = ViewerUpdate.valueOf(viewerSide, UpdateType.STATUS);
+        return RedisTrade.getInstance().getDataCache().updateTrade(uuid, updateType, newStatus.toChar())
                 .thenApply(aLong -> {
                     if (aLong != -1) {
-                        setStatus(newStatus, viewerType);
-                        return newStatus;
+                        setStatus(newStatus, viewerSide);
+                        return newStatus.getStatus();
                     } else {
-                        setStatus(previousStatus, viewerType);
+                        //If the update failed, revert the status without triggering the completion timer
+                        getTradeSide(viewerSide).setStatus(previousStatus);
+                        getTradeSide(viewerSide.opposite()).notifyOppositeStatus();
                         return previousStatus;
                     }
                 });
     }
 
-    public void setOpened(boolean opened, ViewerType viewerType) {
-        getTradeSide(viewerType).setOpened(opened);
+    public void setOpened(boolean opened, Actor actor) {
+        getTradeSide(actor).setOpened(opened);
     }
 
-    public void updateItem(int slot, ItemStack item, ViewerType viewerType, boolean sendUpdate) {
-        final TradeUpdateType updateType = TradeUpdateType.valueOf(viewerType, TradeUpdateType.UpdateType.ITEM);
+    public void updateItem(int slot, ItemStack item, Actor actor, boolean sendUpdate) {
+        final ViewerUpdate updateType = ViewerUpdate.valueOf(actor, UpdateType.ITEM);
         if (sendUpdate) {
             RedisTrade.getInstance().getDataCache().updateTrade(uuid, updateType, slot + "§;" + Utils.serialize(item));
         } else {
-            getTradeSide(viewerType).getOrder().getVirtualInventory().setItemSilently(slot, item);
+            getTradeSide(actor).getOrder().getVirtualInventory().setItemSilently(slot, item);
         }
     }
 
@@ -165,7 +165,7 @@ public class NewTrade {
      * Terminates the completion timer if one is refused
      */
     public void confirmPhase() {
-        if (traderSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED && customerSide.getOrder().getStatus() == OrderInfo.Status.CONFIRMED) {
+        if (traderSide.getOrder().getStatus() == Status.CONFIRMED && customerSide.getOrder().getStatus() == Status.CONFIRMED) {
             if (this.completionTimer == null || this.completionTimer.isCancelled()) {
                 this.completionTimer = new CompletionTimer(this);
                 this.completionTimer.runTask(RedisTrade.getInstance(), traderSide.getTraderUUID(), customerSide.getTraderUUID());
@@ -181,8 +181,8 @@ public class NewTrade {
      */
     public void completePhase() {
         this.completionTimer.cancel();
-        final BiConsumer<OrderInfo.Status, OrderInfo.Status> finallyConsumer = (status1, status2) -> {
-            if (status1 == OrderInfo.Status.COMPLETED && status2 == OrderInfo.Status.COMPLETED) {
+        final BiConsumer<Status, Status> finallyConsumer = (status1, status2) -> {
+            if (status1 == Status.COMPLETED && status2 == Status.COMPLETED) {
                 if (RedisTrade.getInstance().getTradeManager().isOwner(uuid)) {
                     for (Map.Entry<String, Double> currencyPrice : customerSide.getOrder().getPrices().entrySet()) {
                         RedisTrade.getInstance().getEconomyHook()
@@ -199,8 +199,8 @@ public class NewTrade {
                         }
                     }
                 }
-                retrievedPhase(ViewerType.TRADER, ViewerType.CUSTOMER);
-                retrievedPhase(ViewerType.CUSTOMER, ViewerType.TRADER);
+                retrievedPhase(Actor.TRADER, Actor.CUSTOMER);
+                retrievedPhase(Actor.CUSTOMER, Actor.TRADER);
                 //Archive the completed trade
                 if (RedisTrade.getInstance().getDataStorage() instanceof Database database) {
                     database.archiveTrade(this);
@@ -208,9 +208,10 @@ public class NewTrade {
             }
         };
         //Check if both sides are confirmed
-        changeAndSendStatus(OrderInfo.Status.COMPLETED, traderSide.getOrder().getStatus(), ViewerType.TRADER)
+
+        changeAndSendStatus(StatusActor.valueOf(Actor.TRADER, Status.COMPLETED), traderSide.getOrder().getStatus(), Actor.TRADER)
                 .thenAcceptBothAsync(
-                        changeAndSendStatus(OrderInfo.Status.COMPLETED, customerSide.getOrder().getStatus(), ViewerType.CUSTOMER),
+                        changeAndSendStatus(StatusActor.valueOf(Actor.CUSTOMER, Status.COMPLETED), customerSide.getOrder().getStatus(), Actor.CUSTOMER),
                         finallyConsumer);
     }
 
@@ -218,39 +219,44 @@ public class NewTrade {
      * Check if an inventory is empty and the status is completed
      * Then it resets the trade for the player and locks the whole GUI
      *
-     * @param tradeSideType The side of the player
-     * @param whoIsEditing  The side of the player that is editing
+     * @param tradeSide    The side of the player
+     * @param whoIsEditing The side of the player that is editing
      * @return If the phase was successful
      */
-    public CompletionStage<Boolean> retrievedPhase(ViewerType tradeSideType, ViewerType whoIsEditing) {
-        TradeSide operatingSide = getTradeSide(tradeSideType);
-        //If the inventory is empty and the player is editing the opposite side
-        if ((operatingSide.getOrder().getStatus() == OrderInfo.Status.REFUSED && tradeSideType == whoIsEditing) ||
-                operatingSide.getOrder().getStatus() == OrderInfo.Status.COMPLETED) {
-            if (operatingSide.getOrder().getVirtualInventory().isEmpty()) {
-                return changeAndSendStatus(OrderInfo.Status.RETRIEVED, operatingSide.getOrder().getStatus(), tradeSideType)
-                        .thenApply(status -> status == OrderInfo.Status.RETRIEVED);
+    public CompletionStage<Boolean> retrievedPhase(Actor tradeSide, Actor whoIsEditing) {
+        final TradeSide operatingSide = getTradeSide(tradeSide);
+
+        if (operatingSide.getOrder().getVirtualInventory().isEmpty()) {
+            final StatusActor statusActor = StatusActor.valueOf(whoIsEditing, Status.RETRIEVED);
+            if (operatingSide.getOrder().getStatus() == Status.REFUSED && tradeSide == whoIsEditing) {
+                return changeAndSendStatus(statusActor, operatingSide.getOrder().getStatus(), tradeSide)
+                        .thenApply(returnedStatus -> returnedStatus == Status.RETRIEVED);
+
+            } else if (operatingSide.getOrder().getStatus() == Status.COMPLETED) {
+                //If the status is completed, set the status to retrieved
+                return changeAndSendStatus(statusActor, operatingSide.getOrder().getStatus(), tradeSide)
+                        .thenApply(returnedStatus -> returnedStatus == Status.RETRIEVED);
             }
         }
         return CompletableFuture.completedFuture(false);
     }
 
-    public boolean openWindow(UUID playerUUID, ViewerType viewerType) {
+    public boolean openWindow(UUID playerUUID, Actor actor) {
         Optional<? extends Player> optionalPlayer = Optional.ofNullable(RedisTrade.getInstance().getServer().getPlayer(playerUUID));
         if (optionalPlayer.isPresent()) {
             Window.single()
                     .setTitle(GuiSettings.instance().tradeGuiTitle.replace("%player%",
-                            getTradeSide(viewerType.opposite()).getTraderName()))
-                    .setGui(getTradeSide(viewerType).getSidePerspective())
+                            getTradeSide(actor.opposite()).getTraderName()))
+                    .setGui(getTradeSide(actor).getSidePerspective())
                     .addCloseHandler(() -> {
-                        final OrderInfo traderOrder = getTradeSide(viewerType).getOrder();
-                        if (traderOrder.getStatus() != OrderInfo.Status.RETRIEVED) {
+                        final OrderInfo traderOrder = getTradeSide(actor).getOrder();
+                        if (traderOrder.getStatus() != Status.RETRIEVED) {
                             optionalPlayer.get().sendRichMessage(Messages.instance().tradeRunning
-                                    .replace("%player%", getTradeSide(viewerType.opposite()).getTraderName()));
+                                    .replace("%player%", getTradeSide(actor.opposite()).getTraderName()));
                         }
                     })
                     .open(optionalPlayer.get());
-            setOpened(true, viewerType);
+            setOpened(true, actor);
             return true;
         }
         return false;

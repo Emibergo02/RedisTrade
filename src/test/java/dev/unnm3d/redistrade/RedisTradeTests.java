@@ -1,6 +1,7 @@
 package dev.unnm3d.redistrade;
 
 import dev.unnm3d.redistrade.core.OrderInfo;
+import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.core.TradeSide;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -61,7 +62,7 @@ public class RedisTradeTests {
         OrderInfo order = new OrderInfo(20);
         order.setPrice("emerald", 10);
         order.setPrice("gold", 1);
-        order.setStatus(OrderInfo.Status.CONFIRMED);
+        order.setStatus(Status.CONFIRMED);
         order.getVirtualInventory().setItemSilently(5, new ItemStack(Material.BARRIER));
         TradeSide side = new TradeSide(UUID.randomUUID(), "Trader1", order, true);
         byte[] bytes = side.serialize();

@@ -4,6 +4,7 @@ import com.jonahseguin.drink.argument.CommandArg;
 import com.jonahseguin.drink.exception.CommandExitMessage;
 import com.jonahseguin.drink.parametric.DrinkProvider;
 import lombok.RequiredArgsConstructor;
+import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,10 +39,10 @@ public class TargetProvider extends DrinkProvider<PlayerListManager.Target> {
 
 
     @Override
-    public List<String> getSuggestions(@NotNull String prefix) {
+    public List<String> getSuggestions(CommandSender sender, @NotNull String prefix) {
         return playerListManager.getPlayerList(null)
                 .stream()
-                .filter(s -> s.toLowerCase().startsWith(prefix.toLowerCase()))
+                .filter(s -> s.toLowerCase().startsWith(prefix.toLowerCase()) && !sender.getName().equalsIgnoreCase(s))
                 .toList();
     }
 

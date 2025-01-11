@@ -6,7 +6,10 @@ import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.core.OrderInfo;
+import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.core.TradeSide;
+import dev.unnm3d.redistrade.core.enums.StatusActor;
+import dev.unnm3d.redistrade.core.enums.Actor;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.entity.Player;
@@ -28,49 +31,49 @@ import java.util.UUID;
 @Getter
 public final class TradeGuiBuilder {
     private final NewTrade trade;
-    private final ViewerType viewerType;
+    private final Actor actor;
 
-    public TradeGuiBuilder(NewTrade trade, ViewerType viewerType) {
+    public TradeGuiBuilder(NewTrade trade, Actor actor) {
         this.trade = trade;
-        this.viewerType = viewerType;
+        this.actor = actor;
     }
 
     public Gui build() {
         final Structure structure = new Structure(GuiSettings.instance().tradeGuiStructure.toArray(new String[0]));
 
-        initializeVirtualInventory(trade.getTradeSide(viewerType).getOrder().getVirtualInventory(), viewerType);
-        initializeVirtualInventory(trade.getTradeSide(viewerType.opposite()).getOrder().getVirtualInventory(), viewerType.opposite());
+        initializeVirtualInventory(trade.getTradeSide(actor).getOrder().getVirtualInventory(), actor);
+        initializeVirtualInventory(trade.getTradeSide(actor.opposite()).getOrder().getVirtualInventory(), actor.opposite());
 
-        structure.addIngredient('L', trade.getOrderInfo(viewerType).getVirtualInventory())
-                .addIngredient('R', trade.getOrderInfo(viewerType.opposite()).getVirtualInventory())
-                .addIngredient('C', getConfirmButton(viewerType))
-                .addIngredient('c', getConfirmButton(viewerType.opposite()))
-                .addIngredient('D', getTradeCancelButton(viewerType))
+        structure.addIngredient('L', trade.getOrderInfo(actor).getVirtualInventory())
+                .addIngredient('R', trade.getOrderInfo(actor.opposite()).getVirtualInventory())
+                .addIngredient('C', getConfirmButton(actor))
+                .addIngredient('c', getConfirmButton(actor.opposite()))
+                .addIngredient('D', getTradeCancelButton(actor))
                 .addIngredient('x', GuiSettings.instance().separator.toItemBuilder());
         final Gui gui = Gui.normal()
                 .setStructure(structure)
                 .build();
         int i = 0;
         for (String allowedCurrency : Settings.instance().allowedCurrencies.keySet()) {
-            gui.setItem(1 + i, new MoneyEditorButton(trade, viewerType, allowedCurrency));
-            gui.setItem(7 - i, new MoneyEditorButton(trade, viewerType.opposite(), allowedCurrency));
+            gui.setItem(1 + i, new MoneyEditorButton(trade, actor, allowedCurrency));
+            gui.setItem(7 - i, new MoneyEditorButton(trade, actor.opposite(), allowedCurrency));
             i++;
         }
         return gui;
     }
 
-    private void initializeVirtualInventory(VirtualInventory virtualInventory, ViewerType viewerType) {
+    private void initializeVirtualInventory(VirtualInventory virtualInventory, Actor actor) {
         if (virtualInventory.getPreUpdateHandler() == null) {
             virtualInventory.setPreUpdateHandler(event -> {
-                if (virtualInventoryListener(event, viewerType)) {
+                if (virtualInventoryListener(event, actor)) {
                     event.setCancelled(true);
                 } else {
-                    trade.updateItem(event.getSlot(), event.getNewItem(), viewerType, true);
+                    trade.updateItem(event.getSlot(), event.getNewItem(), actor, true);
                 }
             });
         }
         if (virtualInventory.getPostUpdateHandler() == null) {
-            virtualInventory.setPostUpdateHandler(event -> trade.retrievedPhase(viewerType, viewerType.opposite()));
+            virtualInventory.setPostUpdateHandler(event -> trade.retrievedPhase(actor, actor.opposite()));
         }
     }
 
@@ -80,7 +83,7 @@ public final class TradeGuiBuilder {
      * @param event The event that triggered the update
      * @return If the event should be cancelled
      */
-    public boolean virtualInventoryListener(ItemPreUpdateEvent event, ViewerType viewerType) {
+    public boolean virtualInventoryListener(ItemPreUpdateEvent event, Actor actor) {
         if (!(event.getUpdateReason() instanceof PlayerUpdateReason playerUpdateReason)) return false;
         final UUID editingPlayer = playerUpdateReason.getPlayer().getUniqueId();
         if (RedisTrade.getInstance().getIntegritySystem().isFaulted()) {
@@ -95,8 +98,8 @@ public final class TradeGuiBuilder {
                     return true;
                 }
             }
-        final TradeSide operatingSide = trade.getTradeSide(viewerType);
-        final TradeSide oppositeSide = trade.getTradeSide(viewerType.opposite());
+        final TradeSide operatingSide = trade.getTradeSide(actor);
+        final TradeSide oppositeSide = trade.getTradeSide(actor.opposite());
 
         //If the trade is completed, the target can modify the trader inventory
         return switch (operatingSide.getOrder().getStatus()) {
@@ -108,8 +111,8 @@ public final class TradeGuiBuilder {
     }
 
 
-    public Item getConfirmButton(ViewerType viewerType) {
-        final OrderInfo orderInfo = trade.getOrderInfo(viewerType);
+    public Item getConfirmButton(Actor actor) {
+        final OrderInfo orderInfo = trade.getOrderInfo(actor);
 
         return new AbstractItem() {
             @Override
@@ -124,12 +127,12 @@ public final class TradeGuiBuilder {
 
             @Override
             public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-                if (trade.getViewerType(player.getUniqueId()) != viewerType) return;
+                if (trade.getViewerType(player.getUniqueId()) != actor) return;
                 switch (orderInfo.getStatus()) {
                     case REFUSED ->
-                            trade.changeAndSendStatus(OrderInfo.Status.CONFIRMED, orderInfo.getStatus(), viewerType);
+                            trade.changeAndSendStatus(StatusActor.valueOf(actor, Status.CONFIRMED), orderInfo.getStatus(), actor);
                     case CONFIRMED ->
-                            trade.changeAndSendStatus(OrderInfo.Status.REFUSED, orderInfo.getStatus(), viewerType);
+                            trade.changeAndSendStatus(StatusActor.valueOf(actor, Status.REFUSED), orderInfo.getStatus(), actor);
                     case COMPLETED, RETRIEVED -> {
                     }
                 }
@@ -137,7 +140,7 @@ public final class TradeGuiBuilder {
         };
     }
 
-    public Item getTradeCancelButton(ViewerType viewerType) {
+    public Item getTradeCancelButton(Actor actor) {
         return new AbstractItem() {
             @Override
             public ItemProvider getItemProvider(Player player) {
@@ -146,15 +149,15 @@ public final class TradeGuiBuilder {
 
             @Override
             public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-                if (trade.getOrderInfo(viewerType).getStatus() != OrderInfo.Status.REFUSED) return;
+                if (trade.getOrderInfo(actor).getStatus() != Status.REFUSED) return;
 
                 //Self-trigger retrieve phase from both sides
-                trade.retrievedPhase(viewerType, viewerType).thenAcceptAsync(result -> {
+                trade.retrievedPhase(actor, actor).thenAcceptAsync(result -> {
                     if (result) {
-                        refundSide(trade, viewerType);
-                        trade.retrievedPhase(viewerType.opposite(), viewerType.opposite()).thenAccept(result1 -> {
+                        refundSide(trade, actor);
+                        trade.retrievedPhase(actor.opposite(), actor.opposite()).thenAccept(result1 -> {
                             if (result1) {
-                                refundSide(trade, viewerType.opposite());
+                                refundSide(trade, actor.opposite());
                             }
                         });
                     }
@@ -163,10 +166,10 @@ public final class TradeGuiBuilder {
         };
     }
 
-    private void refundSide(NewTrade trade, ViewerType viewerType) {
-        TradeSide side = trade.getTradeSide(viewerType);
+    private void refundSide(NewTrade trade, Actor actor) {
+        TradeSide side = trade.getTradeSide(actor);
         side.getOrder().getPrices().forEach((currency, price) -> {
-            trade.setAndSendPrice(currency, 0, viewerType);
+            trade.setAndSendPrice(currency, 0, actor);
             RedisTrade.getInstance().getEconomyHook().depositPlayer(side.getTraderUUID(), price,
                     currency, "Trade cancellation");
         });

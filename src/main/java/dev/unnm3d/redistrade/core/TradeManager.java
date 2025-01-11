@@ -4,9 +4,10 @@ import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.data.Database;
+import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.guis.TradeBrowserGUI;
 import dev.unnm3d.redistrade.guis.TradeGuiBuilder;
-import dev.unnm3d.redistrade.guis.ViewerType;
+import dev.unnm3d.redistrade.core.enums.Actor;
 import dev.unnm3d.redistrade.utils.ReceiptBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -174,35 +175,38 @@ public class TradeManager {
      * Finish the trade and disconnect the player name from the trade UUID.
      * If both trader and target are disconnected, remove the trade from tradeguis
      *
-     * @param playerUUID The trader to be removed
+     * @param tradeUUID     The trade to be close
+     * @param actorSide     The actor side that is closing the trade
      */
-    public void finishTrade(UUID playerUUID) {
+    public void closeTrade(UUID tradeUUID, Actor actorSide) {
         //Remove the trade only if both trader and target are removed from the current trades
-        UUID removedTradeUUID = playerTrades.remove(playerUUID);
-        if (removedTradeUUID == null) return;
-        NewTrade trade = trades.get(removedTradeUUID);
+        NewTrade trade = trades.get(tradeUUID);
         if (trade == null) return;
-        //Check if Current trade does not contain the target
-        final ViewerType viewerType = trade.getViewerType(playerUUID);
-        trade.setOpened(false, viewerType);
+        trade.setOpened(false, actorSide);
 
-        if (!playerTrades.containsKey(trade.getTradeSide(viewerType.opposite()).getTraderUUID())) {
+        if (!playerTrades.containsKey(trade.getTradeSide(actorSide.opposite()).getTraderUUID())) {
             removeTrade(trade.getUuid());
             if (Settings.instance().debug) {
                 plugin.getLogger().info("Trade removed: " + trade.getUuid() + " target isn't in current trades");
             }
+        } else {
+            playerTrades.remove(trade.getTradeSide(actorSide).getTraderUUID());
+            if (Settings.instance().debug) {
+                plugin.getLogger().info("Trade closed for: " + trade.getTradeSide(actorSide).getTraderName());
+            }
         }
     }
 
+
     public boolean openWindow(NewTrade trade, UUID playerUUID) {
-        ViewerType viewerType = trade.getViewerType(playerUUID);
+        Actor actor = trade.getViewerType(playerUUID);
         //If the other side is empty, do not add the trade to the current trades
         //Because the player has already retrieved his items
-        if (trade.getOrderInfo(viewerType.opposite()).getStatus() != OrderInfo.Status.RETRIEVED) {
+        if (trade.getOrderInfo(actor.opposite()).getStatus() != Status.RETRIEVED) {
             playerTrades.put(playerUUID, trade.getUuid());
         }
 
-        return trade.openWindow(playerUUID, viewerType);
+        return trade.openWindow(playerUUID, actor);
     }
 
     public void removeTrade(UUID tradeUUID) {
@@ -248,10 +252,10 @@ public class TradeManager {
             plugin.getLogger().info("initializeTrade: " + trade.getUuid());
         }
 
-        trade.getTradeSide(ViewerType.TRADER).setSidePerspective(
-                new TradeGuiBuilder(trade, ViewerType.TRADER).build());
-        trade.getTradeSide(ViewerType.CUSTOMER).setSidePerspective(
-                new TradeGuiBuilder(trade, ViewerType.CUSTOMER).build());
+        trade.getTradeSide(Actor.TRADER).setSidePerspective(
+                new TradeGuiBuilder(trade, Actor.TRADER).build());
+        trade.getTradeSide(Actor.CUSTOMER).setSidePerspective(
+                new TradeGuiBuilder(trade, Actor.CUSTOMER).build());
 
         //Remove the trade if it already exists
         //This happens when the trade is taken from backup table,
@@ -259,17 +263,17 @@ public class TradeManager {
         Optional.ofNullable(trades.get(trade.getUuid()))
                 .ifPresent(tradeFound -> {
 
-                    final Set<Player> traderViewers = tradeFound.getTradeSide(ViewerType.TRADER).getSidePerspective()
+                    final Set<Player> traderViewers = tradeFound.getTradeSide(Actor.TRADER).getSidePerspective()
                             .findAllCurrentViewers();
-                    final Set<Player> customerViewers = tradeFound.getTradeSide(ViewerType.CUSTOMER).getSidePerspective()
+                    final Set<Player> customerViewers = tradeFound.getTradeSide(Actor.CUSTOMER).getSidePerspective()
                             .findAllCurrentViewers();
-                    tradeFound.getTradeSide(ViewerType.TRADER).getSidePerspective().closeForAllViewers();
-                    tradeFound.getTradeSide(ViewerType.CUSTOMER).getSidePerspective().closeForAllViewers();
+                    tradeFound.getTradeSide(Actor.TRADER).getSidePerspective().closeForAllViewers();
+                    tradeFound.getTradeSide(Actor.CUSTOMER).getSidePerspective().closeForAllViewers();
 
                     removeTrade(tradeFound.getUuid());
 
-                    traderViewers.forEach(player -> trade.openWindow(player.getUniqueId(), ViewerType.TRADER));
-                    customerViewers.forEach(player -> trade.openWindow(player.getUniqueId(), ViewerType.CUSTOMER));
+                    traderViewers.forEach(player -> trade.openWindow(player.getUniqueId(), Actor.TRADER));
+                    customerViewers.forEach(player -> trade.openWindow(player.getUniqueId(), Actor.CUSTOMER));
                 });
         setTradeServerOwner(trade.getUuid(), serverId);
         playerTrades.put(trade.getTraderSide().getTraderUUID(), trade.getUuid());
@@ -278,6 +282,9 @@ public class TradeManager {
 
         //Skip invitation if the player has already opened the trade
         if (trade.getCustomerSide().isOpened()) {
+            if (Settings.instance().debug) {
+                plugin.getLogger().info("Open customer side for: " + trade.getCustomerSide().getTraderName());
+            }
             playerTrades.put(trade.getCustomerSide().getTraderUUID(), trade.getUuid());
             return;
         }

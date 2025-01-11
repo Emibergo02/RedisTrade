@@ -30,63 +30,61 @@ public class ReceiptBuilder {
     private static final DecimalFormat decimalFormat = new DecimalFormat("#.##");
 
     public Item buildReceipt(NewTrade trade, long timestamp) {
+        // Create the receipt item
         ItemStack receipt = new ItemStack(Material.WRITTEN_BOOK);
         BookMeta writtenMeta = (BookMeta) receipt.getItemMeta();
+
+        // Format the timestamp
         String parsedDate = dateFormat.format(new Date(timestamp));
 
-        //Create intestation
+        // Build the receipt intestation
         for (List<String> formatList : GuiSettings.instance().receiptIntestationFormat) {
-            Component componentText = Component.empty();
-            final Iterator<String> itStr = formatList.iterator();
-            while (itStr.hasNext()) {
-                componentText = componentText.append(MiniMessage.miniMessage().deserialize(
-                        tradePlaceholders(trade, itStr.next()).replace("%timestamp%", parsedDate)
+            Component pageContent = Component.empty();
+            for (Iterator<String> it = formatList.iterator(); it.hasNext(); ) {
+                pageContent = pageContent.append(MiniMessage.miniMessage().deserialize(
+                        tradePlaceholders(trade, it.next()).replace("%timestamp%", parsedDate)
                 ));
-                if (itStr.hasNext()) {
-                    componentText = componentText.append(Component.newline());
+                if (it.hasNext()) {
+                    pageContent = pageContent.append(Component.newline());
                 }
             }
-            writtenMeta.addPages(componentText);
+            writtenMeta.addPages(pageContent);
         }
 
+        // Add pages for trader and customer items
         buildPages(true, trade.getTraderSide().getOrder().getVirtualInventory().getItems())
                 .forEach(writtenMeta::addPages);
 
         buildPages(false, trade.getCustomerSide().getOrder().getVirtualInventory().getItems())
                 .forEach(writtenMeta::addPages);
 
+        // Set the book display name
         writtenMeta.itemName(MiniMessage.miniMessage().deserialize(
                 tradePlaceholders(trade, GuiSettings.instance().receiptBookDisplayName)
-                        .replace("%timestamp%", parsedDate)));
+                        .replace("%timestamp%", parsedDate)
+        ));
 
-        final List<Component> lore = new ArrayList<>();
+        // Build the book lore
+        List<Component> lore = new ArrayList<>();
         for (String loreString : GuiSettings.instance().receiptBookLore) {
             if (loreString.contains("%items%")) {
-                //Add items to lore
-                Arrays.stream(trade.getTraderSide().getOrder().getVirtualInventory().getItems())
-                        .filter(Objects::nonNull)
-                        .map(item -> MiniMessage.miniMessage().deserialize(GuiSettings.instance().itemDisplayLoreFormat
-                                        .replace("%amount%", String.valueOf(item.getAmount())))
-                                .replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
-                                        .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
-                        .forEach(lore::add);
-                Arrays.stream(trade.getCustomerSide().getOrder().getVirtualInventory().getItems())
-                        .filter(Objects::nonNull)
-                        .map(item -> MiniMessage.miniMessage().deserialize(GuiSettings.instance().itemDisplayLoreFormat
-                                        .replace("%amount%", String.valueOf(item.getAmount())))
-                                .replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
-                                        .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
-                        .forEach(lore::add);
-                continue;
-            }
+                // Add trader items to lore
+                addItemsToLore(lore, trade.getTraderSide().getOrder().getVirtualInventory().getItems());
 
-            lore.add(MiniMessage.miniMessage().deserialize("<white><!i>" +
-                    tradePlaceholders(trade, loreString)
-                            .replace("%timestamp%", parsedDate)));
+                // Add customer items to lore
+                addItemsToLore(lore, trade.getCustomerSide().getOrder().getVirtualInventory().getItems());
+            } else {
+                lore.add(MiniMessage.miniMessage().deserialize("<white><!i>" +
+                        tradePlaceholders(trade, loreString).replace("%timestamp%", parsedDate)
+                ));
+            }
         }
         writtenMeta.lore(lore);
 
+        // Finalize the receipt item meta
         receipt.setItemMeta(writtenMeta);
+
+        // Return the customized Item instance
         return new AbstractItem() {
             @Override
             public ItemProvider getItemProvider() {
@@ -99,6 +97,17 @@ public class ReceiptBuilder {
             }
         };
     }
+
+    private void addItemsToLore(List<Component> lore, ItemStack[] items) {
+        Arrays.stream(items)
+                .filter(Objects::nonNull)
+                .map(item -> MiniMessage.miniMessage().deserialize(
+                        GuiSettings.instance().itemDisplayLoreFormat.replace("%amount%", String.valueOf(item.getAmount()))
+                ).replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
+                        .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
+                .forEach(lore::add);
+    }
+
 
     public String tradePlaceholders(NewTrade trade, String toParse) {
         String strText = toParse.replace("%trader%", trade.getTraderSide().getTraderName())
@@ -116,37 +125,45 @@ public class ReceiptBuilder {
         return strText;
     }
 
-    private List<Component> buildPages(boolean trader, ItemStack... items) {
-        final List<Component> pages = new ArrayList<>();
-        Component currentPage = MiniMessage.miniMessage().deserialize(
-                trader ? GuiSettings.instance().traderItemsIntestation : GuiSettings.instance().targetItemsIntestation
-        ).appendNewline();
-        int line = 1;
+    private List<Component> buildPages(boolean isTrader, ItemStack... items) {
+        List<Component> pages = new ArrayList<>();
+        String headerText = isTrader ? GuiSettings.instance().traderItemsIntestation : GuiSettings.instance().customerItemsIntestation;
+
+        // Initialize the first page with the header
+        Component currentPage = MiniMessage.miniMessage().deserialize(headerText).appendNewline();
+        int lineCount = 0;
+        final int maxLinesPerPage = 6;
+
         for (ItemStack item : items) {
             if (item == null) continue;
-            if (line > 6) {//2*6=12 +1 title = 13 (14 is the line limit)
+
+            // Add the current page to the list if it exceeds the line limit
+            if (lineCount >= maxLinesPerPage) {
                 pages.add(currentPage);
-                currentPage = MiniMessage.miniMessage().deserialize(
-                        trader ? GuiSettings.instance().traderItemsIntestation : GuiSettings.instance().targetItemsIntestation
-                ).appendNewline();
-                line = 1;
+                currentPage = MiniMessage.miniMessage().deserialize(headerText).appendNewline();
+                lineCount = 0;
             }
 
-            final ItemMeta itemMeta = item.getItemMeta();
-
-            Component itemName = MiniMessage.miniMessage().deserialize(GuiSettings.instance().itemFormat
-                    .replace("%amount%", String.valueOf(item.getAmount())));
-            itemName = itemName.replaceText(rBuilder -> rBuilder.matchLiteral("%item_name%")
-                            .replacement(getItemDisplay(itemMeta, item.translationKey())))
+            // Format the item name with placeholders and hover event
+            final Component itemName = MiniMessage.miniMessage().deserialize(
+                            GuiSettings.instance().itemFormat.replace("%amount%", String.valueOf(item.getAmount())))
+                    .replaceText(rBuilder -> rBuilder.matchLiteral("%item_name%")
+                            .replacement(getItemDisplay(item.getItemMeta(), item.translationKey())))
                     .hoverEvent(item.asHoverEvent());
 
-            currentPage = currentPage.append(itemName);
-            currentPage = currentPage.appendNewline();
-            line++;
+            // Append the item name to the current page
+            currentPage = currentPage.append(itemName).appendNewline();
+            lineCount++;
         }
-        pages.add(currentPage);
+
+        // Add the last page to the list
+        if (!currentPage.equals(Component.empty())) {
+            pages.add(currentPage);
+        }
+
         return pages;
     }
+
 
     private Component getItemDisplay(ItemMeta itemMeta, String translationKey) {
         if (itemMeta.hasDisplayName()) return itemMeta.displayName();

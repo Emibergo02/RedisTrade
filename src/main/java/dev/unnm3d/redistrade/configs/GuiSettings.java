@@ -94,7 +94,7 @@ public class GuiSettings {
     public String itemDisplayLoreFormat = "<!i><gray>[x%amount% %item_display%]";
 
     public String traderItemsIntestation = "<bold>Trader items: </bold>";
-    public String targetItemsIntestation = "<bold>Customer items: </bold>";
+    public String customerItemsIntestation = "<bold>Customer items: </bold>";
     @Comment("%item_name% - item displayname or itemname or , %amount% - item amount")
     public String itemFormat = "<gray>[x%amount% %item_name%]";
 

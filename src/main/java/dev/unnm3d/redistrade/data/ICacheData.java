@@ -1,6 +1,7 @@
 package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.core.NewTrade;
+import dev.unnm3d.redistrade.core.enums.ViewerUpdate;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,7 +22,7 @@ public interface ICacheData {
      * @param value     the value to update
      * @return the number of subscribers that received the message
      */
-    CompletionStage<Long> updateTrade(UUID tradeUUID, TradeUpdateType type, Object value);
+    CompletionStage<Long> updateTrade(UUID tradeUUID, ViewerUpdate type, Object value);
 
     /**
      * Broadcast a full trade to all servers in the network
@@ -50,7 +51,7 @@ public interface ICacheData {
             }
 
             @Override
-            public CompletionStage<Long> updateTrade(UUID tradeUUID, TradeUpdateType type, Object value) {
+            public CompletionStage<Long> updateTrade(UUID tradeUUID, ViewerUpdate type, Object value) {
                 return CompletableFuture.completedFuture(0L);
             }
 

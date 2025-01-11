@@ -11,12 +11,14 @@ import org.bukkit.inventory.ItemStack;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Map;
 
 @Configuration
 public class Settings {
     private static Settings SETTINGS;
+    private static DecimalFormat DECIMAL_FORMAT;
 
     public static Settings instance() {
         return SETTINGS;
@@ -32,7 +34,12 @@ public class Settings {
                         .charset(StandardCharsets.UTF_8)
                         .build()
         );
+        DECIMAL_FORMAT = new DecimalFormat(SETTINGS.decimalFormat);
         return SETTINGS;
+    }
+
+    public static DecimalFormat getDecimalFormat() {
+        return DECIMAL_FORMAT;
     }
 
     @Comment({"Storage type for the plugin",

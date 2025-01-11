@@ -1,5 +1,6 @@
 package dev.unnm3d.redistrade.core;
 
+import dev.unnm3d.redistrade.core.enums.Status;
 import lombok.*;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.gui.Gui;
@@ -50,7 +51,7 @@ public class TradeSide {
         }
     }
 
-    public void setStatus(OrderInfo.Status status) {
+    public void setStatus(Status status) {
         order.setStatus(status);
         notifyButton(0);
     }
