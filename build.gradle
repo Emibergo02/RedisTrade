@@ -116,4 +116,7 @@ processResources {
     filesMatching('plugin.yml') {
         expand props
     }
+    filesMatching('source') {
+        expand props
+    }
 }

@@ -115,9 +115,11 @@ public class Metrics {
 
         try (InputStream inputStream = getClass().getResourceAsStream("/source");
              BufferedReader reader = new BufferedReader(new InputStreamReader(Objects.requireNonNull(inputStream)))) {
-            addCustomChart(new SimplePie("jar_origin", reader::readLine));
+            final String source = reader.readLine();
+            addCustomChart(new SimplePie("jar_origin", () -> source));
         } catch (IOException ignored) {
             addCustomChart(new SimplePie("jar_origin", () -> "compiled"));
+            throw new IllegalStateException("Failed to read source file");
         }
     }
 

@@ -6,12 +6,14 @@ import de.exlll.configlib.ConfigLib;
 import de.exlll.configlib.Configuration;
 import de.exlll.configlib.YamlConfigurations;
 import dev.unnm3d.redistrade.utils.MyItemBuilder;
+import org.apache.commons.lang3.LocaleUtils;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +36,8 @@ public class Settings {
                         .charset(StandardCharsets.UTF_8)
                         .build()
         );
-        DECIMAL_FORMAT = new DecimalFormat(SETTINGS.decimalFormat);
+        DECIMAL_FORMAT = (DecimalFormat) NumberFormat.getInstance(LocaleUtils.toLocale(SETTINGS.locale));
+        DECIMAL_FORMAT.applyLocalizedPattern(SETTINGS.decimalFormat);
         return SETTINGS;
     }
 
@@ -68,12 +71,18 @@ public class Settings {
             "RedisTrade",
             3);
 
+    @Comment("Show receipt button at the end of the trade")
+    public boolean deliverReceipt = true;
+    @Comment("Maximum number of receipt to be delivered to a single player")
+    public int receiptDelivered = 3;
     @Comment("Timezone for the trade receipt")
     public String timeZone = "GMT+1";
     @Comment("Date format for trade timestamps")
     public String dateFormat = "yyyy-MM-dd@HH:mm";
     @Comment("Decimal format for the trade receipt")
     public String decimalFormat = "#.##";
+    @Comment("Locale used for decimal format")
+    public String locale = "en_US";
 
     @Comment("Allowed currencies for trades")
     public Map<String, CurrencyItemSerializable> allowedCurrencies = Map.of("default",
@@ -84,7 +93,8 @@ public class Settings {
             new BlacklistedItem("FIREWORK_ROCKET", 0, Map.of("flight_duration", "3"))
     );
 
-    public boolean debug = false;
+    public boolean debug = true;
+    public boolean debugStrace = false;
 
     public record CurrencyItemSerializable(String material, int customModelData, String displayName) {
         public MyItemBuilder toItemBuilder() {

@@ -2,12 +2,11 @@ package dev.unnm3d.redistrade.core;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
-import dev.unnm3d.redistrade.configs.Settings;
-import dev.unnm3d.redistrade.data.Database;
+import dev.unnm3d.redistrade.core.enums.Actor;
 import dev.unnm3d.redistrade.core.enums.Status;
+import dev.unnm3d.redistrade.data.Database;
 import dev.unnm3d.redistrade.guis.TradeBrowserGUI;
 import dev.unnm3d.redistrade.guis.TradeGuiBuilder;
-import dev.unnm3d.redistrade.core.enums.Actor;
 import dev.unnm3d.redistrade.utils.ReceiptBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -90,9 +89,7 @@ public class TradeManager {
                     NewTrade trade = trades.get(record.getKey());
                     if (trade == null) return;
                     plugin.getDataCache().sendFullTrade(trade);
-                    if (Settings.instance().debug) {
-                        plugin.getLogger().info("Sending trade query response: " + trade.getUuid());
-                    }
+                    RedisTrade.debug("Sending trade query response: " + trade.getUuid());
                 });
     }
 
@@ -175,8 +172,8 @@ public class TradeManager {
      * Finish the trade and disconnect the player name from the trade UUID.
      * If both trader and target are disconnected, remove the trade from tradeguis
      *
-     * @param tradeUUID     The trade to be close
-     * @param actorSide     The actor side that is closing the trade
+     * @param tradeUUID The trade to be close
+     * @param actorSide The actor side that is closing the trade
      */
     public void closeTrade(UUID tradeUUID, Actor actorSide) {
         //Remove the trade only if both trader and target are removed from the current trades
@@ -186,24 +183,21 @@ public class TradeManager {
 
         if (!playerTrades.containsKey(trade.getTradeSide(actorSide.opposite()).getTraderUUID())) {
             removeTrade(trade.getUuid());
-            if (Settings.instance().debug) {
-                plugin.getLogger().info("Trade removed: " + trade.getUuid() + " target isn't in current trades");
-            }
+            RedisTrade.debug(trade.getUuid() + " trade removed: other side isn't connected to this trade");
         } else {
             playerTrades.remove(trade.getTradeSide(actorSide).getTraderUUID());
-            if (Settings.instance().debug) {
-                plugin.getLogger().info("Trade closed for: " + trade.getTradeSide(actorSide).getTraderName());
-            }
+            RedisTrade.debug(trade.getUuid() + " trade closed for: " + trade.getTradeSide(actorSide).getTraderName());
         }
     }
 
 
     public boolean openWindow(NewTrade trade, UUID playerUUID) {
         Actor actor = trade.getViewerType(playerUUID);
-        //If the other side is empty, do not add the trade to the current trades
-        //Because the player has already retrieved his items
-        if (trade.getOrderInfo(actor.opposite()).getStatus() != Status.RETRIEVED) {
+        //Set the trade as opened only if we are in the first stage
+        if (trade.getOrderInfo(actor).getStatus() == Status.REFUSED) {
             playerTrades.put(playerUUID, trade.getUuid());
+            trade.setOpened(true, actor);
+            RedisTrade.debug(trade.getUuid() + " " + trade.getTradeSide(actor).getTraderName() + " opened the trade");
         }
 
         return trade.openWindow(playerUUID, actor);
@@ -247,10 +241,7 @@ public class TradeManager {
      * @param trade    The trade to initialize
      */
     public void initializeTrade(int serverId, NewTrade trade) {
-
-        if (Settings.instance().debug) {
-            plugin.getLogger().info("initializeTrade: " + trade.getUuid());
-        }
+        RedisTrade.debug("Trade initialized: " + trade.getUuid());
 
         trade.getTradeSide(Actor.TRADER).setSidePerspective(
                 new TradeGuiBuilder(trade, Actor.TRADER).build());
@@ -276,15 +267,14 @@ public class TradeManager {
                     customerViewers.forEach(player -> trade.openWindow(player.getUniqueId(), Actor.CUSTOMER));
                 });
         setTradeServerOwner(trade.getUuid(), serverId);
-        playerTrades.put(trade.getTraderSide().getTraderUUID(), trade.getUuid());
-
         trades.put(trade.getUuid(), trade);
 
-        //Skip invitation if the player has already opened the trade
+        if (trade.getTraderSide().isOpened()) {
+            RedisTrade.debug(trade.getUuid() + " Open trader side for: " + trade.getTraderSide().getTraderName());
+            playerTrades.put(trade.getTraderSide().getTraderUUID(), trade.getUuid());
+        }
         if (trade.getCustomerSide().isOpened()) {
-            if (Settings.instance().debug) {
-                plugin.getLogger().info("Open customer side for: " + trade.getCustomerSide().getTraderName());
-            }
+            RedisTrade.debug(trade.getUuid() + " Open customer side for: " + trade.getCustomerSide().getTraderName());
             playerTrades.put(trade.getCustomerSide().getTraderUUID(), trade.getUuid());
             return;
         }
