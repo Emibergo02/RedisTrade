@@ -265,7 +265,7 @@ public class SQLiteDatabase implements Database {
                 }
             } catch (SQLException e) {
                 plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.PLAYERLIST));
-                return Collections.emptyMap();
+                return new HashMap<>();
             }
         });
     }

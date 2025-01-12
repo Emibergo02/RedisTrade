@@ -44,10 +44,17 @@ public class PlayerListManager implements Listener {
 
         plugin.getDataStorage().loadNameUUIDs()
                 .thenAccept(map -> {
+                    //Allow the plugin to load the players that are already online
+                    plugin.getServer().getOnlinePlayers().forEach(player ->
+                            map.put(player.getName(), player.getUniqueId())
+                    );
                     nameUUIDs.clear();
                     nameUUIDs.putAll(map);
+
                     plugin.getLogger().info("Loaded " + map.size() + " nameUUIDs from database");
                 });
+
+
     }
 
     @EventHandler
@@ -93,10 +100,6 @@ public class PlayerListManager implements Listener {
     public void stop() {
         HandlerList.unregisterAll(this);
         task.cancel();
-    }
-
-    public void clear() {
-        onlinePlayerList.clear();
     }
 
     public record Target(String playerName) {

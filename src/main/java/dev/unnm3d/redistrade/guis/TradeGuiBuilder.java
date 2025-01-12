@@ -6,15 +6,16 @@ import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.core.OrderInfo;
-import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.core.TradeSide;
-import dev.unnm3d.redistrade.core.enums.StatusActor;
 import dev.unnm3d.redistrade.core.enums.Actor;
+import dev.unnm3d.redistrade.core.enums.Status;
+import dev.unnm3d.redistrade.core.enums.StatusActor;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.gui.Gui;
 import xyz.xenondevs.invui.gui.structure.Structure;
@@ -32,6 +33,7 @@ import java.util.UUID;
 public final class TradeGuiBuilder {
     private final NewTrade trade;
     private final Actor actor;
+    private ItemStack receiptItem;
 
     public TradeGuiBuilder(NewTrade trade, Actor actor) {
         this.trade = trade;
@@ -172,6 +174,7 @@ public final class TradeGuiBuilder {
             trade.setAndSendPrice(currency, 0, actor);
             RedisTrade.getInstance().getEconomyHook().depositPlayer(side.getTraderUUID(), price,
                     currency, "Trade cancellation");
+            RedisTrade.debug(trade.getUuid() + " Refunded " + price + " " + currency + " to " + side.getTraderUUID());
         });
     }
 }

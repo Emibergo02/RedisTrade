@@ -76,7 +76,7 @@ public class GuiSettings {
             )
     );
 
-    public String receiptBookDisplayName = "<white>%trader%'s Receipt";
+    public String receiptBookDisplayName = "<!i>%trader%'s Receipt";
 
     @Comment({"Remember that a book line contains 20 large characters",
             "(if you use 'i's or 'l's it will be contain more characters)",
@@ -96,7 +96,7 @@ public class GuiSettings {
     public String traderItemsIntestation = "<bold>Trader items: </bold>";
     public String customerItemsIntestation = "<bold>Customer items: </bold>";
     @Comment("%item_name% - item displayname or itemname or , %amount% - item amount")
-    public String itemFormat = "<gray>[x%amount% %item_name%]";
+    public String itemFormat = "<dark_gray>[x%amount% %item_name%]";
 
     public String tradeGuiTitle = "Trading with %player%";
     public List<String> tradeGuiStructure = List.of(

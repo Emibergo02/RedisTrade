@@ -23,17 +23,22 @@ import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class RedisTrade extends JavaPlugin {
     @Getter
     private static final int serverId = new Random().nextInt();
+    private static File debugFile;
     @Getter
     private static RedisTrade instance;
     private Settings settings;
@@ -51,11 +56,34 @@ public class RedisTrade extends JavaPlugin {
     private IntegritySystem integritySystem;
     private Metrics metrics;
 
+    public static void debug(String string) {
+        if (Settings.instance().debug) {
+            try {
+                final FileWriter writer = new FileWriter(debugFile.getAbsoluteFile(), true);
+                writer.append("[")
+                        .append(String.valueOf(LocalDateTime.now()))
+                        .append("] ")
+                        .append(string);
+                if (Settings.instance().debugStrace && Thread.currentThread().getStackTrace().length > 1) {
+                    for (int i = 2; i < Math.min(Thread.currentThread().getStackTrace().length, 7); i++) {
+                        writer.append("\n\t").append(Thread.currentThread().getStackTrace()[i].toString());
+                    }
+                }
+
+                writer.append("\r\n");
+                writer.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
 
     @Override
     public void onEnable() {
         instance = this;
         loadYML();
+        loadDebugFile();
 
         try {
             dataCache = switch (settings.cacheType) {
@@ -173,6 +201,21 @@ public class RedisTrade extends JavaPlugin {
         GuiSettings.loadGuiSettings(guisFile);
     }
 
+    public void loadDebugFile() {
+        final File parentDir = new File(getDataFolder(), "logs");
+        if (!parentDir.exists()) {
+            parentDir.mkdir();
+        }
+        debugFile = new File(parentDir, "debug" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + ".log");
+        if (!debugFile.exists()) {
+            try {
+                debugFile.createNewFile();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     public void saveYML() {
         Path configFile = new File(getDataFolder(), "config.yml").toPath();
         YamlConfigurations.save(configFile, Settings.class, Settings.instance(),
@@ -185,6 +228,4 @@ public class RedisTrade extends JavaPlugin {
         Path guisFile = new File(getDataFolder(), "guis.yml").toPath();
         GuiSettings.saveGuiSettings(guisFile);
     }
-
-
 }

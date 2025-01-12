@@ -60,7 +60,7 @@ public class ReceiptBuilder {
 
         // Set the book display name
         writtenMeta.itemName(MiniMessage.miniMessage().deserialize(
-                tradePlaceholders(trade, GuiSettings.instance().receiptBookDisplayName)
+                tradePlaceholders(trade, "<!i>" + GuiSettings.instance().receiptBookDisplayName)
                         .replace("%timestamp%", parsedDate)
         ));
 

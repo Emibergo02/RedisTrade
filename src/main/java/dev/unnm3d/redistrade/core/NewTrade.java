@@ -6,6 +6,7 @@ import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.enums.*;
 import dev.unnm3d.redistrade.data.Database;
+import dev.unnm3d.redistrade.guis.ReceiptButton;
 import dev.unnm3d.redistrade.utils.Utils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -79,20 +80,21 @@ public class NewTrade {
     /**
      * Set the price of the trade
      *
-     * @param price      The price to set
+     * @param price The price to set
      * @param actor If the price is for the trader side
      */
     public void setPrice(String currencyName, double price, Actor actor) {
         getTradeSide(actor).setPrice(currencyName, price);
         getTradeSide(actor).notifyOppositePrice();
         getTradeSide(actor.opposite()).notifyOppositePrice();
+        RedisTrade.debug(uuid + " Setting price to " + price + " for " + actor.name());
     }
 
 
     /**
      * Set the price of the trade and send the update to the database/cache
      *
-     * @param price      The price to set
+     * @param price The price to set
      * @param actor If the price is for the trader side
      */
     public void setAndSendPrice(String currencyName, double price, Actor actor) {
@@ -115,9 +117,12 @@ public class NewTrade {
         getTradeSide(viewerSide.opposite()).notifyOppositeStatus();
         confirmPhase();
 
+        RedisTrade.debug(uuid + " Setting status to " + status.getStatus().name() + " for " + viewerSide.name());
         //If you receive a remote retrieved status, try to finish and delete the trade
-        if (status.getStatus() == Status.RETRIEVED ) {
+        if (status.getStatus() == Status.RETRIEVED) {
             RedisTrade.getInstance().getTradeManager().closeTrade(uuid, status.getViewerActor());
+        }else if (status.getStatus() == Status.COMPLETED && Settings.instance().deliverReceipt) {
+            getTradeSide(viewerSide).getSidePerspective().setItem(13, new ReceiptButton(this));
         }
     }
 
@@ -152,10 +157,13 @@ public class NewTrade {
 
     public void updateItem(int slot, ItemStack item, Actor actor, boolean sendUpdate) {
         final ViewerUpdate updateType = ViewerUpdate.valueOf(actor, UpdateType.ITEM);
+
         if (sendUpdate) {
             RedisTrade.getInstance().getDataCache().updateTrade(uuid, updateType, slot + "§;" + Utils.serialize(item));
+            RedisTrade.debug(uuid + " Sending item " + item + " from " + actor.name());
         } else {
             getTradeSide(actor).getOrder().getVirtualInventory().setItemSilently(slot, item);
+            RedisTrade.debug(uuid + " Updating item " + item + " from " + actor.name());
         }
     }
 
@@ -183,20 +191,18 @@ public class NewTrade {
         this.completionTimer.cancel();
         final BiConsumer<Status, Status> finallyConsumer = (status1, status2) -> {
             if (status1 == Status.COMPLETED && status2 == Status.COMPLETED) {
+                //Apply the economy changes only if the current server is the owner of the trade
+                //Owner means the last server that modified the trade
                 if (RedisTrade.getInstance().getTradeManager().isOwner(uuid)) {
                     for (Map.Entry<String, Double> currencyPrice : customerSide.getOrder().getPrices().entrySet()) {
                         RedisTrade.getInstance().getEconomyHook()
                                 .depositPlayer(traderSide.getTraderUUID(), currencyPrice.getValue(), currencyPrice.getKey(), "Trade completion");
-                        if (Settings.instance().debug) {
-                            RedisTrade.getInstance().getLogger().info("Depositing trader " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + traderSide.getTraderName());
-                        }
+                        RedisTrade.debug(uuid + " Depositing trader " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + traderSide.getTraderName());
                     }
                     for (Map.Entry<String, Double> currencyPrice : traderSide.getOrder().getPrices().entrySet()) {
                         RedisTrade.getInstance().getEconomyHook()
                                 .depositPlayer(customerSide.getTraderUUID(), currencyPrice.getValue(), currencyPrice.getKey(), "Trade completion");
-                        if (Settings.instance().debug) {
-                            RedisTrade.getInstance().getLogger().info("Depositing customer " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + traderSide.getTraderName());
-                        }
+                        RedisTrade.debug(uuid + " Depositing customer " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + customerSide.getTraderName());
                     }
                 }
                 retrievedPhase(Actor.TRADER, Actor.CUSTOMER);
@@ -256,19 +262,16 @@ public class NewTrade {
                         }
                     })
                     .open(optionalPlayer.get());
-            setOpened(true, actor);
+
             return true;
         }
         return false;
     }
 
     public byte[] serialize() {
-        if (Settings.instance().debug) {
-            RedisTrade.getInstance().getLogger()
-                    .info("Serializing OrderInfo trader: " + traderSide.getOrder());
-            RedisTrade.getInstance().getLogger()
-                    .info("Serializing OrderInfo target: " + customerSide.getOrder());
-        }
+        RedisTrade.debug("Serializing " + uuid + " trader side: " + traderSide);
+        RedisTrade.debug("Serializing " + uuid + " customer side: " + customerSide);
+
         byte[] traderSide = this.traderSide.serialize();
         byte[] customerSide = this.customerSide.serialize();
 
@@ -296,8 +299,12 @@ public class NewTrade {
         byte[] customerSideData = new byte[customerSideSize];
         bb.get(traderSideData);
         bb.get(customerSideData);
+        final TradeSide traderSide = TradeSide.deserialize(traderSideData);
+        final TradeSide customerSide = TradeSide.deserialize(customerSideData);
 
-        return new NewTrade(uuid, TradeSide.deserialize(traderSideData), TradeSide.deserialize(customerSideData));
+        RedisTrade.debug("Deserializing " + uuid + " trader side: " + traderSide);
+        RedisTrade.debug("Deserializing " + uuid + " customer side: " + customerSide);
+        return new NewTrade(uuid, traderSide, customerSide);
     }
 
 }

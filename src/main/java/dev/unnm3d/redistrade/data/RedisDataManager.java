@@ -139,9 +139,7 @@ public class RedisDataManager extends RedisAbstract {
             if (throwable != null) {
                 plugin.getLogger().warning("Error when sending query");
             }
-            if (Settings.instance().debug) {
-                plugin.getLogger().info("Query sent to " + aLong + " servers");
-            }
+            RedisTrade.debug("Query sent to " + aLong + " servers");
         });
     }
 
