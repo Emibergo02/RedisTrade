@@ -24,7 +24,7 @@ dependencies {
     compileOnly "io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT"
     compileOnly 'com.zaxxer:HikariCP:5.1.0'
     compileOnly 'org.projectlombok:lombok:1.18.34'
-    compileOnly 'io.lettuce:lettuce-core:6.4.0.RELEASE'
+    compileOnly 'io.lettuce:lettuce-core:6.5.2.RELEASE'
     compileOnly "com.github.MilkBowl:VaultAPI:1.7.1"
     compileOnly "com.github.Emibergo02:RedisEconomy:4.3.19"
 
@@ -47,7 +47,7 @@ dependencies {
     testImplementation 'org.xerial:sqlite-jdbc:3.46.0.0'
     testImplementation 'xyz.xenondevs.invui:invui:1.43'
     testImplementation 'org.projectlombok:lombok:1.18.34'
-    testImplementation 'io.lettuce:lettuce-core:6.4.0.RELEASE'
+    testImplementation 'io.lettuce:lettuce-core:6.5.2.RELEASE'
     testImplementation "com.github.MilkBowl:VaultAPI:1.7.1"
     testImplementation "com.github.Emibergo02:RedisEconomy:4.3.19"
     testImplementation 'com.github.alexdev03:drink:1.5.3'
@@ -104,7 +104,7 @@ modrinth {
     token = System.getenv("MODRINTH_TOKEN") // Remember to have the MODRINTH_TOKEN environment variable set or else this will fail - just make sure it stays private!
     projectId = "redistrade" // This can be the project ID or the slug. Either will work!
     versionType = "release" // This is the default -- can also be `beta` or `alpha`
-    uploadFile = jar // With Loom, this MUST be set to `remapJar` instead of `jar`!
+    uploadFile = shadowJar // With Loom, this MUST be set to `remapJar` instead of `jar`!
     gameVersions = ["1.21.4", "1.21.3","1.21.1","1.21.2","1.20.6"] // Must be an array, even with only one version
     loaders = ["paper","spigot","bukkit"] // Must also be an array - no need to specify this if you're using Loom or ForgeGradle
 }

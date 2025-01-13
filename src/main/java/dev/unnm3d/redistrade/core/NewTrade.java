@@ -308,27 +308,3 @@ public class NewTrade {
     }
 
 }
-//This is a XOR operation
-// isTrader selfRetrieve
-// 1 1 -> 1
-// 1 0 -> 0
-// 0 1 -> 0
-// 0 0 -> 1
-// where 1 is the trader uuid and 0 is the other uuid
-// trader is editing trader side
-
-// status is completed then drop
-// status is not completed then forward
-
-// target is editing target side
-//same
-
-// trader is editing target side
-
-// status is completed then check if empty and set RETRIEVED IN TARGET SIDE
-// and remove target from playerTrades
-
-// target is editing trader side
-
-// status is completed then check if empty and set RETRIEVED IN TRADER SIDE
-// and remove target from playerTrades
