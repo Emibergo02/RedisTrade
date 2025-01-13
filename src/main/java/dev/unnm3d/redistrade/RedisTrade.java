@@ -201,6 +201,7 @@ public class RedisTrade extends JavaPlugin {
         GuiSettings.loadGuiSettings(guisFile);
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void loadDebugFile() {
         final File parentDir = new File(getDataFolder(), "logs");
         if (!parentDir.exists()) {
@@ -220,7 +221,7 @@ public class RedisTrade extends JavaPlugin {
         Path configFile = new File(getDataFolder(), "config.yml").toPath();
         YamlConfigurations.save(configFile, Settings.class, Settings.instance(),
                 ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
-                        .header("RedisChat config")
+                        .header("RedisTrade config")
                         .footer("Authors: Unnm3d")
                         .charset(StandardCharsets.UTF_8)
                         .build()

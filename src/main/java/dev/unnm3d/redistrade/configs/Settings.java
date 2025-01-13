@@ -31,7 +31,7 @@ public class Settings {
                 configFile,
                 Settings.class,
                 ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
-                        .header("RedisChat config")
+                        .header("RedisTrade config")
                         .footer("Authors: Unnm3d")
                         .charset(StandardCharsets.UTF_8)
                         .build()

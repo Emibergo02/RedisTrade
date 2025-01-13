@@ -29,7 +29,7 @@ public class GuiSettings {
                 configFile,
                 GuiSettings.class,
                 YamlConfigurationProperties.newBuilder()
-                        .header("RedisChat guis")
+                        .header("RedisTrade guis")
                         .footer("Authors: Unnm3d")
                         .charset(StandardCharsets.UTF_8)
                         .build()
@@ -39,7 +39,7 @@ public class GuiSettings {
     public static void saveGuiSettings(Path configFile) {
         YamlConfigurations.save(configFile, GuiSettings.class, SETTINGS,
                 YamlConfigurationProperties.newBuilder()
-                        .header("RedisChat guis")
+                        .header("RedisTrade guis")
                         .footer("Authors: Unnm3d")
                         .charset(StandardCharsets.UTF_8)
                         .build()
