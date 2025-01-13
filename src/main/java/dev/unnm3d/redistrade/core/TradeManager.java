@@ -197,7 +197,7 @@ public class TradeManager {
         if (trade.getOrderInfo(actor).getStatus() == Status.REFUSED) {
             playerTrades.put(playerUUID, trade.getUuid());
             trade.setOpened(true, actor);
-            RedisTrade.debug(trade.getUuid() + " " + trade.getTradeSide(actor).getTraderName() + " opened the trade");
+            RedisTrade.debug(trade.getUuid() + " " + trade.getTradeSide(actor).getTraderName() + " opened trade window");
         }
 
         return trade.openWindow(playerUUID, actor);
@@ -270,11 +270,11 @@ public class TradeManager {
         trades.put(trade.getUuid(), trade);
 
         if (trade.getTraderSide().isOpened()) {
-            RedisTrade.debug(trade.getUuid() + " Open trader side for: " + trade.getTraderSide().getTraderName());
+            RedisTrade.debug(trade.getUuid() + " Set opened flag for trader: " + trade.getTraderSide().getTraderName());
             playerTrades.put(trade.getTraderSide().getTraderUUID(), trade.getUuid());
         }
         if (trade.getCustomerSide().isOpened()) {
-            RedisTrade.debug(trade.getUuid() + " Open customer side for: " + trade.getCustomerSide().getTraderName());
+            RedisTrade.debug(trade.getUuid() + " Set opened flag for customer: " + trade.getCustomerSide().getTraderName());
             playerTrades.put(trade.getCustomerSide().getTraderUUID(), trade.getUuid());
             return;
         }
