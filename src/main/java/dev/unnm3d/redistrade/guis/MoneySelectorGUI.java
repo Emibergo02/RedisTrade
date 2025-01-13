@@ -87,6 +87,9 @@ public class MoneySelectorGUI implements Listener {
             @Override
             public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
                 try {
+                    if (changingPriceString.equalsIgnoreCase("NaN")) {
+                        throw new NumberFormatException("NaN is not a supported notation");
+                    }
                     // Parse the next price and ensure it's positive
                     double nextPrice = Math.abs(Settings.getDecimalFormat().parse(changingPriceString).doubleValue());
                     double balance = RedisTrade.getInstance().getEconomyHook().getBalance(player.getUniqueId(), currencyName);

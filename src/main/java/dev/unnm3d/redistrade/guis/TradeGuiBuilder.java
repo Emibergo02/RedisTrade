@@ -105,7 +105,8 @@ public final class TradeGuiBuilder {
 
         //If the trade is completed, the target can modify the trader inventory
         return switch (operatingSide.getOrder().getStatus()) {
-            case COMPLETED -> !editingPlayer.equals(oppositeSide.getTraderUUID());
+            //If the trade is completed, the target can only move items out of the trade
+            case COMPLETED -> !(editingPlayer.equals(oppositeSide.getTraderUUID()) && event.getNewItem() == null);
             case CONFIRMED, RETRIEVED -> true;
             //If the trade is not completed, the trader can modify the trader inventory
             case REFUSED -> !editingPlayer.equals(operatingSide.getTraderUUID());
