@@ -73,12 +73,13 @@ public enum ViewerUpdate {
                 case ITEM -> CUSTOMER_ITEM;
                 case STATUS -> CUSTOMER_STATUS;
             };
-            case SPECTATOR -> switch (updateType) {
+            case SPECTATOR, ADMIN -> switch (updateType) {
                 case CREATE -> TRADE_CREATE;
                 case OPEN -> SPECTATOR_OPEN;
                 case CLOSE -> SPECTATOR_CLOSE;
                 default -> throw new IllegalStateException("Unexpected value: " + updateType);
             };
+
         };
     }
 }

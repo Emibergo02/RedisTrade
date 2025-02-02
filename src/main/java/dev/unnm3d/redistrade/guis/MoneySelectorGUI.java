@@ -7,7 +7,6 @@ import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.core.enums.Actor;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.jetbrains.annotations.NotNull;
@@ -19,45 +18,49 @@ import xyz.xenondevs.invui.window.AnvilWindow;
 
 import java.text.ParseException;
 import java.util.List;
-import java.util.Optional;
 
-public class MoneySelectorGUI implements Listener {
+public class MoneySelectorGUI {
+    private final NewTrade trade;
+    private final Actor playerSide;
+    private final Player player;
+    private final String currencyName;
+
     private final Gui currentGui;
 
-    private final NewTrade trade;
-    private final String currencyName;
     private final double previousPrice;
     private String changingPriceString;
+    private final Item moneyDisplayItem;
+    private final Item moneyConfirmButton;
 
-    public MoneySelectorGUI(NewTrade trade, Actor actor, String currencyName) {
+    public MoneySelectorGUI(NewTrade trade, Actor playerSide, Player player, String currencyName) {
         this.trade = trade;
-        this.currentGui = Gui.empty(3, 1);
+        this.playerSide = playerSide;
+        this.player = player;
         this.currencyName = currencyName;
-        this.previousPrice = trade.getOrderInfo(actor).getPrice(currencyName);
+        this.currentGui = Gui.empty(3, 1);
+        this.previousPrice = trade.getTradeSide(playerSide).getOrder().getPrice(currencyName);
         this.changingPriceString = Settings.getDecimalFormat().format(previousPrice);
-        currentGui.setItem(0, getMoneyDisplay());
-        currentGui.setItem(2, getConfirmDisplay());
+        this.moneyDisplayItem = createMoneyDisplayItem();
+        this.moneyConfirmButton = createConfirmButtonItem();
+
+        currentGui.setItem(0, this.moneyDisplayItem);
+        currentGui.setItem(2, this.moneyConfirmButton);
     }
 
-    public void openWindow(Player player) {
-        AnvilWindow.single()
-                .setRenameHandlers(List.of(this::handleRename))
-                .setGui(currentGui)
-                .setTitle("Money editor")
-                .setCloseable(true)
-                .open(player);
+    /**
+     * Opens the money selector GUI for the specified trade, player and currency.
+     * The player could be Actor.ADMIN so we need playerSide to determine the side
+     *
+     * @param trade         The trade to open the money selector GUI for
+     * @param playerSide    The side of the player in the trade
+     * @param player        The player to open the money selector GUI for
+     * @param currencyName  The name of the currency to edit the price for
+     */
+    public static void open(NewTrade trade, Actor playerSide, Player player, String currencyName) {
+        new MoneySelectorGUI(trade,playerSide, player, currencyName).openWindow();
     }
 
-    private void handleRename(String moneyString) {
-        this.changingPriceString = moneyString;
-        notifyItem(2);
-    }
-
-    private void notifyItem(int index) {
-        Optional.ofNullable(currentGui.getItem(index)).ifPresent(Item::notifyWindows);
-    }
-
-    public Item getMoneyDisplay() {
+    private AbstractItem createMoneyDisplayItem() {
         return new AbstractItem() {
             @Override
             public ItemProvider getItemProvider() {
@@ -72,9 +75,8 @@ public class MoneySelectorGUI implements Listener {
         };
     }
 
-    private Item getConfirmDisplay() {
+    private AbstractItem createConfirmButtonItem() {
         return new AbstractItem() {
-
             @Override
             public ItemProvider getItemProvider() {
                 return GuiSettings.instance().moneyConfirmButton.toItemBuilder()
@@ -85,60 +87,78 @@ public class MoneySelectorGUI implements Listener {
             }
 
             @Override
-            public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-                try {
-                    if (changingPriceString.equalsIgnoreCase("NaN")) {
-                        throw new NumberFormatException("NaN is not a supported notation");
-                    }
-                    // Parse the next price and ensure it's positive
-                    double nextPrice = Math.abs(Settings.getDecimalFormat().parse(changingPriceString).doubleValue());
-                    double balance = RedisTrade.getInstance().getEconomyHook().getBalance(player.getUniqueId(), currencyName);
-                    double priceDifference = previousPrice - nextPrice; // Calculate price difference
-
-                    boolean transactionSuccessful = true;
-
-                    // Handle price adjustment (deduction or refund)
-                    if (priceDifference < 0) {
-                        transactionSuccessful = RedisTrade.getInstance().getEconomyHook().withdrawPlayer(
-                                player.getUniqueId(), Math.abs(priceDifference), currencyName, "Trade price");
-                    } else if (priceDifference > 0) {
-                        transactionSuccessful = RedisTrade.getInstance().getEconomyHook().depositPlayer(
-                                player.getUniqueId(), priceDifference, currencyName, "Trade price");
-                    }
-
-                    // Proceed if the transaction was successful
-                    if (transactionSuccessful) {
-                        if (priceDifference != 0) {
-                            trade.setAndSendPrice(currencyName, nextPrice, trade.getViewerType(player.getUniqueId()));
-                        }
-
-                        // Return the cursor item to the player's inventory or drop it if full
-                        player.getInventory().addItem(player.getItemOnCursor()).values().forEach(itemStack ->
-                                player.getWorld().dropItem(player.getLocation(), itemStack)
-                        );
-                        player.setItemOnCursor(null);
-
-                        // Reopen the trade window
-                        trade.openWindow(player.getUniqueId(), trade.getViewerType(player.getUniqueId()));
-                        return;
-                    }
-
-                    // Notify the player if they lack sufficient funds
-                    player.sendRichMessage(Messages.instance().notEnoughMoney
-                            .replace("%amount%", Settings.getDecimalFormat().format(nextPrice)));
-
-                    // Adjust the price string to reflect the player's maximum balance
-                    changingPriceString = Settings.getDecimalFormat().format(balance);
-
-                } catch (NumberFormatException | ParseException ignored) {
-                    // Revert to the previous price on error
-                    changingPriceString = Settings.getDecimalFormat().format(previousPrice);
-                }
-
-                //Update item display in the end
-                notifyItem(0);
-                notifyItem(2);
+            public void handleClick(@NotNull ClickType clickType, @NotNull Player guiPlayer, @NotNull InventoryClickEvent event) {
+                event.setCancelled(true);
+                handleConfirm();
             }
         };
+    }
+
+    private void openWindow() {
+        AnvilWindow.single()
+                .setRenameHandlers(List.of(stringRename -> {
+                    this.changingPriceString = stringRename;
+                    this.moneyConfirmButton.notifyWindows();
+                }))
+                .setGui(currentGui)
+                .setTitle("Money editor")
+                .setCloseable(true)
+                .addCloseHandler(this::handleClose)
+                .open(player);
+    }
+
+    private void handleConfirm() {
+        try {
+            double nextPrice = parseNextPrice();
+            double balance = RedisTrade.getInstance().getEconomyHook().getBalance(player.getUniqueId(), currencyName);
+            double priceDifference = previousPrice - nextPrice;
+
+            if (processTransaction(priceDifference)) {
+                if (priceDifference != 0) {
+                    trade.setAndSendPrice(currencyName, nextPrice, playerSide);
+                }
+                trade.openWindow(player, playerSide);
+                return;
+            }
+
+            notifyInsufficientFunds(nextPrice, balance);
+
+        } catch (NumberFormatException | ParseException ignored) {
+            changingPriceString = Settings.getDecimalFormat().format(previousPrice);
+        }
+
+        this.moneyDisplayItem.notifyWindows();
+        this.moneyConfirmButton.notifyWindows();
+    }
+
+    private double parseNextPrice() throws ParseException, NumberFormatException {
+        if (changingPriceString.equalsIgnoreCase("NaN")) {
+            throw new NumberFormatException("NaN is not a supported notation");
+        }
+        return Math.abs(Settings.getDecimalFormat().parse(changingPriceString).doubleValue());
+    }
+
+    private boolean processTransaction(double priceDifference) {
+        if (priceDifference < 0) {
+            return RedisTrade.getInstance().getEconomyHook().withdrawPlayer(
+                    player.getUniqueId(), Math.abs(priceDifference), currencyName, "Trade price");
+        } else if (priceDifference > 0) {
+            return RedisTrade.getInstance().getEconomyHook().depositPlayer(
+                    player.getUniqueId(), priceDifference, currencyName, "Trade price");
+        }
+        return true;
+    }
+
+    private void notifyInsufficientFunds(double nextPrice, double balance) {
+        player.sendRichMessage(Messages.instance().notEnoughMoney
+                .replace("%amount%", Settings.getDecimalFormat().format(nextPrice)));
+        changingPriceString = Settings.getDecimalFormat().format(balance);
+    }
+
+    private void handleClose() {
+        player.getInventory().addItem(player.getItemOnCursor()).values().forEach(itemStack ->
+                player.getWorld().dropItem(player.getLocation(), itemStack)
+        );
+        player.setItemOnCursor(null);
     }
 }

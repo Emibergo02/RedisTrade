@@ -1,18 +1,16 @@
 package dev.unnm3d.redistrade.utils;
 
 import lombok.experimental.UtilityClass;
-import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 
 @UtilityClass
 public class Utils {
@@ -21,7 +19,7 @@ public class Utils {
         return new DecimalFormat("#.##").format(value);
     }
 
-    public String serialize(ItemStack... items) {
+    public byte[] serialize(ItemStack... items) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
              BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream)) {
 
@@ -30,16 +28,16 @@ public class Utils {
             for (ItemStack item : items)
                 dataOutput.writeObject(item);
 
-            return Base64.getEncoder().encodeToString(outputStream.toByteArray());
+            return compress(outputStream.toByteArray());
 
         } catch (Exception exception) {
             exception.printStackTrace();
-            return "";
+            return new byte[0];
         }
     }
 
-    public ItemStack[] deserialize(String source) {
-        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(Base64.getDecoder().decode(source));
+    public ItemStack[] deserialize(byte[] source) {
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(decompress(source));
              BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream)) {
 
             final ItemStack[] items = new ItemStack[dataInput.readInt()];
@@ -52,5 +50,44 @@ public class Utils {
             exception.printStackTrace();
             return new ItemStack[0];
         }
+    }
+
+    public static byte[] compress(byte[] input) {
+        Deflater deflater = new Deflater();
+        deflater.setInput(input);
+        deflater.finish();
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+
+        while (!deflater.finished()) {
+            int compressedSize = deflater.deflate(buffer);
+            outputStream.write(buffer, 0, compressedSize);
+        }
+
+        return outputStream.toByteArray();
+    }
+
+    public static byte[] decompress(byte[] input) throws DataFormatException {
+        Inflater inflater = new Inflater();
+        inflater.setInput(input);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+
+        while (!inflater.finished()) {
+            int decompressedSize = inflater.inflate(buffer);
+            outputStream.write(buffer, 0, decompressedSize);
+        }
+
+        return outputStream.toByteArray();
+    }
+
+    public String starsOf(double rating) {
+        int fullStars = (int) rating;
+        double halfStars = rating - fullStars;
+        boolean halfStar = 0.25 < halfStars && halfStars < 0.75;
+        if (rating < 0.25) return "N/A";
+        return "\uD83D\uDFCA".repeat(fullStars) + (halfStar ? "⯨" : "");
     }
 }

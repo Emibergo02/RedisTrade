@@ -178,7 +178,7 @@ public class MyItemBuilder implements ItemProvider {
 
     @Contract("_ -> this")
     public @NotNull MyItemBuilder setMiniMessageDisplayName(@NotNull String displayName) {
-        this.displayName = MiniMessage.miniMessage().deserialize(displayName);
+        this.displayName = MiniMessage.miniMessage().deserialize("<!i>" + displayName);
         return this;
     }
 
@@ -344,29 +344,26 @@ public class MyItemBuilder implements ItemProvider {
 
     @Contract("_ -> this")
     public @NotNull MyItemBuilder replacePlaceholders(@NotNull Map<String, String> replacements) {
-
         if (this.displayName != null) {
-            this.displayName = this.displayName.replaceText(builder -> {
-                for (Map.Entry<String, String> entry : replacements.entrySet()) {
-                    builder.matchLiteral(entry.getKey()).replacement(entry.getValue());
-                }
-            });
+            for (Map.Entry<String, String> entry : replacements.entrySet()) {
+                this.displayName = this.displayName.replaceText(builder ->
+                        builder.matchLiteral(entry.getKey()).replacement(entry.getValue()));
+            }
         }
         if (this.itemName != null) {
-            this.itemName = this.itemName.replaceText(builder -> {
-                for (Map.Entry<String, String> entry : replacements.entrySet()) {
-                    builder.matchLiteral(entry.getKey()).replacement(entry.getValue());
-                }
-            });
+            for (Map.Entry<String, String> entry : replacements.entrySet()) {
+                this.itemName = this.itemName.replaceText(builder ->
+                        builder.matchLiteral(entry.getKey()).replacement(entry.getValue()));
+            }
         }
         if (this.lore != null) {
             final List<Component> newLore = new ArrayList<>();
             for (Component line : this.lore) {
-                newLore.add(line.replaceText(builder -> {
-                    for (Map.Entry<String, String> entry : replacements.entrySet()) {
-                        builder.matchLiteral(entry.getKey()).replacement(entry.getValue());
-                    }
-                }));
+                for (Map.Entry<String, String> entry : replacements.entrySet()) {
+                    line = line.replaceText(builder ->
+                            builder.matchLiteral(entry.getKey()).replacement(entry.getValue()));
+                }
+                newLore.add(line);
             }
             this.lore = newLore;
         }

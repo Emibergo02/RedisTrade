@@ -1,5 +1,6 @@
-package dev.unnm3d.redistrade.guis;
+package dev.unnm3d.redistrade.guis.buttons;
 
+import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.utils.ReceiptBuilder;
@@ -22,6 +23,7 @@ public class ReceiptButton extends AbstractItem {
 
     @Override
     public @NotNull ItemProvider getItemProvider() {
+        if (retrieveTimes++ >= Settings.instance().receiptDelivered) GuiSettings.instance().separator.toItemBuilder();
         return new ItemWrapper(receipt);
     }
 
@@ -29,9 +31,8 @@ public class ReceiptButton extends AbstractItem {
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
         if (retrieveTimes++ >= Settings.instance().receiptDelivered) return;
         // Return the cursor item to the player's inventory or drop it if full
-        player.getInventory().addItem(player.getItemOnCursor()).values().forEach(itemStack ->
+        player.getInventory().addItem(receipt).values().forEach(itemStack ->
                 player.getWorld().dropItem(player.getLocation(), itemStack)
         );
-        player.setItemOnCursor(receipt);
     }
 }

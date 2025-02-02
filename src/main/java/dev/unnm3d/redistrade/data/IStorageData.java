@@ -1,6 +1,7 @@
 package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.core.NewTrade;
+import dev.unnm3d.redistrade.core.enums.Actor;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -16,11 +17,17 @@ public interface IStorageData {
 
     void ignorePlayer(String playerName, String targetName, boolean ignore);
 
+    void rateTrade(NewTrade archivedTrade, Actor actor, int rating);
+
     CompletionStage<Map<Integer, NewTrade>> restoreTrades();
 
     CompletionStage<Map<String, UUID>> loadNameUUIDs();
 
     CompletionStage<Set<String>> getIgnoredPlayers(String playerName);
+
+    CompletionStage<SQLiteDatabase.TradeRating> getTradeRating(UUID tradeUUID);
+
+    CompletableFuture<SQLiteDatabase.MeanRating> getMeanRating(UUID playerUUID);
 
     /**
      * Archive a trade, not available for REDIS storage type
@@ -45,5 +52,15 @@ public interface IStorageData {
         return CompletableFuture.completedFuture(new HashMap<>());
     }
 
+    default CompletableFuture<Optional<NewTrade>> getArchivedTrade(UUID tradeUUID) {
+        return CompletableFuture.completedFuture(Optional.empty());
+    }
+
     void close();
+
+    record TradeRating(int traderRating, int customerRating) {
+    }
+
+    record MeanRating(String playerName, double mean, int countedTrades) {
+    }
 }

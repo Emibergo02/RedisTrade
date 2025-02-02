@@ -70,7 +70,7 @@ public class TradeManager {
 
                                 initializeTrade(RedisTrade.getServerId(), trade);
                                 traderPlayer.sendRichMessage(Messages.instance().tradeCreated.replace("%player%", targetName));
-                                plugin.getServer().getScheduler().runTask(plugin, () -> openWindow(trade, traderPlayer.getUniqueId()));
+                                plugin.getServer().getScheduler().runTask(plugin, () -> openWindow(trade, traderPlayer));
                                 return tradeOptional;
                             });
                 }).orElseGet(() -> {
@@ -137,9 +137,9 @@ public class TradeManager {
                 .map(trades::get)
                 .orElse(null);
         if (traderTrade != null) {
-            if (traderTrade.isTarget(targetUUID) || traderTrade.isTrader(targetUUID)) {
+            if (traderTrade.isCustomer(targetUUID) || traderTrade.isTrader(targetUUID)) {
                 plugin.getServer().getScheduler().runTask(plugin, () ->
-                        openWindow(traderTrade, traderPlayer.getUniqueId()));
+                        openWindow(traderTrade, traderPlayer));
                 return traderTrade;
             }
 
@@ -154,9 +154,9 @@ public class TradeManager {
                 .map(trades::get)
                 .orElse(null);
         if (targetTrade != null) {
-            if (targetTrade.isTarget(traderPlayer.getUniqueId()) || targetTrade.isTrader(traderPlayer.getUniqueId())) {
+            if (targetTrade.isCustomer(traderPlayer.getUniqueId()) || targetTrade.isTrader(traderPlayer.getUniqueId())) {
                 plugin.getServer().getScheduler().runTask(plugin, () ->
-                        openWindow(targetTrade, traderPlayer.getUniqueId()));
+                        openWindow(targetTrade, traderPlayer));
                 return targetTrade;
             }
 
@@ -171,6 +171,7 @@ public class TradeManager {
     /**
      * Finish the trade and disconnect the player name from the trade UUID.
      * If both trader and target are disconnected, remove the trade from tradeguis
+     * Show the ReviewGUI button
      *
      * @param tradeUUID The trade to be close
      * @param actorSide The actor side that is closing the trade
@@ -180,6 +181,9 @@ public class TradeManager {
         NewTrade trade = trades.get(tradeUUID);
         if (trade == null) return;
         trade.setOpened(false, actorSide);
+
+        //Show the review trade button
+        trade.getTradeSide(actorSide).getSidePerspective().notifyItem('V');
 
         if (!playerTrades.containsKey(trade.getTradeSide(actorSide.opposite()).getTraderUUID())) {
             removeTrade(trade.getUuid());
@@ -191,16 +195,19 @@ public class TradeManager {
     }
 
 
-    public boolean openWindow(NewTrade trade, UUID playerUUID) {
-        Actor actor = trade.getViewerType(playerUUID);
-        //Set the trade as opened only if we are in the first stage
-        if (trade.getOrderInfo(actor).getStatus() == Status.REFUSED) {
-            playerTrades.put(playerUUID, trade.getUuid());
-            trade.setOpened(true, actor);
-            RedisTrade.debug(trade.getUuid() + " " + trade.getTradeSide(actor).getTraderName() + " opened trade window");
+    public void openWindow(NewTrade trade, Player player) {
+        if (plugin.getRestrictionService().isRestricted(player, player.getLocation())) {
+            player.sendRichMessage(Messages.instance().tradeRestricted);
+            return;
         }
-
-        return trade.openWindow(playerUUID, actor);
+        final Actor actorSide = trade.getActor(player);
+        //Set the trade as opened only if we are in the first stage
+        if (trade.getTradeSide(actorSide).getOrder().getStatus() == Status.REFUSED && actorSide.isParticipant()) {
+            playerTrades.put(player.getUniqueId(), trade.getUuid());
+            trade.setOpened(true, actorSide);
+            RedisTrade.debug(trade.getUuid() + " " + trade.getTradeSide(actorSide).getTraderName() + " opened trade window");
+        }
+        trade.openWindow(player, actorSide);
     }
 
     public void removeTrade(UUID tradeUUID) {
@@ -242,11 +249,14 @@ public class TradeManager {
      */
     public void initializeTrade(int serverId, NewTrade trade) {
         RedisTrade.debug("Trade initialized: " + trade.getUuid());
-
-        trade.getTradeSide(Actor.TRADER).setSidePerspective(
-                new TradeGuiBuilder(trade, Actor.TRADER).build());
-        trade.getTradeSide(Actor.CUSTOMER).setSidePerspective(
-                new TradeGuiBuilder(trade, Actor.CUSTOMER).build());
+        try {
+            trade.getTradeSide(Actor.TRADER).setSidePerspective(
+                    new TradeGuiBuilder(trade, Actor.TRADER).build());
+            trade.getTradeSide(Actor.CUSTOMER).setSidePerspective(
+                    new TradeGuiBuilder(trade, Actor.CUSTOMER).build());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         //Remove the trade if it already exists
         //This happens when the trade is taken from backup table,
@@ -263,8 +273,8 @@ public class TradeManager {
 
                     removeTrade(tradeFound.getUuid());
 
-                    traderViewers.forEach(player -> trade.openWindow(player.getUniqueId(), Actor.TRADER));
-                    customerViewers.forEach(player -> trade.openWindow(player.getUniqueId(), Actor.CUSTOMER));
+                    traderViewers.forEach(player -> trade.openWindow(player, Actor.TRADER));
+                    customerViewers.forEach(player -> trade.openWindow(player, Actor.CUSTOMER));
                 });
         setTradeServerOwner(trade.getUuid(), serverId);
         trades.put(trade.getUuid(), trade);

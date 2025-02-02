@@ -9,7 +9,7 @@ import lombok.AllArgsConstructor;
 import org.bukkit.entity.Player;
 
 @AllArgsConstructor
-public class TradeIgnoreCommand {
+public class IgnoreCommand {
     private TradeManager tradeManager;
 
     @Command(name = "toggle", desc = "Ignores trades from a player")

@@ -46,6 +46,20 @@ public class GuiSettings {
         );
     }
 
+    @Comment({"C - Confirm trade, M - First currency, N - Second currency, O - Third currency, L - Trader side,",
+            "r - Receipt Slot, v - Profile button, V - Rating button (shown on trade completion), x - Background item, D - Cancel trade,",
+            "o - Customer first currency, n - Customer second currency, m - Customer third currency, c - Customer confirm trade, R - Customer side",
+            "CAUTION!: This configuration must be the same on every instance of RedisTrade"})
+    public List<String> tradeGuiStructure = List.of(
+            "CMNODonmc",
+            "LLLLrRRRR",
+            "LLLLvRRRR",
+            "LLLLVRRRR",
+            "LLLLxRRRR",
+            "LLLLxRRRR");
+
+    public String tradeGuiTitle = "Trading with %player%";
+
     public SimpleSerializableItem nextPage = new SimpleSerializableItem("ARROW", 1, 0, "<blue>Next Page", List.of());
     public SimpleSerializableItem previousPage = new SimpleSerializableItem("ARROW", 1, 0, "<blue>Previous Page", List.of());
     public SimpleSerializableItem refuseButton = new SimpleSerializableItem("RED_WOOL", 1, 0, "<red>Refused trade", List.of("", "<white>Click to <dark_green>confirm</dark_green> the trade</white>"));
@@ -55,7 +69,13 @@ public class GuiSettings {
     public SimpleSerializableItem retrievedButton = new SimpleSerializableItem("LIGHT_BLUE_WOOL", 1, 0, "<blue>Retrieved trade", List.of(""));
     public SimpleSerializableItem moneyDisplay = new SimpleSerializableItem("GOLD_NUGGET", 1, 0, "<yellow>%amount% %currency%", List.of());
     public SimpleSerializableItem moneyConfirmButton = new SimpleSerializableItem("GOLD_BLOCK", 1, 0, "<yellow>Confirm", List.of());
+    public SimpleSerializableItem rateItem = new SimpleSerializableItem("NETHER_STAR", 1, 0, "<yellow>%stars%", List.of("<white>Review the trade %rating% star"));
+    public SimpleSerializableItem playerProfile = new SimpleSerializableItem("PLAYER_HEAD", 1, 0, "<yellow>%player_name%",
+            List.of("<white>Rating: <gold>%stars%</gold> or <aqua>%rating%</aqua>", "Trades completed: %trade_count%", ""));
     public SimpleSerializableItem separator = new SimpleSerializableItem("GRAY_STAINED_GLASS_PANE", 1, 0, "", List.of());
+    public SimpleSerializableItem openRatingMenu = new SimpleSerializableItem("NETHER_STAR", 1, 0, "<yellow>Review this trade", List.of("<white>You can edit your rating inside the receipt"));
+
+    public String ratingMenuTitle = "Review %player%'s traded items";
 
     @Comment({"Remember that a book line contains 20 large characters",
             "(if you use 'i's or 'l's it will be contain more characters)",
@@ -72,7 +92,9 @@ public class GuiSettings {
                     "<blue>%timestamp%</blue>",
                     "",
                     "Trader price: <gold>%price_default_trader%%symbol_default%</gold>",
-                    "Customer price: <gold>%price_default_customer%%symbol_default%</gold>"
+                    "Customer price: <gold>%price_default_customer%%symbol_default%</gold>",
+                    "<click:run_command:/trade-rate set %trade_uuid%>[<blue>Review this trade</blue>]</click>",
+                    "<click:run_command:/trade-rate show-trade %trade_uuid%>[<blue>View trade ratings</blue>]</click>"
             )
     );
 
@@ -98,14 +120,6 @@ public class GuiSettings {
     @Comment("%item_name% - item displayname or itemname or , %amount% - item amount")
     public String itemFormat = "<dark_gray>[x%amount% %item_name%]";
 
-    public String tradeGuiTitle = "Trading with %player%";
-    public List<String> tradeGuiStructure = List.of(
-            "CMNODonmc",
-            "LLLLxRRRR",
-            "LLLLxRRRR",
-            "LLLLxRRRR",
-            "LLLLxRRRR",
-            "LLLLxRRRR");
 
     public record SimpleSerializableItem(String material, int amount, int customModelData, String itemName,
                                          List<String> lore) {

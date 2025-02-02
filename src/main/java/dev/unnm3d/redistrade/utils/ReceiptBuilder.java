@@ -7,6 +7,7 @@ import dev.unnm3d.redistrade.core.NewTrade;
 import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -112,7 +113,7 @@ public class ReceiptBuilder {
     public String tradePlaceholders(NewTrade trade, String toParse) {
         String strText = toParse.replace("%trader%", trade.getTraderSide().getTraderName())
                 .replace("%customer%", trade.getCustomerSide().getTraderName())
-                .replace("%id%", String.valueOf(trade.getUuid().getMostSignificantBits()));
+                .replace("%trade_uuid%", trade.getUuid().toString());
 
         for (String currencyName : Settings.instance().allowedCurrencies.keySet()) {
             strText = strText.replace("%price_" + currencyName + "_trader%",

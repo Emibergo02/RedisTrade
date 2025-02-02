@@ -88,16 +88,32 @@ public class MySQLDatabase extends SQLiteDatabase {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         INSERT INTO `archived` (trade_uuid,trader_uuid,target_uuid,timestamp,serialized)
-                         VALUES (?,?,?,?,?)
-                         ON DUPLICATE KEY UPDATE trade_uuid=VALUES(trade_uuid), trader_uuid=VALUES(trader_uuid),
-                         target_uuid = VALUES(target_uuid), timestamp = VALUES(timestamp), serialized=VALUES(serialized)
+                         INSERT INTO `archived` (trade_uuid,trade_timestamp,trader_uuid,trader_name,trader_rating,trader_price,
+                         customer_uuid,customer_name,customer_rating,customer_price,trader_items,customer_items)
+                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                         ON DUPLICATE KEY UPDATE trade_timestamp=VALUES(trade_timestamp),
+                         trader_uuid=VALUES(trader_uuid), trader_name=VALUES(trader_name), trader_rating=VALUES(trader_rating),
+                         trader_price=VALUES(trader_price), customer_uuid=VALUES(customer_uuid), customer_name=VALUES(customer_name),
+                         customer_rating=VALUES(customer_rating), customer_price=VALUES(customer_price),
+                         trader_items=VALUES(trader_items), customer_items=VALUES(customer_items)
                          ;""")) {
                 statement.setString(1, trade.getUuid().toString());
-                statement.setString(2, trade.getTraderSide().getTraderUUID().toString());
-                statement.setString(3, trade.getCustomerSide().getTraderUUID().toString());
-                statement.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
-                statement.setString(5, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
+                statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+                //Trader side
+                statement.setString(3, trade.getTraderSide().getTraderUUID().toString());
+                statement.setString(4, trade.getTraderSide().getTraderName());
+                statement.setInt(5, trade.getTraderSide().getOrder().getRating());
+                statement.setString(6, gson.toJson(trade.getTraderSide().getOrder().getPrices()));
+                //Customer side
+                statement.setString(7, trade.getCustomerSide().getTraderUUID().toString());
+                statement.setString(8, trade.getCustomerSide().getTraderName());
+                statement.setInt(9, trade.getCustomerSide().getOrder().getRating());
+                statement.setString(10, gson.toJson(trade.getCustomerSide().getOrder().getPrices()));
+
+                statement.setString(11, new String(
+                        trade.getTraderSide().getOrder().getVirtualInventory().serialize(), StandardCharsets.ISO_8859_1));
+                statement.setString(12, new String(
+                        trade.getCustomerSide().getOrder().getVirtualInventory().serialize(), StandardCharsets.ISO_8859_1));
                 return statement.executeUpdate() != 0;
             } catch (SQLException e) {
                 plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.ARCHIVE_TRADE, trade.getUuid()));
@@ -116,8 +132,10 @@ public class MySQLDatabase extends SQLiteDatabase {
             statement.setString(1, trade.getUuid().toString());
             statement.setInt(2, RedisTrade.getServerId());
             statement.setString(3, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            if(statement.executeUpdate() !=0){
+                RedisTrade.debug("Trade " + trade.getUuid() + " backed up");
+            }
+        } catch (Exception e) {
             plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.BACKUP_TRADE, trade.getUuid()));
         }
     }

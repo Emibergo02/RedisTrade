@@ -6,8 +6,9 @@ depend:
   - Vault
 softdepend:
   - RedisEconomy
+  - WorldGuard
 libraries:
-  - net.kyori:adventure-text-minimessage:4.17.0
+  - net.kyori:adventure-text-minimessage:4.18.0
   - com.zaxxer:HikariCP:5.1.0
   - org.xerial:sqlite-jdbc:3.46.0.0
   - io.lettuce:lettuce-core:6.5.2.RELEASE
@@ -30,6 +31,21 @@ permissions:
   redistrade.reload:
     description: Get a gui item to your hand
     default: false
+  redistrade.rate.showtrade:
+    description: Show the trade
+    default: true
+  redistrade.rate.showplayer:
+    description: Show the player
+    default: true
+  redistrade.rate:
+    description: Rate a trade
+    default: true
+  redistrade.spectate:
+    description: Rate a trade
+    default: false
+  redistrade.modify:
+    description: Rate a trade
+    default: false
   redistrade.stresser:
     description: Stress test the plugin
     default: false
@@ -48,3 +64,5 @@ permissions:
       redistrade.getitem: true
       redistrade.stresser: true
       redistrade.reload: true
+      redistrade.modify: true
+      redistrade.spectate: true

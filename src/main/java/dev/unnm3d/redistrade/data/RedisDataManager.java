@@ -58,7 +58,7 @@ public class RedisDataManager extends RedisAbstract {
                     case ITEM -> {
                         String[] split = value.split("§;");
                         int slot = Integer.parseInt(split[0]);
-                        trade.updateItem(slot, Utils.deserialize(split[1])[0], viewerUpdate.getActorSide(), false);
+                        trade.updateItem(slot, Utils.deserialize(split[1].getBytes(StandardCharsets.ISO_8859_1))[0], viewerUpdate.getActorSide(), false);
                         trade.retrievedPhase(viewerUpdate.getActorSide(), viewerUpdate.getActorSide().opposite());
                     }
                     case STATUS -> trade.setStatus(StatusActor.fromChar(value.charAt(0)), viewerUpdate.getActorSide());

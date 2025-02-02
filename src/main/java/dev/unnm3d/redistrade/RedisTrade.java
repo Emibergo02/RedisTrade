@@ -9,12 +9,15 @@ import dev.unnm3d.redistrade.commands.*;
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
+import dev.unnm3d.redistrade.core.PlayerListener;
 import dev.unnm3d.redistrade.core.TradeManager;
 import dev.unnm3d.redistrade.data.*;
 import dev.unnm3d.redistrade.hooks.EconomyHook;
 import dev.unnm3d.redistrade.hooks.RedisEconomyHook;
 import dev.unnm3d.redistrade.hooks.VaultEconomyHook;
+import dev.unnm3d.redistrade.hooks.WorldGuardHook;
 import dev.unnm3d.redistrade.integrity.IntegritySystem;
+import dev.unnm3d.redistrade.restriction.RestrictionService;
 import dev.unnm3d.redistrade.utils.Metrics;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisConnectionException;
@@ -32,6 +35,7 @@ import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -52,6 +56,8 @@ public class RedisTrade extends JavaPlugin {
     private PlayerListManager playerListManager;
     @Getter
     private EconomyHook economyHook;
+    @Getter
+    private RestrictionService restrictionService;
     @Getter
     private IntegritySystem integritySystem;
     private Metrics metrics;
@@ -78,13 +84,22 @@ public class RedisTrade extends JavaPlugin {
         }
     }
 
+    @Override
+    public void onLoad() {
+        instance = this;
+        loadDebugFile();
+        loadYML();
+        this.restrictionService = new RestrictionService(this);
+        if (getServer().getPluginManager().getPlugin("WorldGuard") != null) {
+            this.restrictionService.addRestrictionHook(new WorldGuardHook());
+            getLogger().info("WorldGuard found, hooking into it");
+        } else {
+            getLogger().info("WorldGuard not found, region support disabled");
+        }
+    }
 
     @Override
     public void onEnable() {
-        instance = this;
-        loadYML();
-        loadDebugFile();
-
         try {
             dataCache = switch (settings.cacheType) {
                 case REDIS -> new RedisDataManager(this, craftRedisClient(),
@@ -122,6 +137,9 @@ public class RedisTrade extends JavaPlugin {
             getLogger().severe("Error loading commands");
             getLogger().severe("Check your configuration and try again");
         }
+
+        getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
+
         //bStats
         this.metrics = new Metrics(this, 23912);
         metrics.addCustomChart(new Metrics.SimplePie("storage_type", () -> this.settings.storageType.name()));
@@ -185,11 +203,25 @@ public class RedisTrade extends JavaPlugin {
         drink.bind(PlayerListManager.Target.class).toProvider(new TargetProvider(playerListManager));
         drink.bind(LocalDateTime.class).toProvider(new LocalDateProvider(settings.dateFormat, settings.timeZone));
         drink.bind(Field.class).toProvider(new ItemFieldProvider());
-        drink.register(new TradeCommand(this), "trade", "t");
-        drink.register(new TradeIgnoreCommand(tradeManager), "trade-ignore");
-        drink.register(new BrowseTradeCommand(this), "trade-browse");
+
+        applyAliasesAndRegister(drink, new TradeCommand(this), "trade");
+        applyAliasesAndRegister(drink, new IgnoreCommand(tradeManager), "trade-ignore");
+        applyAliasesAndRegister(drink, new BrowseTradeCommand(this), "trade-browse");
+        applyAliasesAndRegister(drink, new SpectateTradeCommand(this), "trade-spectate");
+        applyAliasesAndRegister(drink, new RateCommand(this), "trade-rate");
+
         drink.register(new TradeAdminCommand(this), "redistrade");
         drink.registerCommands();
+    }
+
+    private void applyAliasesAndRegister(CommandService drink, Object commandInstance, String commandName) {
+        final List<String> aliases = settings.commandAliases.getOrDefault(commandName, List.of(commandName));
+        if (aliases.isEmpty()) {
+            getLogger().severe("No command or aliases found for " + commandName);
+            getLogger().severe("The command will not be registered");
+            return;
+        }
+        drink.register(commandInstance, aliases.getFirst(), aliases.subList(1, aliases.size()).toArray(new String[0]));
     }
 
     public void loadYML() throws ConfigurationException {
@@ -203,7 +235,11 @@ public class RedisTrade extends JavaPlugin {
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public void loadDebugFile() {
-        final File parentDir = new File(getDataFolder(), "logs");
+        final File pluginDir = new File(getServer().getPluginsFolder(), "RedisTrade");
+        if (!pluginDir.exists()) {
+            pluginDir.mkdir();
+        }
+        final File parentDir = new File(pluginDir, "logs");
         if (!parentDir.exists()) {
             parentDir.mkdir();
         }

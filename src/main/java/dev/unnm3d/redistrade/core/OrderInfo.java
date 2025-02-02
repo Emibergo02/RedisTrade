@@ -1,10 +1,12 @@
 package dev.unnm3d.redistrade.core;
 
 import dev.unnm3d.redistrade.core.enums.Status;
+import dev.unnm3d.redistrade.utils.Utils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
 
@@ -20,16 +22,20 @@ import java.util.HashMap;
 public class OrderInfo {
     @Setter
     private Status status;
+    @Setter
+    private Integer rating;
     private final VirtualInventory virtualInventory;
     private final HashMap<String, Double> prices;
 
+
     public OrderInfo(int orderSize) {
-        this(new VirtualInventory(orderSize), Status.REFUSED, new HashMap<>());
+        this(new VirtualInventory(orderSize), Status.REFUSED, 0, new HashMap<>());
     }
 
-    private OrderInfo(VirtualInventory virtualInventory, Status status, HashMap<String, Double> prices) {
+    public OrderInfo(VirtualInventory virtualInventory, Status status, Integer rating, HashMap<String, Double> prices) {
         this.virtualInventory = virtualInventory;
         this.status = status;
+        this.rating = rating;
         this.prices = prices;
     }
 
@@ -42,10 +48,12 @@ public class OrderInfo {
     }
 
     public byte[] serialize() {
-        byte[] serializedInventory = virtualInventory.serialize();
-        final ByteBuffer buffer = ByteBuffer.allocate(1 + 2 + (prices.size() * (16 + 8)) + serializedInventory.length);
+        byte[] serializedInventory = Utils.serialize(virtualInventory.getItems());
+        final ByteBuffer buffer = ByteBuffer.allocate(1 + 1 + 2 + (prices.size() * (16 + 8)) + serializedInventory.length);
 
         buffer.put((byte) status.getStatus());//1 byte
+
+        buffer.put(rating.byteValue());//1 byte
 
         buffer.putShort((short) prices.size());//2 bytes
 
@@ -61,10 +69,12 @@ public class OrderInfo {
     }
 
     public static OrderInfo deserialize(byte[] data) {
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        Status status = Status.valueOf((char) buffer.get());
+        final ByteBuffer buffer = ByteBuffer.wrap(data);
+        final Status status = Status.valueOf((char) buffer.get());
+        final Integer rating = Byte.toUnsignedInt(buffer.get());
         short pricesSize = buffer.getShort();
         final HashMap<String, Double> prices = new HashMap<>();
+
         for (int i = 0; i < pricesSize; i++) {
             byte[] currencyName = new byte[16];
             buffer.get(currencyName);
@@ -72,9 +82,11 @@ public class OrderInfo {
             prices.put(new String(trim(currencyName), StandardCharsets.ISO_8859_1),
                     buffer.getDouble());
         }
+
         byte[] serializedInventory = new byte[buffer.remaining()];
         buffer.get(serializedInventory);
-        return new OrderInfo(VirtualInventory.deserialize(serializedInventory), status, prices);
+        ItemStack[] items = Utils.deserialize(serializedInventory);
+        return new OrderInfo(new VirtualInventory(items), status, rating, prices);
     }
 
     private static byte[] trim(byte[] bytes) {

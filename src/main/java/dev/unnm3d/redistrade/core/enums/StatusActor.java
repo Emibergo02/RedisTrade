@@ -63,7 +63,7 @@ public enum StatusActor {
                 case COMPLETED -> CUSTOMER_COMPLETED;
                 case RETRIEVED -> CUSTOMER_RETRIEVED;
             };
-            case SPECTATOR -> throw new IllegalArgumentException("Invalid viewer type");
+            default -> throw new IllegalArgumentException("Invalid actor type");
         };
     }
 }

@@ -1,15 +1,13 @@
 package dev.unnm3d.redistrade.core;
 
 import dev.unnm3d.redistrade.core.enums.Status;
+import dev.unnm3d.redistrade.guis.MutableGui;
 import lombok.*;
 import org.jetbrains.annotations.NotNull;
-import xyz.xenondevs.invui.gui.Gui;
-import xyz.xenondevs.invui.item.Item;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -24,36 +22,32 @@ public class TradeSide {
     @Setter
     private boolean opened;
     @Setter
-    private transient Gui sidePerspective;
+    private transient MutableGui sidePerspective;
 
     public TradeSide(@NotNull UUID traderUUID, @NotNull String traderName, @NotNull OrderInfo order, boolean opened) {
         this(traderUUID, traderName, order, opened, null);
     }
 
     public void notifyOppositeStatus() {
-        notifyButton(8);
+        sidePerspective.notifyItem('c');
     }
 
     public void notifyOppositePrice() {
-        for (int j = 5; j < 8; j++) {
-            notifyButton(j);
-        }
-    }
-
-    private void notifyButton(int index) {
-        Optional.ofNullable(sidePerspective.getItem(index)).ifPresent(Item::notifyWindows);
+        sidePerspective.notifyItem('m');
+        sidePerspective.notifyItem('n');
+        sidePerspective.notifyItem('o');
     }
 
     public void setPrice(String currency, double price) {
         order.setPrice(currency, price);
-        for (int i = 1; i < 4; i++) {
-            notifyButton(i);
-        }
+        sidePerspective.notifyItem('M');
+        sidePerspective.notifyItem('N');
+        sidePerspective.notifyItem('O');
     }
 
     public void setStatus(Status status) {
         order.setStatus(status);
-        notifyButton(0);
+        sidePerspective.notifyItem('C');
     }
 
     public byte[] serialize() {

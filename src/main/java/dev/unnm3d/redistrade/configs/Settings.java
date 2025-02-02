@@ -5,6 +5,7 @@ import de.exlll.configlib.Comment;
 import de.exlll.configlib.ConfigLib;
 import de.exlll.configlib.Configuration;
 import de.exlll.configlib.YamlConfigurations;
+import dev.unnm3d.redistrade.restriction.KnownRestriction;
 import dev.unnm3d.redistrade.utils.MyItemBuilder;
 import org.apache.commons.lang3.LocaleUtils;
 import org.bukkit.Material;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class Settings {
     private static Settings SETTINGS;
     private static DecimalFormat DECIMAL_FORMAT;
+
 
     public static Settings instance() {
         return SETTINGS;
@@ -92,6 +94,27 @@ public class Settings {
     public List<BlacklistedItem> blacklistedItems = List.of(
             new BlacklistedItem("FIREWORK_ROCKET", 0, Map.of("flight_duration", "3"))
     );
+
+    @Comment("Action blacklist, the trade will be closed if one of these actions is detected")
+    public Map<String, Integer> activeRestrictions = Map.of(
+            KnownRestriction.DAMAGED.getName(), 1000,
+            KnownRestriction.COMBAT.getName(), 5000,
+            KnownRestriction.MOVED.getName(), 1000);
+
+    @Comment("World blacklist, the trade will be closed if one of these worlds is detected")
+    public List<String> worldBlacklist = List.of("world_nether", "world_the_end");
+
+    @Comment("Command cooldown in milliseconds")
+    public int commandCooldown = 1000;
+
+    @Comment("If shift-clicking a player should open a trade")
+    public boolean rightClickToOpen = true;
+
+    public Map<String, List<String>> commandAliases = Map.of("trade", List.of("trade", "t"),
+            "trade-ignore", List.of("trade-ignore", "tignore"),
+            "trade-browse", List.of("trade-browse", "tbrowse"),
+            "trade-spectate", List.of("trade-spectate", "tspec"),
+            "trade-rate", List.of("trade-rate", "trate"));
 
     public boolean debug = true;
     public boolean debugStrace = false;
