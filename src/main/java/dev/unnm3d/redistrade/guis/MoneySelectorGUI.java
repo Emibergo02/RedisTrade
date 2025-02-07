@@ -51,13 +51,13 @@ public class MoneySelectorGUI {
      * Opens the money selector GUI for the specified trade, player and currency.
      * The player could be Actor.ADMIN so we need playerSide to determine the side
      *
-     * @param trade         The trade to open the money selector GUI for
-     * @param playerSide    The side of the player in the trade
-     * @param player        The player to open the money selector GUI for
-     * @param currencyName  The name of the currency to edit the price for
+     * @param trade        The trade to open the money selector GUI for
+     * @param playerSide   The side of the player in the trade
+     * @param player       The player to open the money selector GUI for
+     * @param currencyName The name of the currency to edit the price for
      */
     public static void open(NewTrade trade, Actor playerSide, Player player, String currencyName) {
-        new MoneySelectorGUI(trade,playerSide, player, currencyName).openWindow();
+        new MoneySelectorGUI(trade, playerSide, player, currencyName).openWindow();
     }
 
     private AbstractItem createMoneyDisplayItem() {
@@ -121,7 +121,7 @@ public class MoneySelectorGUI {
                 return;
             }
 
-            notifyInsufficientFunds(nextPrice, balance);
+            notifyInsufficientFunds(nextPrice, balance + previousPrice);
 
         } catch (NumberFormatException | ParseException ignored) {
             changingPriceString = Settings.getDecimalFormat().format(previousPrice);

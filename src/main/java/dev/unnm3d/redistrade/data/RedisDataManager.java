@@ -1,7 +1,6 @@
 package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.RedisTrade;
-import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.core.enums.StatusActor;
 import dev.unnm3d.redistrade.core.enums.ViewerUpdate;
@@ -56,9 +55,8 @@ public class RedisDataManager extends RedisAbstract {
                         trade.setPrice(split[0], Double.parseDouble(split[1]), viewerUpdate.getActorSide());
                     }
                     case ITEM -> {
-                        String[] split = value.split("§;");
-                        int slot = Integer.parseInt(split[0]);
-                        trade.updateItem(slot, Utils.deserialize(split[1].getBytes(StandardCharsets.ISO_8859_1))[0], viewerUpdate.getActorSide(), false);
+                        int slot = value.charAt(0);
+                        trade.updateItem(slot, Utils.deserialize(value.substring(1).getBytes(StandardCharsets.ISO_8859_1))[0], viewerUpdate.getActorSide(), false);
                         trade.retrievedPhase(viewerUpdate.getActorSide(), viewerUpdate.getActorSide().opposite());
                     }
                     case STATUS -> trade.setStatus(StatusActor.fromChar(value.charAt(0)), viewerUpdate.getActorSide());

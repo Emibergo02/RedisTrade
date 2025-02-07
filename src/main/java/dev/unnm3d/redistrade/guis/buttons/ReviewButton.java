@@ -22,7 +22,7 @@ public class ReviewButton extends AbstractItem {
 
     @Override
     public ItemProvider getItemProvider() {
-        if (tradeSide.getOrder().getStatus() == Status.RETRIEVED) {
+        if (tradeSide.getOrder().getStatus() == Status.COMPLETED || tradeSide.getOrder().getStatus() == Status.RETRIEVED) {
             return GuiSettings.instance().openRatingMenu.toItemBuilder();
         }
         return GuiSettings.instance().separator.toItemBuilder();

@@ -182,9 +182,6 @@ public class TradeManager {
         if (trade == null) return;
         trade.setOpened(false, actorSide);
 
-        //Show the review trade button
-        trade.getTradeSide(actorSide).getSidePerspective().notifyItem('V');
-
         if (!playerTrades.containsKey(trade.getTradeSide(actorSide.opposite()).getTraderUUID())) {
             removeTrade(trade.getUuid());
             RedisTrade.debug(trade.getUuid() + " trade removed: other side isn't connected to this trade");

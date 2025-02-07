@@ -10,6 +10,7 @@ import dev.unnm3d.redistrade.core.TradeSide;
 import dev.unnm3d.redistrade.core.enums.Actor;
 import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.core.enums.StatusActor;
+import dev.unnm3d.redistrade.guis.buttons.CancelButton;
 import dev.unnm3d.redistrade.guis.buttons.MoneyEditorButton;
 import dev.unnm3d.redistrade.guis.buttons.ProfileDisplay;
 import dev.unnm3d.redistrade.guis.buttons.ReviewButton;
@@ -51,7 +52,7 @@ public final class TradeGuiBuilder {
                 .setIngredient('R', oppositeTradeSide.getOrder().getVirtualInventory())
                 .setIngredient('C', getConfirmButton(actorSide))
                 .setIngredient('c', getConfirmButton(actorSide.opposite()))
-                .setIngredient('D', getTradeCancelButton())
+                .setIngredient('D', new CancelButton(trade, actorSide))
                 .setIngredient('v', new ProfileDisplay(oppositeTradeSide))
                 .setIngredient('V', new ReviewButton(trade.getUuid(), oppositeTradeSide))
                 //Set the money editor buttons and rating GUI as background by default
@@ -146,41 +147,5 @@ public final class TradeGuiBuilder {
                 }
             }
         };
-    }
-
-    public Item getTradeCancelButton() {
-        return new AbstractItem() {
-            @Override
-            public ItemProvider getItemProvider(Player player) {
-                return GuiSettings.instance().cancelTradeButton.toItemBuilder();
-            }
-
-            @Override
-            public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-                if (trade.getTradeSide(actorSide).getOrder().getStatus() != Status.REFUSED) return;
-
-                //Self-trigger retrieve phase from both sides
-                trade.retrievedPhase(actorSide, actorSide).thenAcceptAsync(result -> {
-                    if (result) {
-                        refundSide(trade, actorSide);
-                        trade.retrievedPhase(actorSide.opposite(), actorSide.opposite()).thenAccept(result1 -> {
-                            if (result1) {
-                                refundSide(trade, actorSide.opposite());
-                            }
-                        });
-                    }
-                });
-            }
-        };
-    }
-
-    private void refundSide(NewTrade trade, Actor refundActorSide) {
-        TradeSide side = trade.getTradeSide(refundActorSide);
-        side.getOrder().getPrices().forEach((currency, price) -> {
-            trade.setAndSendPrice(currency, 0, refundActorSide);
-            RedisTrade.getInstance().getEconomyHook().depositPlayer(side.getTraderUUID(), price,
-                    currency, "Trade cancellation");
-            RedisTrade.debug(trade.getUuid() + " Refunded " + price + " " + currency + " to " + side.getTraderUUID());
-        });
     }
 }

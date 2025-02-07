@@ -64,7 +64,8 @@ public class GuiSettings {
     public SimpleSerializableItem previousPage = new SimpleSerializableItem("ARROW", 1, 0, "<blue>Previous Page", List.of());
     public SimpleSerializableItem refuseButton = new SimpleSerializableItem("RED_WOOL", 1, 0, "<red>Refused trade", List.of("", "<white>Click to <dark_green>confirm</dark_green> the trade</white>"));
     public SimpleSerializableItem confirmButton = new SimpleSerializableItem("GREEN_WOOL", 1, 0, "<green>Confirm trade", List.of("", "<white>Click to <red>cancel</red> the trade</white>"));
-    public SimpleSerializableItem cancelTradeButton = new SimpleSerializableItem("BARRIER", 1, 0, "<red>Cancel trade", List.of("", "<white>Click to <red>cancel</red> the trade</white>"));
+    public SimpleSerializableItem cancelTradeButton = new SimpleSerializableItem("BARRIER", 1, 0, "<red>Cancel trade", List.of("", "<white>Click to <red>cancel</red> the trade</white>","<white>and take back all your items</white>"));
+    public SimpleSerializableItem getAllItems = new SimpleSerializableItem("ENDER_EYE", 1, 0, "<aqua>Get all items", List.of("", "<white>Click to <green>return</green> all items</white>","<white>to your inventory</white>"));
     public SimpleSerializableItem completedButton = new SimpleSerializableItem("LIME_WOOL", 1, 0, "<green>Completed trade", List.of(""));
     public SimpleSerializableItem retrievedButton = new SimpleSerializableItem("LIGHT_BLUE_WOOL", 1, 0, "<blue>Retrieved trade", List.of(""));
     public SimpleSerializableItem moneyDisplay = new SimpleSerializableItem("GOLD_NUGGET", 1, 0, "<yellow>%amount% %currency%", List.of());

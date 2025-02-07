@@ -48,7 +48,7 @@ public class OrderInfo {
     }
 
     public byte[] serialize() {
-        byte[] serializedInventory = Utils.serialize(virtualInventory.getItems());
+        byte[] serializedInventory = virtualInventory.serialize();
         final ByteBuffer buffer = ByteBuffer.allocate(1 + 1 + 2 + (prices.size() * (16 + 8)) + serializedInventory.length);
 
         buffer.put((byte) status.getStatus());//1 byte
@@ -85,8 +85,7 @@ public class OrderInfo {
 
         byte[] serializedInventory = new byte[buffer.remaining()];
         buffer.get(serializedInventory);
-        ItemStack[] items = Utils.deserialize(serializedInventory);
-        return new OrderInfo(new VirtualInventory(items), status, rating, prices);
+        return new OrderInfo(VirtualInventory.deserialize(serializedInventory), status, rating, prices);
     }
 
     private static byte[] trim(byte[] bytes) {

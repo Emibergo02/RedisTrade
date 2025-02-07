@@ -146,15 +146,15 @@ public class NewTrade {
         getTradeSide(actor).setOpened(opened);
     }
 
-    public void updateItem(int slot, ItemStack item, Actor actor, boolean sendUpdate) {
-        final ViewerUpdate updateType = ViewerUpdate.valueOf(actor, UpdateType.ITEM);
+    public void updateItem(int slot, ItemStack item, Actor tradeSide, boolean sendUpdate) {
+        final ViewerUpdate updateType = ViewerUpdate.valueOf(tradeSide, UpdateType.ITEM);
 
         if (sendUpdate) {
-            RedisTrade.getInstance().getDataCache().updateTrade(uuid, updateType, slot + "§;" + new String(Utils.serialize(item), StandardCharsets.ISO_8859_1));
-            RedisTrade.debug(uuid + " Sending item " + item + " from " + actor.name());
+            RedisTrade.getInstance().getDataCache().updateTrade(uuid, updateType, (char) slot + new String(Utils.serialize(item), StandardCharsets.ISO_8859_1));
+            RedisTrade.debug(uuid + " Sending item" + slot + ": " + item + " from " + tradeSide.name());
         } else {
-            getTradeSide(actor).getOrder().getVirtualInventory().setItemSilently(slot, item);
-            RedisTrade.debug(uuid + " Updating item " + item + " from " + actor.name());
+            getTradeSide(tradeSide).getOrder().getVirtualInventory().setItemSilently(slot, item);
+            RedisTrade.debug(uuid + " Updating item" + slot + ": " + item + " from " + tradeSide.name());
         }
     }
 
@@ -198,6 +198,13 @@ public class NewTrade {
                 }
                 retrievedPhase(Actor.TRADER, Actor.CUSTOMER);
                 retrievedPhase(Actor.CUSTOMER, Actor.TRADER);
+                //Change cancel trade to get all items
+                traderSide.getSidePerspective().notifyItem('D');
+                customerSide.getSidePerspective().notifyItem('D');
+                //Show the review trade button
+                traderSide.getSidePerspective().notifyItem('V');
+                customerSide.getSidePerspective().notifyItem('V');
+
                 //Archive the completed trade
                 if (RedisTrade.getInstance().getDataStorage() instanceof Database database) {
                     database.archiveTrade(this);
