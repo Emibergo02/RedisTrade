@@ -7,6 +7,7 @@ import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.data.Database;
 import dev.unnm3d.redistrade.guis.TradeBrowserGUI;
 import dev.unnm3d.redistrade.guis.TradeGuiBuilder;
+import dev.unnm3d.redistrade.restriction.RestrictionService;
 import dev.unnm3d.redistrade.utils.ReceiptBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -193,8 +194,10 @@ public class TradeManager {
 
 
     public void openWindow(NewTrade trade, Player player) {
-        if (plugin.getRestrictionService().isRestricted(player, player.getLocation())) {
-            player.sendRichMessage(Messages.instance().tradeRestricted);
+        final RestrictionService.Restriction restriction = plugin.getRestrictionService().getRestriction(player, player.getLocation());
+        if (restriction != null) {
+            player.sendRichMessage(Messages.instance().restrictionMessages
+                    .getOrDefault(restriction.restrictionName(), Messages.instance().tradeRestricted));
             return;
         }
         final Actor actorSide = trade.getActor(player);

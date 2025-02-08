@@ -7,6 +7,7 @@ import dev.unnm3d.redistrade.core.TradeSide;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,20 +24,20 @@ public class RestrictionService {
         addRestrictionHook(new WorldRestriction());
     }
 
-    public boolean isRestricted(Player player, Location playerLocation) {
+    public @Nullable Restriction getRestriction(Player player, Location playerLocation) {
         for (RestrictionHook restrictionHook : restrictionHooks) {
-            boolean isRestricted = restrictionHook.restriction(player, playerLocation);
+            boolean isRestricted = restrictionHook.restrict(player, playerLocation);
             if (!isRestricted) continue;
             addPlayerRestriction(player, restrictionHook.getName());
         }
         final Restriction restriction = restrictionCooldown.get(player);
-        if (restriction == null) return false;
+        if (restriction == null) return null;
         if (restriction.isExpired()) {
             restrictionCooldown.remove(player);
-            return false;
+            return null;
         }
         RedisTrade.debug("Player " + player.getName() + " is restricted by " + restriction.restrictionName());
-        return true;
+        return restriction;
     }
 
     public void addRestrictionHook(RestrictionHook hook) {
@@ -46,27 +47,27 @@ public class RestrictionService {
     public void addPlayerRestriction(Player player, String restrictionName) {
         final Restriction previousRestriction = restrictionCooldown.get(player);
 
-        int restrictionDuration = Settings.instance().activeRestrictions.getOrDefault(restrictionName, 0);
+        int restrictionDuration = Settings.instance().actionCooldowns.getOrDefault(restrictionName, 0);
         if (restrictionDuration <= 0) return;
 
-        // If the restriction is null or the remaining is less than the future restriction timestamp
+        // If the restrict is null or the remaining is less than the future restrict timestamp
         if (previousRestriction == null || previousRestriction.endRestrictionTimestamp() < System.currentTimeMillis() + restrictionDuration) {
             restrictionCooldown.put(player, Restriction.from(restrictionName, restrictionDuration));
-        }
 
-        //Close trade GUI for the player if open
-        plugin.getTradeManager().getActiveTrade(player.getUniqueId()).ifPresent(trade -> {
-            final TradeSide playerSide = trade.getTradeSide(trade.getActor(player));
-            if(playerSide.getSidePerspective().findAllCurrentViewers().contains(player)){
-                player.closeInventory();
-                player.sendRichMessage(Messages.instance().tradeWindowClosed);
-            }
-        });
+            //Close trade GUI for the player if open
+            plugin.getTradeManager().getActiveTrade(player.getUniqueId()).ifPresent(trade -> {
+                final TradeSide playerSide = trade.getTradeSide(trade.getActor(player));
+                if(playerSide.getSidePerspective().findAllCurrentViewers().contains(player)){
+                    player.closeInventory();
+                    player.sendRichMessage(Messages.instance().tradeWindowClosed);
+                }
+            });
+        }
     }
 
 
 
-    private record Restriction(String restrictionName, long endRestrictionTimestamp) {
+    public record Restriction(String restrictionName, long endRestrictionTimestamp) {
         public static Restriction from(String restrictionName, long duration) {
             return new Restriction(restrictionName, System.currentTimeMillis() + duration);
         }

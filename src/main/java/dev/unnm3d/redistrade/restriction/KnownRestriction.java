@@ -1,8 +1,5 @@
 package dev.unnm3d.redistrade.restriction;
 
-import lombok.Getter;
-
-@Getter
 public enum KnownRestriction {
     MOVED("PLAYER_MOVED"),
     DAMAGED("PLAYER_DAMAGED"),
@@ -15,4 +12,8 @@ public enum KnownRestriction {
         this.name = name;
     }
 
+    @Override
+    public String toString() {
+        return name;
+    }
 }

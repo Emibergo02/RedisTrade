@@ -95,11 +95,15 @@ public class Settings {
             new BlacklistedItem("FIREWORK_ROCKET", 0, Map.of("flight_duration", "3"))
     );
 
-    @Comment("Action blacklist, the trade will be closed if one of these actions is detected")
-    public Map<String, Integer> activeRestrictions = Map.of(
-            KnownRestriction.DAMAGED.getName(), 1000,
-            KnownRestriction.COMBAT.getName(), 5000,
-            KnownRestriction.MOVED.getName(), 1000);
+    @Comment({"Action blacklist, the trade will be closed if one of these actions is detected",
+            "Cooldown time is measured in milliseconds",
+            "Remove an action to disable the restrict"})
+    public Map<String, Integer> actionCooldowns = Map.of(
+            KnownRestriction.DAMAGED.toString(), 1000,
+            KnownRestriction.COMBAT.toString(), 5000,
+            KnownRestriction.MOVED.toString(), 1000,
+            KnownRestriction.WORLD_CHANGE.toString(), 1000,
+            "WORLD_GUARD", 1000);
 
     @Comment("World blacklist, the trade will be closed if one of these worlds is detected")
     public List<String> worldBlacklist = List.of("world_nether", "world_the_end");

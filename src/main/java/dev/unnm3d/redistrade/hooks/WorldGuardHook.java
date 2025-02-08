@@ -15,32 +15,32 @@ import java.util.Optional;
 
 public class WorldGuardHook implements RestrictionHook {
 
-    public final static StateFlag RESTRICT_TRADES = new StateFlag("restrict-trades", false);
+    private StateFlag restrictFlag;
 
     public WorldGuardHook() {
-        if (WorldGuard.getInstance().getFlagRegistry().get("restrict-trades") != null) return;
-        WorldGuard.getInstance().getFlagRegistry().register(RESTRICT_TRADES);
+        restrictFlag = (StateFlag) WorldGuard.getInstance().getFlagRegistry().get("restrict-trades");
+        if (restrictFlag != null) return;
+        restrictFlag = new StateFlag("restrict-trades", true);
+        WorldGuard.getInstance().getFlagRegistry().register(restrictFlag);
     }
 
     @Override
     public String getName() {
-        return "WorldGuard";
+        return "WORLD_GUARD";
     }
 
     @Override
-    public boolean restriction(Player player, Location playerLocation) {
+    public boolean restrict(Player player, Location playerLocation) {
         return Optional.ofNullable(WorldGuard.getInstance().getPlatform().getRegionContainer()
                         .get(BukkitAdapter.adapt(playerLocation.getWorld())))
-                .map(manager ->
-                        getOverlappingRegions(manager, playerLocation).getRegions().stream()
-                                .anyMatch(overlapped ->
-                                        overlapped.getFlag(RESTRICT_TRADES) == StateFlag.State.DENY))
+                .map(manager -> getOverlappingRegions(manager, playerLocation).getRegions().stream()
+                        .anyMatch(overlapped -> overlapped.getFlag(restrictFlag) == StateFlag.State.DENY))
                 .orElse(false);
     }
 
     @NotNull
     private static ApplicableRegionSet getOverlappingRegions(@NotNull RegionManager manager,
-                                                             @NotNull org.bukkit.Location bukkitLocation) {
+                                                             @NotNull Location bukkitLocation) {
         return manager.getApplicableRegions(BlockVector3.at(bukkitLocation.x(), bukkitLocation.y(), bukkitLocation.z()));
     }
 }

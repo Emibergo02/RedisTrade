@@ -7,5 +7,5 @@ public interface RestrictionHook {
 
     String getName();
 
-    boolean restriction(Player player, Location playerLocation);
+    boolean restrict(Player player, Location playerLocation);
 }

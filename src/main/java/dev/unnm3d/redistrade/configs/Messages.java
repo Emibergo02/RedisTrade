@@ -3,9 +3,11 @@ package dev.unnm3d.redistrade.configs;
 
 import de.exlll.configlib.Configuration;
 import de.exlll.configlib.YamlConfigurations;
+import dev.unnm3d.redistrade.restriction.KnownRestriction;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 public class Messages {
@@ -51,4 +53,11 @@ public class Messages {
     public String tradeShowRating = "<green>%reviewer% review of %reviewed%: <yellow>%stars%</yellow>";
     public String tradeWindowClosed = "<aqua>Your trade has been put it background<br><color:#bfbfbf><click:run_command:'/trade %player%'>[Click to resume]</click> or <click:suggest_command:'/trade'>[/trade]</click><br><red>You did something you're not allowed to do when trading";
     public String tradeRestricted = "<red>You can't open the trade window because you did something you're not allowed to do: moving, getting damaged, being in combat";
+    public Map<String, String> restrictionMessages = Map.of(
+            KnownRestriction.MOVED.toString(), "<red>You can't move while trading",
+            KnownRestriction.DAMAGED.toString(), "<red>You can't get damaged while trading",
+            KnownRestriction.COMBAT.toString(), "<red>You can't be in combat while trading",
+            KnownRestriction.WORLD_CHANGE.toString(), "<red>You can't change world while trading",
+            "WORLD_GUARD", "<red>You can't trade in this region"
+    );
 }

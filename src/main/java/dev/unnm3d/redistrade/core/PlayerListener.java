@@ -50,6 +50,6 @@ public class PlayerListener implements Listener {
     public void onPlayerCombat(EntityDamageByEntityEvent event) {
         if (event.getEntityType() != EntityType.PLAYER) return;
         if (event.getDamager().getType() != EntityType.PLAYER) return;
-        plugin.getRestrictionService().addPlayerRestriction((Player) event.getEntity(), KnownRestriction.DAMAGED.toString());
+        plugin.getRestrictionService().addPlayerRestriction((Player) event.getDamager(), KnownRestriction.COMBAT.toString());
     }
 }
