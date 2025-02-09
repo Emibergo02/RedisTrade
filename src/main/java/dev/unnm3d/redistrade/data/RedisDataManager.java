@@ -60,7 +60,7 @@ public class RedisDataManager extends RedisAbstract {
                         trade.retrievedPhase(viewerUpdate.getActorSide(), viewerUpdate.getActorSide().opposite());
                     }
                     case STATUS -> trade.setStatus(StatusActor.fromChar(value.charAt(0)), viewerUpdate.getActorSide());
-                    case CLOSE -> plugin.getTradeManager().closeTrade(tradeUUID, viewerUpdate.getActorSide());
+                    case CLOSE -> plugin.getTradeManager().finishTrade(tradeUUID, viewerUpdate.getActorSide());
                 }
             });
         } else if (channel.equals(DataKeys.IGNORE_PLAYER_UPDATE.toString())) {

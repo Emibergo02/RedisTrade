@@ -101,7 +101,7 @@ public class Settings {
     public Map<String, Integer> actionCooldowns = Map.of(
             KnownRestriction.DAMAGED.toString(), 1000,
             KnownRestriction.COMBAT.toString(), 5000,
-            KnownRestriction.MOVED.toString(), 1000,
+            KnownRestriction.MOVED.toString(), 400,
             KnownRestriction.WORLD_CHANGE.toString(), 1000,
             "WORLD_GUARD", 1000);
 

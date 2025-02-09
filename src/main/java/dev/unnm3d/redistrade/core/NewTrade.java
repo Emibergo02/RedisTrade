@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import xyz.xenondevs.invui.inventory.VirtualInventory;
 import xyz.xenondevs.invui.window.Window;
 
 import java.nio.ByteBuffer;
@@ -97,6 +98,52 @@ public class NewTrade {
     }
 
     /**
+     * Returns the items of the trade to the player
+     *
+     * @param player    The player to return the items to
+     * @param tradeSide The side of the trade to return the items from
+     * @return The amount of returned items
+     */
+    public short returnItems(Player player, Actor tradeSide) {
+        short returnedItems = 0;
+        if (RedisTrade.getInstance().getIntegritySystem().isFaulted()) {
+            player.sendRichMessage(Messages.instance().newTradesLock);
+            return returnedItems;
+        }
+        Actor actor = getActor(player);
+        if (!actor.isParticipant()) return returnedItems;
+
+        final VirtualInventory traderInventory = getTradeSide(tradeSide).getOrder().getVirtualInventory();
+        for (int i = 0; i < traderInventory.getItems().length; i++) {
+            final ItemStack item = traderInventory.getItem(i);
+            if (item == null) continue;
+            //Set the item to null and send update to other servers
+            traderInventory.setItemSilently(i, null);
+            updateItem(i, null, tradeSide, true);
+
+            player.getInventory().addItem(item).forEach((slot, itemStack) ->
+                    player.getWorld().dropItem(player.getLocation(), itemStack));
+            returnedItems++;
+        }
+        return returnedItems;
+    }
+
+    /**
+     * Refund the player on the specified side on all currencies
+     *
+     * @param refundSide The side of the trade to refund
+     */
+    public void refundSide(Actor refundSide) {
+        TradeSide side = getTradeSide(refundSide);
+        side.getOrder().getPrices().forEach((currency, price) -> {
+            setAndSendPrice(currency, 0, refundSide);
+            RedisTrade.getInstance().getEconomyHook().depositPlayer(side.getTraderUUID(), price,
+                    currency, "Trade cancellation");
+            RedisTrade.debug(uuid + " Refunded " + price + " " + currency + " to " + side.getTraderUUID());
+        });
+    }
+
+    /**
      * Set the status of the trade
      *
      * @param status    The status to set
@@ -111,7 +158,7 @@ public class NewTrade {
         RedisTrade.debug(uuid + " Setting status to " + status.getStatus().name() + " for " + actorSide.name());
         //If you receive a remote retrieved status, try to finish and delete the trade
         if (status.getStatus() == Status.RETRIEVED) {
-            RedisTrade.getInstance().getTradeManager().closeTrade(uuid, status.getViewerActor());
+            RedisTrade.getInstance().getTradeManager().finishTrade(uuid, status.getViewerActor());
         } else if (status.getStatus() == Status.COMPLETED && Settings.instance().deliverReceipt) {
             getTradeSide(actorSide).getSidePerspective().setIngredient('r', new ReceiptButton(this));
         }
@@ -181,35 +228,35 @@ public class NewTrade {
     public void completePhase() {
         this.completionTimer.cancel();
         final BiConsumer<Status, Status> finallyConsumer = (status1, status2) -> {
-            if (status1 == Status.COMPLETED && status2 == Status.COMPLETED) {
-                //Apply the economy changes only if the current server is the owner of the trade
-                //Owner means the last server that modified the trade
-                if (RedisTrade.getInstance().getTradeManager().isOwner(uuid)) {
-                    for (Map.Entry<String, Double> currencyPrice : customerSide.getOrder().getPrices().entrySet()) {
-                        RedisTrade.getInstance().getEconomyHook()
-                                .depositPlayer(traderSide.getTraderUUID(), currencyPrice.getValue(), currencyPrice.getKey(), "Trade completion");
-                        RedisTrade.debug(uuid + " Depositing trader " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + traderSide.getTraderName());
-                    }
-                    for (Map.Entry<String, Double> currencyPrice : traderSide.getOrder().getPrices().entrySet()) {
-                        RedisTrade.getInstance().getEconomyHook()
-                                .depositPlayer(customerSide.getTraderUUID(), currencyPrice.getValue(), currencyPrice.getKey(), "Trade completion");
-                        RedisTrade.debug(uuid + " Depositing customer " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + customerSide.getTraderName());
-                    }
+            if (status1 != Status.COMPLETED || status2 != Status.COMPLETED) return;
+            //Apply the economy changes only if the current server is the owner of the trade
+            //Owner means the last server that modified the trade
+            if (RedisTrade.getInstance().getTradeManager().isOwner(uuid)) {
+                for (Map.Entry<String, Double> currencyPrice : customerSide.getOrder().getPrices().entrySet()) {
+                    RedisTrade.getInstance().getEconomyHook()
+                            .depositPlayer(traderSide.getTraderUUID(), currencyPrice.getValue(), currencyPrice.getKey(), "Trade completion");
+                    RedisTrade.debug(uuid + " Depositing trader " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + traderSide.getTraderName());
                 }
-                retrievedPhase(Actor.TRADER, Actor.CUSTOMER);
-                retrievedPhase(Actor.CUSTOMER, Actor.TRADER);
-                //Change cancel trade to get all items
-                traderSide.getSidePerspective().notifyItem('D');
-                customerSide.getSidePerspective().notifyItem('D');
-                //Show the review trade button
-                traderSide.getSidePerspective().notifyItem('V');
-                customerSide.getSidePerspective().notifyItem('V');
-
-                //Archive the completed trade
-                if (RedisTrade.getInstance().getDataStorage() instanceof Database database) {
-                    database.archiveTrade(this);
+                for (Map.Entry<String, Double> currencyPrice : traderSide.getOrder().getPrices().entrySet()) {
+                    RedisTrade.getInstance().getEconomyHook()
+                            .depositPlayer(customerSide.getTraderUUID(), currencyPrice.getValue(), currencyPrice.getKey(), "Trade completion");
+                    RedisTrade.debug(uuid + " Depositing customer " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + customerSide.getTraderName());
                 }
             }
+            retrievedPhase(Actor.TRADER, Actor.CUSTOMER);
+            retrievedPhase(Actor.CUSTOMER, Actor.TRADER);
+            //Change cancel trade to get all items
+            traderSide.getSidePerspective().notifyItem('D');
+            customerSide.getSidePerspective().notifyItem('D');
+            //Show the review trade button
+            traderSide.getSidePerspective().notifyItem('V');
+            customerSide.getSidePerspective().notifyItem('V');
+
+            //Archive the completed trade
+            if (RedisTrade.getInstance().getDataStorage() instanceof Database database) {
+                database.archiveTrade(this);
+            }
+
         };
         //Check if both sides are confirmed
 
@@ -233,10 +280,12 @@ public class NewTrade {
         if (operatingSide.getOrder().getVirtualInventory().isEmpty()) {
             final StatusActor statusActor = StatusActor.valueOf(whoIsEditing, Status.RETRIEVED);
             if (operatingSide.getOrder().getStatus() == Status.REFUSED && tradeSide.isSideOf(whoIsEditing)) {
+                RedisTrade.debug(uuid + " Cancelled trade " + tradeSide.name() + " retrieved");
                 return changeAndSendStatus(statusActor, operatingSide.getOrder().getStatus(), tradeSide)
                         .thenApply(returnedStatus -> returnedStatus == Status.RETRIEVED);
 
             } else if (operatingSide.getOrder().getStatus() == Status.COMPLETED) {
+                RedisTrade.debug(uuid + " Completed trade " + tradeSide.name() + " retrieved");
                 //If the status is completed, set the status to retrieved
                 return changeAndSendStatus(statusActor, operatingSide.getOrder().getStatus(), tradeSide)
                         .thenApply(returnedStatus -> returnedStatus == Status.RETRIEVED);

@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TradeManager {
 
     private final RedisTrade plugin;
-    final ConcurrentHashMap<UUID, NewTrade> trades;
+    private final ConcurrentHashMap<UUID, NewTrade> trades;
     private final ConcurrentHashMap<UUID, UUID> playerTrades;
     private final ConcurrentHashMap<String, HashSet<String>> ignorePlayers;
 
@@ -177,19 +177,76 @@ public class TradeManager {
      * @param tradeUUID The trade to be close
      * @param actorSide The actor side that is closing the trade
      */
-    public void closeTrade(UUID tradeUUID, Actor actorSide) {
+    public void finishTrade(UUID tradeUUID, Actor actorSide) {
         //Remove the trade only if both trader and target are removed from the current trades
         NewTrade trade = trades.get(tradeUUID);
         if (trade == null) return;
         trade.setOpened(false, actorSide);
+        final TradeSide actorTradeSide = trade.getTradeSide(actorSide);
 
         if (!playerTrades.containsKey(trade.getTradeSide(actorSide.opposite()).getTraderUUID())) {
             removeTrade(trade.getUuid());
             RedisTrade.debug(trade.getUuid() + " trade removed: other side isn't connected to this trade");
         } else {
-            playerTrades.remove(trade.getTradeSide(actorSide).getTraderUUID());
-            RedisTrade.debug(trade.getUuid() + " trade closed for: " + trade.getTradeSide(actorSide).getTraderName());
+            playerTrades.remove(actorTradeSide.getTraderUUID());
+            RedisTrade.debug(trade.getUuid() + " trade closed for: " + actorTradeSide.getTraderName());
         }
+
+    }
+
+    /**
+     * Give back the items to the player and try to close the trade
+     * It is closed only if the sides are empty
+     *
+     * @param player    The player to give back the items
+     * @param tradeUUID The trade to close
+     */
+    public void collectItemsAndClose(Player player, UUID tradeUUID) {
+        NewTrade trade = trades.get(tradeUUID);
+        Actor tradeSide = trade.getActor(player);
+        //Spectators can't cancel trades
+        if (tradeSide == Actor.SPECTATOR) return;
+
+        //If the actor side is still in the first stage, return the items and try retrieve phase (AKA close trade)
+        final TradeSide actorSide = trade.getTradeSide(tradeSide);
+        if (actorSide.getOrder().getStatus() == Status.REFUSED) {
+            //Self-trigger retrieve phase from both sides
+            short returnedItems = trade.returnItems(player, tradeSide);
+            RedisTrade.debug(trade.getUuid() + " Returned " + returnedItems + " items to " + player.getName());
+            trade.retrievedPhase(tradeSide, tradeSide).thenAcceptAsync(result -> {
+                if (result) {
+                    trade.refundSide(tradeSide);
+
+                    actorSide.getSidePerspective().findAllCurrentViewers()
+                            .stream().filter(he -> trade.getActor(he) != Actor.ADMIN)
+                            .forEach(Player::closeInventory);
+
+                    trade.retrievedPhase(tradeSide.opposite(), tradeSide.opposite()).thenAccept(result1 -> {
+                        if (result1) {
+                            trade.refundSide(tradeSide.opposite());
+                        }
+                    });
+                }
+            });
+            return;
+        }
+
+        //If the opposite side has completed the trade, return the items and try retrieve phase (AKA close trade)
+        final TradeSide oppositeTradeSide = trade.getTradeSide(tradeSide.opposite());
+        if (oppositeTradeSide.getOrder().getStatus() == Status.COMPLETED) {
+            short returnedItems = trade.returnItems(player, tradeSide.opposite());
+            trade.retrievedPhase(tradeSide.opposite(), tradeSide).thenAccept(result -> {
+                if (result) {
+                    actorSide.getSidePerspective().findAllCurrentViewers()
+                            .stream().filter(he -> trade.getActor(he) != Actor.ADMIN)
+                            .forEach(Player::closeInventory);
+                }
+            });
+            RedisTrade.debug(trade.getUuid() + " Returned " + returnedItems + " items to " + player.getName());
+            return;
+        }
+
+        if (oppositeTradeSide.getOrder().getStatus() == Status.RETRIEVED) player.closeInventory();
     }
 
 

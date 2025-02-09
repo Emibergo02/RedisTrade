@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'dev.unnm3d'
-version = '2.0'
+version = '2.0.1'
 
 repositories {
     mavenCentral()
@@ -105,7 +105,7 @@ publishing {
 modrinth {
     token = System.getenv("MODRINTH_TOKEN") // Remember to have the MODRINTH_TOKEN environment variable set or else this will fail - just make sure it stays private!
     projectId = "redistrade" // This can be the project ID or the slug. Either will work!
-    versionType = "beta" // This is the default -- can also be `beta` or `alpha`
+    versionType = "release" // This is the default -- can also be `beta` or `alpha`
     uploadFile = shadowJar // With Loom, this MUST be set to `remapJar` instead of `jar`!
     gameVersions = ["1.21.4", "1.21.3","1.21.1","1.21.2","1.20.6"] // Must be an array, even with only one version
     loaders = ["paper","spigot","bukkit"] // Must also be an array - no need to specify this if you're using Loom or ForgeGradle
