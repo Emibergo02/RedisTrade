@@ -202,8 +202,12 @@ public class TradeManager {
      * @param tradeUUID The trade to close
      */
     public void collectItemsAndClose(Player player, UUID tradeUUID) {
-        NewTrade trade = trades.get(tradeUUID);
-        Actor tradeSide = trade.getActor(player);
+        final NewTrade trade = trades.get(tradeUUID);
+        if (trade == null) { //If the trade is not found, it has been already closed
+            player.closeInventory();
+            return;
+        }
+        final Actor tradeSide = trade.getActor(player);
         //Spectators can't cancel trades
         if (tradeSide == Actor.SPECTATOR) return;
 
@@ -214,19 +218,22 @@ public class TradeManager {
             short returnedItems = trade.returnItems(player, tradeSide);
             RedisTrade.debug(trade.getUuid() + " Returned " + returnedItems + " items to " + player.getName());
             trade.retrievedPhase(tradeSide, tradeSide).thenAcceptAsync(result -> {
-                if (result) {
-                    trade.refundSide(tradeSide);
-
-                    actorSide.getSidePerspective().findAllCurrentViewers()
-                            .stream().filter(he -> trade.getActor(he) != Actor.ADMIN)
-                            .forEach(Player::closeInventory);
-
-                    trade.retrievedPhase(tradeSide.opposite(), tradeSide.opposite()).thenAccept(result1 -> {
-                        if (result1) {
-                            trade.refundSide(tradeSide.opposite());
-                        }
-                    });
+                if (!result) {
+                    player.sendRichMessage(Messages.instance().tradeRunning
+                            .replace("%player%", trade.getTradeSide(tradeSide.opposite()).getTraderName()));
+                    return;
                 }
+
+                trade.refundSide(tradeSide);
+                actorSide.getSidePerspective().findAllCurrentViewers()
+                        .stream().filter(he -> trade.getActor(he) != Actor.ADMIN)
+                        .forEach(Player::closeInventory);
+
+                trade.retrievedPhase(tradeSide.opposite(), tradeSide.opposite()).thenAccept(result1 -> {
+                    if (result1) {
+                        trade.refundSide(tradeSide.opposite());
+                    }
+                });
             });
             return;
         }
@@ -236,17 +243,25 @@ public class TradeManager {
         if (oppositeTradeSide.getOrder().getStatus() == Status.COMPLETED) {
             short returnedItems = trade.returnItems(player, tradeSide.opposite());
             trade.retrievedPhase(tradeSide.opposite(), tradeSide).thenAccept(result -> {
-                if (result) {
-                    actorSide.getSidePerspective().findAllCurrentViewers()
-                            .stream().filter(he -> trade.getActor(he) != Actor.ADMIN)
-                            .forEach(Player::closeInventory);
+                if (!result) {
+                    player.sendRichMessage(Messages.instance().tradeRunning
+                            .replace("%player%", trade.getTradeSide(tradeSide.opposite()).getTraderName()));
+                    return;
                 }
+                actorSide.getSidePerspective().findAllCurrentViewers()
+                        .stream().filter(he -> trade.getActor(he) != Actor.ADMIN)
+                        .forEach(Player::closeInventory);
             });
             RedisTrade.debug(trade.getUuid() + " Returned " + returnedItems + " items to " + player.getName());
             return;
         }
 
-        if (oppositeTradeSide.getOrder().getStatus() == Status.RETRIEVED) player.closeInventory();
+        if (oppositeTradeSide.getOrder().getStatus() == Status.RETRIEVED) {
+            player.closeInventory();
+            return;
+        }
+        player.sendRichMessage(Messages.instance().tradeRunning
+                .replace("%player%", trade.getTradeSide(tradeSide.opposite()).getTraderName()));
     }
 
 
