@@ -87,8 +87,8 @@ public class Settings {
     public String locale = "en_US";
 
     @Comment("Allowed currencies for trades")
-    public Map<String, CurrencyItemSerializable> allowedCurrencies = Map.of("default",
-            new CurrencyItemSerializable("GOLD_INGOT", 0, "<gold>Money"));
+    public Map<String, CurrencyInfo> allowedCurrencies = Map.of("default",
+            new CurrencyInfo("vault", new CurrencyItemSerializable("EMERALD", 0, "&aEmerald")));
 
     @Comment("Component blacklist will come in the future")
     public List<BlacklistedItem> blacklistedItems = List.of(
@@ -130,6 +130,7 @@ public class Settings {
                     .setMiniMessageItemName(displayName);
         }
     }
+    public record CurrencyInfo(String integrationName,CurrencyItemSerializable itemSerializable){}
 
     public record MySQL(String databaseHost, int databasePort, String driverClass,
                         String databaseName, String databaseUsername, String databasePassword,

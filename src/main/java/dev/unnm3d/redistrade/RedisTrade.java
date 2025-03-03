@@ -53,6 +53,7 @@ public class RedisTrade extends JavaPlugin {
     private PlayerListManager playerListManager;
     @Getter
     private EconomyHook economyHook;
+    private IntegrationManager integrationManager;
     @Getter
     private RestrictionService restrictionService;
     @Getter
@@ -120,6 +121,7 @@ public class RedisTrade extends JavaPlugin {
         ((Database) dataStorage).connect();
 
         this.playerListManager = new PlayerListManager(this);
+        this.integrationManager= new IntegrationManager(this);
         if (!loadEconomy()) {
             getLogger().info("Economy not found! Economy features have been disabled");
             getLogger().severe("Check your economy plugin");

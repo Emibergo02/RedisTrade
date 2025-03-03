@@ -29,7 +29,9 @@ public class MySQLDatabase extends SQLiteDatabase {
     @Override
     public void connect() {
         dataSource = new HikariDataSource();
-        final String databaseType = settings.driverClass().contains("mariadb") ? "mariadb" : "mysql";
+        final String databaseType = settings.driverClass().contains("mariadb") ? "mariadb" :
+                settings.driverClass().contains("postgresql") ? "postgresql" :
+                        "mysql";
 
         dataSource.setJdbcUrl("jdbc:" + databaseType + "://" +
                 settings.databaseHost() + ":" + settings.databasePort() + "/" +
@@ -132,7 +134,7 @@ public class MySQLDatabase extends SQLiteDatabase {
             statement.setString(1, trade.getUuid().toString());
             statement.setInt(2, RedisTrade.getServerId());
             statement.setString(3, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
-            if(statement.executeUpdate() !=0){
+            if (statement.executeUpdate() != 0) {
                 RedisTrade.debug("Trade " + trade.getUuid() + " backed up");
             }
         } catch (Exception e) {
