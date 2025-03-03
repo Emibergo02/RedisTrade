@@ -2,21 +2,22 @@ package dev.unnm3d.redistrade.hooks;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import net.milkbowl.vault.economy.Economy;
+import org.black_ixx.playerpoints.PlayerPoints;
+import org.black_ixx.playerpoints.PlayerPointsAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
 import java.util.List;
 import java.util.UUID;
 
-public class VaultEconomyHook implements EconomyHook {
-    private final Economy economy;
+public class PlayerPointsHook implements EconomyHook {
+    private final PlayerPointsAPI playerPointsAPI;
 
-    public VaultEconomyHook(RedisTrade plugin) {
-        final RegisteredServiceProvider<Economy> rsp = plugin.getServer().getServicesManager().getRegistration(Economy.class);
-        if (rsp == null) {
+    public PlayerPointsHook(RedisTrade plugin) {
+        this.playerPointsAPI = PlayerPoints.getInstance().getAPI();
+        if (this.playerPointsAPI == null) {
             throw new IllegalStateException("Economy not found");
         }
-        economy = rsp.getProvider();
     }
 
 
@@ -25,7 +26,7 @@ public class VaultEconomyHook implements EconomyHook {
     }
 
     public boolean depositPlayer(UUID playerUUID, double amount, String reason) {
-        return economy.depositPlayer(Bukkit.getOfflinePlayer(playerUUID), amount).transactionSuccess();
+        return playerPointsAPI.give(playerUUID, (int) amount);
     }
 
     public double getBalance(UUID playerUUID, String currencyName) {
@@ -33,7 +34,7 @@ public class VaultEconomyHook implements EconomyHook {
     }
 
     public double getBalance(UUID playerUUID) {
-        return economy.getBalance(Bukkit.getOfflinePlayer(playerUUID));
+        return playerPointsAPI.look(playerUUID);
     }
 
     public boolean withdrawPlayer(UUID playerUUID, double amount, String currencyName, String reason) {
@@ -41,7 +42,7 @@ public class VaultEconomyHook implements EconomyHook {
     }
 
     public boolean withdrawPlayer(UUID playerUUID, double amount, String reason) {
-        return economy.withdrawPlayer(Bukkit.getOfflinePlayer(playerUUID), amount).transactionSuccess();
+        return playerPointsAPI.take(playerUUID, (int) amount);
     }
 
     public String getDefaultCurrencyName() {
@@ -53,7 +54,7 @@ public class VaultEconomyHook implements EconomyHook {
     }
 
     public String getCurrencySymbol(String currencyName) {
-        return economy.currencyNamePlural();
+        return "P";
     }
 
 }

@@ -12,10 +12,7 @@ import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.PlayerListener;
 import dev.unnm3d.redistrade.core.TradeManager;
 import dev.unnm3d.redistrade.data.*;
-import dev.unnm3d.redistrade.hooks.EconomyHook;
-import dev.unnm3d.redistrade.hooks.RedisEconomyHook;
-import dev.unnm3d.redistrade.hooks.VaultEconomyHook;
-import dev.unnm3d.redistrade.hooks.WorldGuardHook;
+import dev.unnm3d.redistrade.hooks.*;
 import dev.unnm3d.redistrade.integrity.IntegritySystem;
 import dev.unnm3d.redistrade.restriction.RestrictionService;
 import dev.unnm3d.redistrade.utils.Metrics;
@@ -56,6 +53,7 @@ public class RedisTrade extends JavaPlugin {
     private PlayerListManager playerListManager;
     @Getter
     private EconomyHook economyHook;
+    private IntegrationManager integrationManager;
     @Getter
     private RestrictionService restrictionService;
     @Getter
@@ -124,6 +122,7 @@ public class RedisTrade extends JavaPlugin {
 
 
         this.playerListManager = new PlayerListManager(this);
+        this.integrationManager= new IntegrationManager(this);
         if (!loadEconomy()) {
             getLogger().severe("Economy not found");
             getLogger().severe("Check your economy plugin and try again");
