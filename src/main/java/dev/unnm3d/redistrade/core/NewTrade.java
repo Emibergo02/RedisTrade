@@ -274,24 +274,21 @@ public class NewTrade {
      * @param whoIsEditing The side of the player that is editing
      * @return If the phase was successful
      */
-    public CompletionStage<Boolean> retrievedPhase(Actor tradeSide, Actor whoIsEditing) {
+    public CompletionStage<Status> retrievedPhase(Actor tradeSide, Actor whoIsEditing) {
         final TradeSide operatingSide = getTradeSide(tradeSide);
 
         if (operatingSide.getOrder().getVirtualInventory().isEmpty()) {
             final StatusActor statusActor = StatusActor.valueOf(whoIsEditing, Status.RETRIEVED);
             if (operatingSide.getOrder().getStatus() == Status.REFUSED && tradeSide.isSideOf(whoIsEditing)) {
                 RedisTrade.debug(uuid + " Cancelled trade " + tradeSide.name() + " retrieved");
-                return changeAndSendStatus(statusActor, operatingSide.getOrder().getStatus(), tradeSide)
-                        .thenApply(returnedStatus -> returnedStatus == Status.RETRIEVED);
-
+                return changeAndSendStatus(statusActor, operatingSide.getOrder().getStatus(), tradeSide);
             } else if (operatingSide.getOrder().getStatus() == Status.COMPLETED) {
                 RedisTrade.debug(uuid + " Completed trade " + tradeSide.name() + " retrieved");
                 //If the status is completed, set the status to retrieved
-                return changeAndSendStatus(statusActor, operatingSide.getOrder().getStatus(), tradeSide)
-                        .thenApply(returnedStatus -> returnedStatus == Status.RETRIEVED);
+                return changeAndSendStatus(statusActor, operatingSide.getOrder().getStatus(), tradeSide);
             }
         }
-        return CompletableFuture.completedFuture(false);
+        return CompletableFuture.completedFuture(operatingSide.getOrder().getStatus());
     }
 
     public void openWindow(Player player, Actor actorSide) {

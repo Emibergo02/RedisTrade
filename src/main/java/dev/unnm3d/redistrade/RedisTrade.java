@@ -12,10 +12,7 @@ import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.PlayerListener;
 import dev.unnm3d.redistrade.core.TradeManager;
 import dev.unnm3d.redistrade.data.*;
-import dev.unnm3d.redistrade.hooks.EconomyHook;
-import dev.unnm3d.redistrade.hooks.RedisEconomyHook;
-import dev.unnm3d.redistrade.hooks.VaultEconomyHook;
-import dev.unnm3d.redistrade.hooks.WorldGuardHook;
+import dev.unnm3d.redistrade.hooks.*;
 import dev.unnm3d.redistrade.integrity.IntegritySystem;
 import dev.unnm3d.redistrade.restriction.RestrictionService;
 import dev.unnm3d.redistrade.utils.Metrics;
@@ -122,13 +119,10 @@ public class RedisTrade extends JavaPlugin {
         };
         ((Database) dataStorage).connect();
 
-
         this.playerListManager = new PlayerListManager(this);
         if (!loadEconomy()) {
-            getLogger().severe("Economy not found");
-            getLogger().severe("Check your economy plugin and try again");
-            this.economyHook = null;
-            getServer().getPluginManager().disablePlugin(this);
+            getLogger().info("Economy not found! Economy features have been disabled");
+            getLogger().severe("Check your economy plugin");
         }
         this.tradeManager = new TradeManager(this);
         try {
@@ -192,10 +186,11 @@ public class RedisTrade extends JavaPlugin {
         try {
             this.economyHook = new VaultEconomyHook(this);
             getLogger().info("Economy hooked into Vault");
+            return true;
         } catch (IllegalStateException e) {
+            this.economyHook = new EmptyEconomyHook();
             return false;
         }
-        return true;
     }
 
     private void loadCommands() {

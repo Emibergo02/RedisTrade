@@ -11,6 +11,7 @@ import dev.unnm3d.redistrade.restriction.RestrictionService;
 import dev.unnm3d.redistrade.utils.ReceiptBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 import xyz.xenondevs.invui.item.Item;
 
 import java.time.LocalDateTime;
@@ -131,8 +132,9 @@ public class TradeManager {
      * If the target has a running trade with the trader, open the trade window for the trader
      * If the trader has a running trade with the target, open the trade window for the trader
      *
-     * @return true if a trade window is opened
+     * @return the trade if it exists
      */
+    @Nullable
     public NewTrade openAlreadyStarted(Player traderPlayer, UUID targetUUID) {
         final NewTrade traderTrade = Optional.ofNullable(playerTrades.get(traderPlayer.getUniqueId()))
                 .map(trades::get)
@@ -213,12 +215,18 @@ public class TradeManager {
 
         //If the actor side is still in the first stage, return the items and try retrieve phase (AKA close trade)
         final TradeSide actorSide = trade.getTradeSide(tradeSide);
+        final TradeSide oppositeTradeSide = trade.getTradeSide(tradeSide.opposite());
         if (actorSide.getOrder().getStatus() == Status.REFUSED) {
             //Self-trigger retrieve phase from both sides
             short returnedItems = trade.returnItems(player, tradeSide);
             RedisTrade.debug(trade.getUuid() + " Returned " + returnedItems + " items to " + player.getName());
-            trade.retrievedPhase(tradeSide, tradeSide).thenAcceptAsync(result -> {
-                if (!result) {
+
+            if (actorSide.getOrder().getStatus() == Status.RETRIEVED) {
+                player.closeInventory();
+                return;
+            }
+            trade.retrievedPhase(tradeSide, tradeSide).thenAcceptAsync(finalStatus -> {
+                if (finalStatus != Status.RETRIEVED) {
                     player.sendRichMessage(Messages.instance().tradeRunning
                             .replace("%player%", trade.getTradeSide(tradeSide.opposite()).getTraderName()));
                     return;
@@ -229,21 +237,28 @@ public class TradeManager {
                         .stream().filter(he -> trade.getActor(he) != Actor.ADMIN)
                         .forEach(Player::closeInventory);
 
-                trade.retrievedPhase(tradeSide.opposite(), tradeSide.opposite()).thenAccept(result1 -> {
-                    if (result1) {
+                if (oppositeTradeSide.getOrder().getStatus() == Status.RETRIEVED) {
+                    player.closeInventory();
+                    return;
+                }
+                trade.retrievedPhase(tradeSide.opposite(), tradeSide.opposite()).thenAccept(finalStatus2 -> {
+                    if (finalStatus2 == Status.RETRIEVED) {
                         trade.refundSide(tradeSide.opposite());
                     }
                 });
+
             });
             return;
         }
-
+        if (oppositeTradeSide.getOrder().getStatus() == Status.RETRIEVED) {
+            player.closeInventory();
+            return;
+        }
         //If the opposite side has completed the trade, return the items and try retrieve phase (AKA close trade)
-        final TradeSide oppositeTradeSide = trade.getTradeSide(tradeSide.opposite());
         if (oppositeTradeSide.getOrder().getStatus() == Status.COMPLETED) {
             short returnedItems = trade.returnItems(player, tradeSide.opposite());
             trade.retrievedPhase(tradeSide.opposite(), tradeSide).thenAccept(result -> {
-                if (!result) {
+                if (result != Status.RETRIEVED) {
                     player.sendRichMessage(Messages.instance().tradeRunning
                             .replace("%player%", trade.getTradeSide(tradeSide.opposite()).getTraderName()));
                     return;
@@ -253,11 +268,6 @@ public class TradeManager {
                         .forEach(Player::closeInventory);
             });
             RedisTrade.debug(trade.getUuid() + " Returned " + returnedItems + " items to " + player.getName());
-            return;
-        }
-
-        if (oppositeTradeSide.getOrder().getStatus() == Status.RETRIEVED) {
-            player.closeInventory();
             return;
         }
         player.sendRichMessage(Messages.instance().tradeRunning

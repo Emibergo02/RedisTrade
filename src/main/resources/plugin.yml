@@ -12,6 +12,7 @@ libraries:
   - com.zaxxer:HikariCP:5.1.0
   - org.xerial:sqlite-jdbc:3.46.0.0
   - io.lettuce:lettuce-core:6.5.2.RELEASE
+  - org.snakeyaml:snakeyaml-engine:2.7
 permissions:
   redistrade.trade:
     description: Open the trade GUI
