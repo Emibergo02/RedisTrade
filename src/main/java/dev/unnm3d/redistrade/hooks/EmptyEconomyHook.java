@@ -1,11 +1,13 @@
 package dev.unnm3d.redistrade.hooks;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 import java.util.UUID;
 
 public class EmptyEconomyHook implements EconomyHook{
     @Override
-    public boolean depositPlayer(UUID playerUUID, double amount, String currencyName, String reason) {
+    public boolean depositPlayer(UUID playerUUID, double amount, @NotNull String currencyName, String reason) {
         return true;
     }
 
@@ -15,7 +17,7 @@ public class EmptyEconomyHook implements EconomyHook{
     }
 
     @Override
-    public double getBalance(UUID playerUUID, String currencyName) {
+    public double getBalance(UUID playerUUID, @NotNull String currencyName) {
         return 0;
     }
 
@@ -25,7 +27,7 @@ public class EmptyEconomyHook implements EconomyHook{
     }
 
     @Override
-    public boolean withdrawPlayer(UUID playerUUID, double amount, String currencyName, String reason) {
+    public boolean withdrawPlayer(UUID playerUUID, double amount, @NotNull String currencyName, String reason) {
         return true;
     }
 
@@ -45,7 +47,7 @@ public class EmptyEconomyHook implements EconomyHook{
     }
 
     @Override
-    public String getCurrencySymbol(String currencyName) {
+    public String getCurrencySymbol(@NotNull String currencyName) {
         return "€";
     }
 }

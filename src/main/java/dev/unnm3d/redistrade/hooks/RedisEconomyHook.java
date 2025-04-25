@@ -30,14 +30,14 @@ public class RedisEconomyHook extends VaultEconomyHook {
     }
 
     @Override
-    public double getBalance(UUID playerUUID, String currencyName) {
+    public double getBalance(UUID playerUUID, @NotNull String currencyName) {
         Currency currency = api.getCurrencyByName(currencyName);
         if (currency == null) return 0D;
         return currency.getBalance(playerUUID);
     }
 
     @Override
-    public boolean withdrawPlayer(UUID playerUUID, double amount, String currencyName, String reason) {
+    public boolean withdrawPlayer(UUID playerUUID, double amount, @NotNull String currencyName, String reason) {
         Currency currency = api.getCurrencyByName(currencyName);
         if (currency == null) return false;
         return currency.withdrawPlayer(playerUUID, null, amount, reason).transactionSuccess();
@@ -54,7 +54,7 @@ public class RedisEconomyHook extends VaultEconomyHook {
     }
 
     @Override
-    public String getCurrencySymbol(String currencyName) {
+    public String getCurrencySymbol(@NotNull String currencyName) {
         return Optional.ofNullable(api.getCurrencyByName(currencyName))
                 .map(Currency::currencyNamePlural)
                 .orElse("");
