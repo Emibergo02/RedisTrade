@@ -13,8 +13,10 @@ import dev.unnm3d.redistrade.core.PlayerListener;
 import dev.unnm3d.redistrade.core.TradeManager;
 import dev.unnm3d.redistrade.data.*;
 import dev.unnm3d.redistrade.hooks.*;
+import dev.unnm3d.redistrade.hooks.restrictions.WorldGuardHook;
 import dev.unnm3d.redistrade.integrity.IntegritySystem;
 import dev.unnm3d.redistrade.restriction.RestrictionService;
+import dev.unnm3d.redistrade.restriction.WorldRestriction;
 import dev.unnm3d.redistrade.utils.Metrics;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisConnectionException;
@@ -52,7 +54,6 @@ public class RedisTrade extends JavaPlugin {
     @Getter
     private PlayerListManager playerListManager;
     @Getter
-    private EconomyHook economyHook;
     private IntegrationManager integrationManager;
     @Getter
     private RestrictionService restrictionService;
@@ -88,6 +89,7 @@ public class RedisTrade extends JavaPlugin {
         loadDebugFile();
         loadYML();
         this.restrictionService = new RestrictionService(this);
+        this.restrictionService.addRestrictionHook(new WorldRestriction());
         if (getServer().getPluginManager().getPlugin("WorldGuard") != null) {
             this.restrictionService.addRestrictionHook(new WorldGuardHook());
             getLogger().info("WorldGuard found, hooking into it");
@@ -116,16 +118,13 @@ public class RedisTrade extends JavaPlugin {
         }
         dataStorage = switch (settings.storageType) {
             case MYSQL -> new MySQLDatabase(this, this.settings.mysql);
+            case POSTGRESQL -> new PostgresSQLDatabase(this, this.settings.mysql);
             case SQLITE -> new SQLiteDatabase(this);
         };
         ((Database) dataStorage).connect();
 
         this.playerListManager = new PlayerListManager(this);
         this.integrationManager= new IntegrationManager(this);
-        if (!loadEconomy()) {
-            getLogger().info("Economy not found! Economy features have been disabled");
-            getLogger().severe("Check your economy plugin");
-        }
         this.tradeManager = new TradeManager(this);
         try {
             loadCommands();
@@ -177,22 +176,6 @@ public class RedisTrade extends JavaPlugin {
         final RedisClient redisClient = RedisClient.create(redisURIBuilder.build());
         this.integritySystem = new IntegritySystem(this, redisClient);
         return redisClient;
-    }
-
-    private boolean loadEconomy() {
-        if (this.getServer().getPluginManager().isPluginEnabled("RedisEconomy")) {
-            this.economyHook = new RedisEconomyHook(this);
-            getLogger().info("Economy hooked into RedisEconomy");
-            return true;
-        }
-        try {
-            this.economyHook = new VaultEconomyHook(this);
-            getLogger().info("Economy hooked into Vault");
-            return true;
-        } catch (IllegalStateException e) {
-            this.economyHook = new EmptyEconomyHook();
-            return false;
-        }
     }
 
     private void loadCommands() {

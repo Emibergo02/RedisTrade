@@ -114,13 +114,13 @@ public class ReceiptBuilder {
                 .replace("%customer%", trade.getCustomerSide().getTraderName())
                 .replace("%trade_uuid%", trade.getUuid().toString());
 
-        for (String currencyName : Settings.instance().allowedCurrencies.keySet()) {
+        for (String currencyName : RedisTrade.getInstance().getIntegrationManager().getCurrencyNames()) {
             strText = strText.replace("%price_" + currencyName + "_trader%",
                             decimalFormat.format(trade.getTraderSide().getOrder().getPrice(currencyName)))
                     .replace("%price_" + currencyName + "_customer%",
                             decimalFormat.format(trade.getCustomerSide().getOrder().getPrice(currencyName)))
                     .replace("%symbol_" + currencyName + "%",
-                            RedisTrade.getInstance().getEconomyHook().getCurrencySymbol(currencyName));
+                            RedisTrade.getInstance().getIntegrationManager().getCurrencyHook(currencyName).getCurrencySymbol());
         }
         return strText;
     }

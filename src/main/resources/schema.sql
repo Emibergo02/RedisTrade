@@ -1,4 +1,4 @@
-create table if not exists `archived`
+create table if not exists archived
 (
     trade_uuid  varchar(36) not null primary key,
     trade_timestamp   timestamp default CURRENT_TIMESTAMP not null,
@@ -17,7 +17,7 @@ create table if not exists `archived`
     customer_items text not null
 );
 
-create table if not exists `backup`
+create table if not exists backup
 (
     trade_uuid  varchar(36)                         not null primary key,
     server_id    int                                 not null,
@@ -25,14 +25,14 @@ create table if not exists `backup`
     serialized  text                                not null
 );
 
-create table if not exists `ignored_players`
+create table if not exists ignored_players
 (
     ignorer varchar(16) not null,
     ignored varchar(16) not null,
     constraint ignored_players_pk unique (ignorer, ignored)
 );
 
-create table if not exists `player_list`
+create table if not exists player_list
 (
     player_name varchar(16) not null primary key,
     player_uuid varchar(36) not null

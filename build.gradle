@@ -20,26 +20,30 @@ repositories {
     maven { url 'https://repo.xenondevs.xyz/releases' }
     maven { url 'https://maven.enginehub.org/repo/' }
     maven { url 'https://repo.rosewooddev.io/repository/public/' }
+    maven { url 'https://repo.opencollab.dev/main/' }
 }
 
 dependencies {
     compileOnly "io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT"
     compileOnly 'com.zaxxer:HikariCP:5.1.0'
+    compileOnly 'org.postgresql:postgresql:42.7.5'
     compileOnly 'org.projectlombok:lombok:1.18.34'
-    compileOnly 'io.lettuce:lettuce-core:6.5.2.RELEASE'
+    compileOnly 'io.lettuce:lettuce-core:6.5.5.RELEASE'
     compileOnly "com.github.MilkBowl:VaultAPI:1.7.1"
     compileOnly "com.github.Emibergo02:RedisEconomy:4.3.19"
     compileOnly 'com.sk89q.worldguard:worldguard-bukkit:7.0.9-SNAPSHOT'
     compileOnly 'org.black_ixx:playerpoints:3.3.0'
+    compileOnly 'org.geysermc.floodgate:api:2.2.3-SNAPSHOT'
 
     implementation 'de.exlll:configlib-paper:4.5.0' exclude group: 'org.snakeyaml', module: 'snakeyaml-engine'
     implementation 'com.github.alexdev03:drink:1.5.3'
-    implementation 'xyz.xenondevs.invui:invui-core:1.45'
-    implementation 'xyz.xenondevs.invui:inventory-access-r19:1.45'
-    implementation 'xyz.xenondevs.invui:inventory-access-r20:1.45'
-    implementation 'xyz.xenondevs.invui:inventory-access-r21:1.45'
-    implementation 'xyz.xenondevs.invui:inventory-access-r22:1.45'
-    implementation 'xyz.xenondevs.invui:inventory-access-r23:1.45'
+    implementation 'xyz.xenondevs.invui:invui-core:1.46'
+    implementation 'xyz.xenondevs.invui:inventory-access-r19:1.46'
+    implementation 'xyz.xenondevs.invui:inventory-access-r20:1.46'
+    implementation 'xyz.xenondevs.invui:inventory-access-r21:1.46'
+    implementation 'xyz.xenondevs.invui:inventory-access-r22:1.46'
+    implementation 'xyz.xenondevs.invui:inventory-access-r23:1.46'
+    implementation 'xyz.xenondevs.invui:inventory-access-r23:1.46'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 

@@ -58,10 +58,10 @@ public final class TradeGuiBuilder {
                 //Set the money editor buttons and rating GUI as background by default
                 .setIngredients("MNOPQmnopqrx", GuiSettings.instance().separator.toItemBuilder());
         int i = 'M'; //Cycle MNOPQ... and mnopq... as many currencies are allowed
-        for (String allowedCurrency : Settings.instance().allowedCurrencies.keySet()) {
-            gui.setIngredient((char) i, new MoneyEditorButton(trade, actorSide, allowedCurrency));
+        for (String currencyName : RedisTrade.getInstance().getIntegrationManager().getCurrencyNames()) {
+            gui.setIngredient((char) i, new MoneyEditorButton(trade, actorSide, currencyName));
             //i+32 translates the upper case to lower case ascii
-            gui.setIngredient((char) (i + 32), new MoneyEditorButton(trade, actorSide.opposite(), allowedCurrency));
+            gui.setIngredient((char) (i + 32), new MoneyEditorButton(trade, actorSide.opposite(), currencyName));
             i++;
         }
         return gui;

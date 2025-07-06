@@ -8,12 +8,14 @@ softdepend:
   - RedisEconomy
   - WorldGuard
   - PlayerPoints
+  - Floodgate
 libraries:
   - net.kyori:adventure-text-minimessage:4.18.0
   - com.zaxxer:HikariCP:5.1.0
   - org.xerial:sqlite-jdbc:3.46.0.0
   - io.lettuce:lettuce-core:6.5.2.RELEASE
   - org.snakeyaml:snakeyaml-engine:2.7
+  - org.postgresql:postgresql:42.7.5
 permissions:
   redistrade.trade:
     description: Open the trade GUI

@@ -48,7 +48,8 @@ public class Settings {
     }
 
     @Comment({"Storage type for the plugin",
-            "MYSQL - MySQL storage",
+            "MYSQL - MySQL or MariaDB storage",
+            "POSTGRESQL - POSTGRESQL storage",
             "SQLITE - SQLite storage"})
     public StorageType storageType = StorageType.SQLITE;
 
@@ -86,9 +87,14 @@ public class Settings {
     @Comment("Locale used for decimal format")
     public String locale = "en_US";
 
-    @Comment("Allowed currencies for trades")
-    public Map<String, CurrencyInfo> allowedCurrencies = Map.of("default",
-            new CurrencyInfo("vault", new CurrencyItemSerializable("EMERALD", 0, "&aEmerald")));
+    @Comment({"Currencies used in trades",
+            "vault:default - Default currency from Vault",
+            "rediseconomy:lyra - Custom currency from RedisEconomy",
+            "playerpoints:default - Custom currency from PlayerPoints",
+            "Leave this empty [] if you don't want to use any currency",
+            "Don't name the same currency twice on different integrations"})
+    public Map<String, CurrencyItemSerializable> allowedCurrencies = Map.of("vault:default",
+            new CurrencyItemSerializable("EMERALD", 0, "&aEmerald"));
 
     @Comment("Component blacklist will come in the future")
     public List<BlacklistedItem> blacklistedItems = List.of(
@@ -130,7 +136,9 @@ public class Settings {
                     .setMiniMessageItemName(displayName);
         }
     }
-    public record CurrencyInfo(String integrationName,CurrencyItemSerializable itemSerializable){}
+
+    public record CurrencyInfo(String integrationName, CurrencyItemSerializable itemSerializable) {
+    }
 
     public record MySQL(String databaseHost, int databasePort, String driverClass,
                         String databaseName, String databaseUsername, String databasePassword,
@@ -161,6 +169,7 @@ public class Settings {
     public enum StorageType {
         MYSQL,
         SQLITE,
+        POSTGRESQL,
     }
 
 }

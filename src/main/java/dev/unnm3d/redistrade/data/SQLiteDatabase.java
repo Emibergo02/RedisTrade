@@ -120,7 +120,7 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         INSERT OR REPLACE INTO `archived` (trade_uuid,trade_timestamp,trader_uuid,trader_name,trader_rating,trader_price,
+                         INSERT OR REPLACE INTO archived (trade_uuid,trade_timestamp,trader_uuid,trader_name,trader_rating,trader_price,
                          customer_uuid,customer_name,customer_rating,customer_price,trader_items,customer_items)
                          VALUES (?,?,?,?,?,?,?,?,?,?,?,?);""")) {
                 statement.setString(1, trade.getUuid().toString());
@@ -204,7 +204,7 @@ public class SQLiteDatabase implements Database {
     public void backupTrade(NewTrade trade) {
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("""
-                     INSERT OR REPLACE INTO `backup` (trade_uuid,server_id,serialized)
+                     INSERT OR REPLACE INTO backup (trade_uuid,server_id,serialized)
                      VALUES (?,?,?);
                      """)) {
             statement.setString(1, trade.getUuid().toString());
@@ -224,7 +224,7 @@ public class SQLiteDatabase implements Database {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         DELETE FROM `backup` WHERE trade_uuid = ?;""")) {
+                         DELETE FROM backup WHERE trade_uuid = ?;""")) {
                 statement.setString(1,
                         tradeUUID.toString());
                 statement.executeUpdate();
@@ -240,7 +240,7 @@ public class SQLiteDatabase implements Database {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         INSERT OR REPLACE INTO `player_list` (player_name,player_uuid)
+                         INSERT OR REPLACE INTO player_list (player_name,player_uuid)
                          VALUES (?,?
                          );""")) {
                 statement.setString(1, playerName);
@@ -256,8 +256,8 @@ public class SQLiteDatabase implements Database {
     public void ignorePlayer(String playerName, String targetName, boolean ignore) {
         CompletableFuture.runAsync(() -> {
             String query = ignore ?
-                    "INSERT OR REPLACE INTO `ignored_players` (ignorer,ignored) VALUES (?,?);" :
-                    "DELETE FROM `ignored_players` WHERE ignored = ? AND ignorer = ?;";
+                    "INSERT OR REPLACE INTO ignored_players (ignorer,ignored) VALUES (?,?);" :
+                    "DELETE FROM ignored_players WHERE ignored = ? AND ignorer = ?;";
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement(query)) {
                 statement.setString(1, playerName);
@@ -290,7 +290,7 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         SELECT * FROM `backup`;""")) {
+                         SELECT * FROM backup;""")) {
                 try (ResultSet result = statement.executeQuery()) {
                     final HashMap<Integer, NewTrade> trades = new HashMap<>();
                     while (result.next()) {
@@ -315,7 +315,7 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         SELECT * FROM `player_list`;""")) {
+                         SELECT * FROM player_list;""")) {
                 try (ResultSet result = statement.executeQuery()) {
                     final Map<String, UUID> nameUUIDs = new HashMap<>();
                     while (result.next()) {
@@ -335,7 +335,7 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         SELECT * FROM `ignored_players` WHERE ignorer = ?;""")) {
+                         SELECT * FROM ignored_players WHERE ignorer = ?;""")) {
                 statement.setString(1, playerName);
                 try (ResultSet result = statement.executeQuery()) {
                     final Set<String> ignoredPlayers = new HashSet<>();

@@ -2,40 +2,84 @@ package dev.unnm3d.redistrade.hooks;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Settings;
+import dev.unnm3d.redistrade.core.NewTrade;
+import dev.unnm3d.redistrade.core.enums.Actor;
+import dev.unnm3d.redistrade.guis.BedrockMoneySelectorGUI;
+import dev.unnm3d.redistrade.guis.MoneySelectorGUI;
+import dev.unnm3d.redistrade.hooks.currencies.*;
+import dev.unnm3d.redistrade.utils.MyItemBuilder;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class IntegrationManager {
-    private RedisTrade plugin;
-    private HashMap<String, EconomyHook> hooks;
+    private final RedisTrade plugin;
     /**
      * Currency names for each hook
      * Key is the currency name, value is the hook name
      */
-    private HashMap<String, String> currencyNames;
+    private final ConcurrentHashMap<String, CurrencyHook> currencies;
+    private final ConcurrentHashMap<String, MyItemBuilder> displayItems;
 
     public IntegrationManager(RedisTrade redisTrade) {
         this.plugin = redisTrade;
-        if (this.plugin.getServer().getPluginManager().getPlugin("RedisEconomy") != null) {
-            registerHook("RedisEconomy", new RedisEconomyHook(this.plugin));
-        } else if (this.plugin.getServer().getPluginManager().getPlugin("Vault") != null) {
-            registerHook("Vault", new VaultEconomyHook(this.plugin));
-        }
-        if (this.plugin.getServer().getPluginManager().getPlugin("PlayerPoints") != null) {
-            registerHook("PlayerPoints", new PlayerPointsHook(this.plugin));
-        }
-        for (Map.Entry<String, Settings.CurrencyInfo> stringCurrency : Settings.instance().allowedCurrencies.entrySet()) {
-            registerCurrencyName(stringCurrency.getKey(), stringCurrency.getValue().integrationName());
+        this.currencies = new ConcurrentHashMap<>();
+        this.displayItems = new ConcurrentHashMap<>();
+
+        for (String currencyName : Settings.instance().allowedCurrencies.keySet()) {
+            final String[] split = currencyName.split(":"); // <plugin>:<currency>
+            if (split.length != 2) {
+                plugin.getLogger().warning("Invalid currency name: " + currencyName + ". Must be in the format <plugin>:<currency>");
+                continue;
+            }
+            try {
+                final CurrencyHook currencyHook = createCurrencyHook(split[0], split[1]);
+                addCurrencyHook(split[1], currencyHook, Settings.instance().allowedCurrencies.get(currencyName).toItemBuilder());
+            } catch (Exception e) {
+                plugin.getLogger().warning("Error creating currency hook for " + currencyName + ": " + e.getMessage());
+            }
         }
     }
 
-    public void registerHook(String name, EconomyHook hook) {
-        hooks.put(name, hook);
+    private CurrencyHook createCurrencyHook(String hookName, String currencyName) {
+        return switch (hookName.toLowerCase()) {
+            case "vault" -> new VaultCurrencyHook(plugin, currencyName);
+            case "playerpoints" -> new PlayerPointsCurrencyHook(currencyName);
+            case "rediseconomy" -> new RedisEconomyCurrencyHook(currencyName);
+            default -> throw new IllegalStateException("Unexpected currency plugin: " + hookName.toLowerCase());
+        };
     }
 
-    public void registerCurrencyName(String currencyName, String hookName) {
-        currencyNames.put(currencyName, hookName);
+    public CurrencyHook getCurrencyHook(String currencyName) {
+        return currencies.getOrDefault(currencyName, new EmptyCurrencyHook());
+    }
+
+    public MyItemBuilder getDisplayItem(String currencyName) {
+        return displayItems.getOrDefault(currencyName, new MyItemBuilder(Material.BARRIER));
+    }
+
+    public void addCurrencyHook(String currencyName, CurrencyHook currencyHook, MyItemBuilder itemBuilder) {
+        if (currencies.containsKey(currencyName)) {
+            plugin.getLogger().warning("Currency hook for " + currencyName + " already exists. Ignoring.");
+            return;
+        }
+        currencies.put(currencyName, currencyHook);
+        displayItems.put(currencyName, itemBuilder);
+    }
+
+    public void openMoneySelectorGUI(NewTrade trade, Actor playerSide, Player player, String currencyName) {
+        if (plugin.getServer().getPluginManager().isPluginEnabled("Floodgate") &&
+                BedrockMoneySelectorGUI.isBedrockPlayer(player)) {
+            new BedrockMoneySelectorGUI(trade, playerSide, player, currencyName).openWindow();
+        } else {
+            new MoneySelectorGUI(trade, playerSide, player, currencyName).openWindow();
+        }
+    }
+
+    public Set<String> getCurrencyNames() {
+        return currencies.keySet();
     }
 
 }

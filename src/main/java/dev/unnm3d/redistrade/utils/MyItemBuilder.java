@@ -148,7 +148,6 @@ public class MyItemBuilder implements ItemProvider {
         if (this.lore != null) {
             this.lore.clear();
         }
-
         return this;
     }
 

@@ -9,6 +9,8 @@ import dev.unnm3d.redistrade.core.enums.Actor;
 import dev.unnm3d.redistrade.guis.MoneySelectorGUI;
 import dev.unnm3d.redistrade.utils.Permissions;
 import dev.unnm3d.redistrade.utils.Utils;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -31,12 +33,13 @@ public class MoneyEditorButton extends AbstractItem {
     public @NotNull ItemProvider getItemProvider() {
         double amount = trade.getTradeSide(actorSide).getOrder().getPrices().getOrDefault(currencyName, 0.0);
 
-        return Settings.instance().allowedCurrencies.get(currencyName).toItemBuilder()
+        return RedisTrade.getInstance().getIntegrationManager().getDisplayItem(currencyName)
+                .clearLore()
                 .addMiniMessageLoreLines(Messages.instance().moneyButtonLore.stream()
                         .map(s -> s.replace("%currency%", currencyName)
-                                .replace("%currency_display%", Settings.instance().allowedCurrencies.get(currencyName).displayName())
                                 .replace("%amount%", Utils.parseDoubleFormat(amount))
-                                .replace("%symbol%", RedisTrade.getInstance().getEconomyHook().getCurrencySymbol(currencyName)))
+                                .replace("%symbol%", RedisTrade.getInstance().getIntegrationManager()
+                                        .getCurrencyHook(currencyName).getCurrencySymbol()))
                         .toArray(String[]::new));
     }
 
@@ -50,6 +53,6 @@ public class MoneyEditorButton extends AbstractItem {
             player.sendRichMessage(Messages.instance().noPermission);
             return;
         }
-        MoneySelectorGUI.open(trade, actorSide, player, currencyName);
+        RedisTrade.getInstance().getIntegrationManager().openMoneySelectorGUI(trade, actorSide, player, currencyName);
     }
 }

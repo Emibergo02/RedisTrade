@@ -1,4 +1,4 @@
-package dev.unnm3d.redistrade.hooks;
+package dev.unnm3d.redistrade.hooks.restrictions;
 
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.math.BlockVector3;

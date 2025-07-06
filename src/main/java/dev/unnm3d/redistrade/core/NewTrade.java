@@ -137,8 +137,8 @@ public class NewTrade {
         TradeSide side = getTradeSide(refundSide);
         side.getOrder().getPrices().forEach((currency, price) -> {
             setAndSendPrice(currency, 0, refundSide);
-            RedisTrade.getInstance().getEconomyHook().depositPlayer(side.getTraderUUID(), price,
-                    currency, "Trade cancellation");
+            RedisTrade.getInstance().getIntegrationManager().getCurrencyHook(currency)
+                    .depositPlayer(side.getTraderUUID(), price, "Trade cancellation");
             RedisTrade.debug(uuid + " Refunded " + price + " " + currency + " to " + side.getTraderUUID());
         });
     }
@@ -233,13 +233,13 @@ public class NewTrade {
             //Owner means the last server that modified the trade
             if (RedisTrade.getInstance().getTradeManager().isOwner(uuid)) {
                 for (Map.Entry<String, Double> currencyPrice : customerSide.getOrder().getPrices().entrySet()) {
-                    RedisTrade.getInstance().getEconomyHook()
-                            .depositPlayer(traderSide.getTraderUUID(), currencyPrice.getValue(), currencyPrice.getKey(), "Trade completion");
+                    RedisTrade.getInstance().getIntegrationManager().getCurrencyHook(currencyPrice.getKey())
+                            .depositPlayer(traderSide.getTraderUUID(), currencyPrice.getValue(), "Trade completion");
                     RedisTrade.debug(uuid + " Depositing trader " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + traderSide.getTraderName());
                 }
                 for (Map.Entry<String, Double> currencyPrice : traderSide.getOrder().getPrices().entrySet()) {
-                    RedisTrade.getInstance().getEconomyHook()
-                            .depositPlayer(customerSide.getTraderUUID(), currencyPrice.getValue(), currencyPrice.getKey(), "Trade completion");
+                    RedisTrade.getInstance().getIntegrationManager().getCurrencyHook(currencyPrice.getKey())
+                            .depositPlayer(customerSide.getTraderUUID(), currencyPrice.getValue(), "Trade completion");
                     RedisTrade.debug(uuid + " Depositing customer " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + customerSide.getTraderName());
                 }
             }

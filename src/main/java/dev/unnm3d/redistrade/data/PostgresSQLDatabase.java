@@ -18,12 +18,10 @@ import java.util.concurrent.CompletableFuture;
 
 @Setter
 @Getter
-public class MySQLDatabase extends SQLiteDatabase {
-    protected final Settings.MySQL settings;
+public class PostgresSQLDatabase extends MySQLDatabase {
 
-    public MySQLDatabase(RedisTrade plugin, Settings.MySQL settings) {
-        super(plugin);
-        this.settings = settings;
+    public PostgresSQLDatabase(RedisTrade plugin, Settings.MySQL settings) {
+        super(plugin, settings);
     }
 
     @Override
@@ -34,9 +32,8 @@ public class MySQLDatabase extends SQLiteDatabase {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-        final String databaseType = settings.driverClass().contains("mariadb") ? "mariadb" : "mysql";
 
-        dataSource.setJdbcUrl("jdbc:" + databaseType + "://" +
+        dataSource.setJdbcUrl("jdbc:postgresql://" +
                 settings.databaseHost() + ":" + settings.databasePort() + "/" +
                 settings.databaseName());
         dataSource.setUsername(settings.databaseUsername());
@@ -71,6 +68,11 @@ public class MySQLDatabase extends SQLiteDatabase {
         try (Connection connection = dataSource.getConnection()) {
             final String[] databaseSchema = getSchemaStatements("schema.sql");
             try (Statement statement = connection.createStatement()) {
+                statement.execute("CREATE DOMAIN tinyint as smallint;");//Adapted from MariaDB
+            } catch (SQLException ignored) {
+                // Ignore if the domain already exists
+            }
+            try (Statement statement = connection.createStatement()) {
                 for (String tableCreationStatement : databaseSchema) {
                     statement.execute(tableCreationStatement);
                 }
@@ -85,6 +87,7 @@ public class MySQLDatabase extends SQLiteDatabase {
             throw new IllegalStateException("Failed to establish a connection to the MySQL/MariaDB database. " +
                     "Please check the supplied database credentials in the config file", e);
         }
+
     }
 
     @Override
@@ -95,11 +98,12 @@ public class MySQLDatabase extends SQLiteDatabase {
                          INSERT INTO archived (trade_uuid,trade_timestamp,trader_uuid,trader_name,trader_rating,trader_price,
                          customer_uuid,customer_name,customer_rating,customer_price,trader_items,customer_items)
                          VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-                         ON DUPLICATE KEY UPDATE trade_timestamp=VALUES(trade_timestamp),
-                         trader_uuid=VALUES(trader_uuid), trader_name=VALUES(trader_name), trader_rating=VALUES(trader_rating),
-                         trader_price=VALUES(trader_price), customer_uuid=VALUES(customer_uuid), customer_name=VALUES(customer_name),
-                         customer_rating=VALUES(customer_rating), customer_price=VALUES(customer_price),
-                         trader_items=VALUES(trader_items), customer_items=VALUES(customer_items)
+                         ON CONFLICT (trade_uuid)
+                         DO UPDATE SET trade_timestamp=EXCLUDED.trade_timestamp,
+                         trader_uuid=EXCLUDED.trader_uuid, trader_name=EXCLUDED.trader_name, trader_rating=EXCLUDED.trader_rating,
+                         trader_price=EXCLUDED.trader_price, customer_uuid=EXCLUDED.customer_uuid, customer_name=EXCLUDED.customer_name,
+                         customer_rating=EXCLUDED.customer_rating, customer_price=EXCLUDED.customer_price,
+                         trader_items=EXCLUDED.trader_items, customer_items=EXCLUDED.customer_items
                          ;""")) {
                 statement.setString(1, trade.getUuid().toString());
                 statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
@@ -132,7 +136,8 @@ public class MySQLDatabase extends SQLiteDatabase {
              PreparedStatement statement = connection.prepareStatement("""
                      INSERT INTO backup (trade_uuid, server_id, serialized)
                         VALUES (?,?,?)
-                     ON DUPLICATE KEY UPDATE trade_uuid = VALUES(trade_uuid),server_id = VALUES(server_id), serialized = VALUES(serialized);""")) {
+                     ON CONFLICT (trade_uuid)
+                     DO UPDATE SET trade_uuid = EXCLUDED.trade_uuid,server_id = EXCLUDED.server_id, serialized = EXCLUDED.serialized;""")) {
             statement.setString(1, trade.getUuid().toString());
             statement.setInt(2, RedisTrade.getServerId());
             statement.setString(3, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
@@ -151,7 +156,8 @@ public class MySQLDatabase extends SQLiteDatabase {
                  PreparedStatement statement = connection.prepareStatement("""
                          INSERT INTO player_list (player_name,player_uuid)
                             VALUES (?,?)
-                         ON DUPLICATE KEY UPDATE player_name = VALUES(player_name), player_uuid = VALUES(player_uuid);""")) {
+                         ON CONFLICT (player_name)
+                         DO UPDATE SET player_name = EXCLUDED.player_name, player_uuid = EXCLUDED.player_uuid;""")) {
                 statement.setString(1, playerName);
                 statement.setString(2, playerUUID.toString());
                 statement.executeUpdate();
@@ -161,28 +167,4 @@ public class MySQLDatabase extends SQLiteDatabase {
         });
     }
 
-    @Override
-    public void ignorePlayer(String playerName, String targetName, boolean ignore) {
-        CompletableFuture.runAsync(() -> {
-            String query = ignore ?
-                    "INSERT INTO ignored_players (ignorer,ignored) VALUES (?,?);" :
-                    "DELETE FROM ignored_players WHERE ignored = ? AND ignorer = ?;";
-            try (Connection connection = getConnection();
-                 PreparedStatement statement = connection.prepareStatement(query)) {
-                statement.setString(1, playerName);
-                statement.setString(2, targetName);
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.IGNORED_PLAYER));
-            }
-        });
-    }
-
-    @Override
-    public void close() {
-        if (dataSource == null) return;
-        if (dataSource.isClosed()) return;
-        dataSource.close();
-        connected = false;
-    }
 }

@@ -7,9 +7,13 @@ import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
 import lombok.AllArgsConstructor;
+import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
+import xyz.xenondevs.invui.gui.Gui;
+import xyz.xenondevs.invui.window.AnvilWindow;
 
 import java.lang.reflect.Field;
 
@@ -70,6 +74,16 @@ public class TradeAdminCommand {
                 throw new RuntimeException(e);
             }
         }, 0, 20);
+    }
+
+    @Command(name = "test", desc = "Stress test")
+    public void test(@Sender Player sender) {
+        ;
+        AnvilWindow.single().setGui(Gui.normal().setStructure("abc")
+                .addIngredient('a', new ItemStack(Material.DIAMOND))
+                .addIngredient('b', new ItemStack(Material.DIAMOND))
+                .addIngredient('c', new ItemStack(Material.DIAMOND)).build())
+                .open(sender);
     }
 
 }

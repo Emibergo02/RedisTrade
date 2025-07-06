@@ -21,7 +21,6 @@ public class RestrictionService {
 
     public RestrictionService(RedisTrade plugin) {
         this.plugin = plugin;
-        addRestrictionHook(new WorldRestriction());
     }
 
     public @Nullable Restriction getRestriction(Player player, Location playerLocation) {
