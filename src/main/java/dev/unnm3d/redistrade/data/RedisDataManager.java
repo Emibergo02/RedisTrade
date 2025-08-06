@@ -49,7 +49,8 @@ public class RedisDataManager extends RedisAbstract {
             plugin.getTradeManager().getTrade(tradeUUID).ifPresent(trade -> {
                 plugin.getTradeManager().setTradeServerOwner(tradeUUID, packetServerId);
                 switch (viewerUpdate.getUpdateType()) {
-                    case OPEN -> trade.setOpened(Boolean.parseBoolean(value), viewerUpdate.getActorSide());
+                    case OPEN ->
+                            plugin.getTradeManager().remoteOpenTrade(tradeUUID, viewerUpdate.getActorSide());
                     case PRICE -> {
                         String[] split = value.split(":");
                         trade.setPrice(split[0], Double.parseDouble(split[1]), viewerUpdate.getActorSide());

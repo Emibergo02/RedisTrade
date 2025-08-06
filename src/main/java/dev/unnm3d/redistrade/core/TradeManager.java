@@ -292,6 +292,26 @@ public class TradeManager {
         trade.openWindow(player, actorSide);
     }
 
+    /**
+     * Receive a remote open trade request
+     * The close trade is handled by the finish trade method
+     *
+     * @param tradeUUID The UUID of the trade to open
+     * @param actorSide The actor side that is opening the trade
+     */
+    public void remoteOpenTrade(UUID tradeUUID, Actor actorSide) {
+        NewTrade trade = trades.get(tradeUUID);
+        if (trade == null) {
+            RedisTrade.debug("Remote open on " + tradeUUID + ": Trade not found");
+            return;
+        }
+
+        playerTrades.put(trade.getTradeSide(actorSide).getTraderUUID(), tradeUUID);
+        trade.getTradeSide(actorSide).setOpened(true);
+        RedisTrade.debug(tradeUUID + " " + trade.getTradeSide(actorSide).getTraderName() + " accepted to open trade");
+        //The close is handler by the finish trade method
+    }
+
     public void removeTrade(UUID tradeUUID) {
         trades.remove(tradeUUID);
         playerTrades.values().removeIf(uuid -> uuid.equals(tradeUUID));
