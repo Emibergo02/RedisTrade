@@ -190,6 +190,10 @@ public class NewTrade {
     }
 
     public void setOpened(boolean opened, Actor actor) {
+        if (opened) {//The closing is handled by the finishTrade method
+            RedisTrade.getInstance().getDataCache().updateTrade(uuid,
+                    ViewerUpdate.valueOf(actor, UpdateType.OPEN), true);
+        }
         getTradeSide(actor).setOpened(opened);
     }
 
