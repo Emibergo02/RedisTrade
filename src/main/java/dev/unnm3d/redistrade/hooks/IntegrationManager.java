@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 public class IntegrationManager {
     private final RedisTrade plugin;
@@ -20,25 +21,25 @@ public class IntegrationManager {
      * Currency names for each hook
      * Key is the currency name, value is the hook name
      */
-    private final ConcurrentHashMap<String, CurrencyHook> currencies;
+    private final ConcurrentSkipListMap<String, CurrencyHook> currencies;
     private final ConcurrentHashMap<String, MyItemBuilder> displayItems;
 
     public IntegrationManager(RedisTrade redisTrade) {
         this.plugin = redisTrade;
-        this.currencies = new ConcurrentHashMap<>();
+        this.currencies = new ConcurrentSkipListMap<>();
         this.displayItems = new ConcurrentHashMap<>();
 
-        for (String currencyName : Settings.instance().allowedCurrencies.keySet()) {
-            final String[] split = currencyName.split(":"); // <plugin>:<currency>
+        for (Settings.CurrencyItemSerializable currencyConfig : Settings.instance().allowedCurrencies) {
+            final String[] split = currencyConfig.name().split(":"); // <plugin>:<currency>
             if (split.length != 2) {
-                plugin.getLogger().warning("Invalid currency name: " + currencyName + ". Must be in the format <plugin>:<currency>");
+                plugin.getLogger().warning("Invalid currency name: " + currencyConfig.name() + ". Must be in the format <plugin>:<currency>");
                 continue;
             }
             try {
                 final CurrencyHook currencyHook = createCurrencyHook(split[0], split[1]);
-                addCurrencyHook(split[1], currencyHook, Settings.instance().allowedCurrencies.get(currencyName).toItemBuilder());
+                addCurrencyHook(split[1], currencyHook, currencyConfig.toItemBuilder());
             } catch (Exception e) {
-                plugin.getLogger().warning("Error creating currency hook for " + currencyName + ": " + e.getMessage());
+                plugin.getLogger().warning("Error creating currency hook for " + currencyConfig.name() + ": " + e.getMessage());
             }
         }
     }
@@ -48,6 +49,7 @@ public class IntegrationManager {
             case "vault" -> new VaultCurrencyHook(plugin, currencyName);
             case "playerpoints" -> new PlayerPointsCurrencyHook(currencyName);
             case "rediseconomy" -> new RedisEconomyCurrencyHook(currencyName);
+            case "minecraft" -> new MinecraftValueCurrencyHook(currencyName);
             default -> throw new IllegalStateException("Unexpected currency plugin: " + hookName.toLowerCase());
         };
     }
@@ -60,13 +62,21 @@ public class IntegrationManager {
         return displayItems.getOrDefault(currencyName, new MyItemBuilder(Material.BARRIER));
     }
 
-    public void addCurrencyHook(String currencyName, CurrencyHook currencyHook, MyItemBuilder itemBuilder) {
+    /**
+     * Add a currency hook to the manager
+     * If the currency hook already exists, it will be ignored
+     *
+     * @param currencyName The name of the currency
+     * @param currencyHook The currency hook
+     * @param displayItem The display item for the currency
+     */
+    public void addCurrencyHook(String currencyName, CurrencyHook currencyHook, MyItemBuilder displayItem) {
         if (currencies.containsKey(currencyName)) {
             plugin.getLogger().warning("Currency hook for " + currencyName + " already exists. Ignoring.");
             return;
         }
         currencies.put(currencyName, currencyHook);
-        displayItems.put(currencyName, itemBuilder);
+        displayItems.put(currencyName, displayItem);
     }
 
     public void openMoneySelectorGUI(NewTrade trade, Actor playerSide, Player player, String currencyName) {

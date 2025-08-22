@@ -21,7 +21,8 @@ public class CancelButton extends AbstractItem {
 
     @Override
     public ItemProvider getItemProvider(Player player) {
-        if (trade.getTradeSide(actorSide).getOrder().getStatus() == Status.REFUSED) {
+        Status currentStatus = trade.getTradeSide(actorSide).getOrder().getStatus();
+        if (currentStatus == Status.REFUSED || currentStatus == Status.CONFIRMED) {
             return GuiSettings.instance().cancelTradeButton.toItemBuilder();
         }
         return GuiSettings.instance().getAllItems.toItemBuilder();

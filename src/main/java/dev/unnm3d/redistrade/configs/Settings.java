@@ -93,8 +93,10 @@ public class Settings {
             "playerpoints:default - Custom currency from PlayerPoints",
             "Leave this empty [] if you don't want to use any currency",
             "Don't name the same currency twice on different integrations"})
-    public Map<String, CurrencyItemSerializable> allowedCurrencies = Map.of("vault:default",
-            new CurrencyItemSerializable("EMERALD", 0, "&aEmerald"));
+    public List<CurrencyItemSerializable> allowedCurrencies = List.of(
+            new CurrencyItemSerializable("vault:default", "GOLD_INGOT", 0, "<gold>Money"),
+            new CurrencyItemSerializable("minecraft:xp", "EXPERIENCE_BOTTLE", 0, "<green>Exp")
+    );
 
     @Comment("Component blacklist will come in the future")
     public List<BlacklistedItem> blacklistedItems = List.of(
@@ -129,7 +131,7 @@ public class Settings {
     public boolean debug = true;
     public boolean debugStrace = false;
 
-    public record CurrencyItemSerializable(String material, int customModelData, String displayName) {
+    public record CurrencyItemSerializable(String name, String material, int customModelData, String displayName) {
         public MyItemBuilder toItemBuilder() {
             return new MyItemBuilder(Material.valueOf(material))
                     .setCustomModelData(customModelData)

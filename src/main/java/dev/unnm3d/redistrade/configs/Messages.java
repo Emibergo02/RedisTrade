@@ -35,7 +35,7 @@ public class Messages {
     public String getItemField = "<green>You successfully get the item %field% to your inventory";
     public String completionTimer = "<green>The trade will be finalized in %time% seconds";
     public String playerNotFound = "<red>Player %player% not found";
-    public String notEnoughMoney = "<red>You don't have enough money to trade with %amount%";
+    public String notEnoughMoney = "<red>You don't have enough of this currency to trade";
     public String tradeWithYourself = "<red>You can't trade with yourself";
     public String tradeUnignored = "<green>You unignored %player% trades";
     public String tradeIgnored = "<green>You ignored %player% trades";

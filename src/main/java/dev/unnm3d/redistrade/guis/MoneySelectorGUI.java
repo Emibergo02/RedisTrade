@@ -6,11 +6,9 @@ import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.core.enums.Actor;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.gui.Gui;
 import xyz.xenondevs.invui.item.Item;
@@ -21,7 +19,7 @@ import xyz.xenondevs.invui.window.AnvilWindow;
 import java.text.ParseException;
 import java.util.List;
 
-public class MoneySelectorGUI extends MoneySelector{
+public class MoneySelectorGUI extends MoneySelector {
 
     private final Gui currentGui;
     private final Item moneyDisplayItem;
@@ -109,7 +107,7 @@ public class MoneySelectorGUI extends MoneySelector{
                 if (priceDifference != 0) {
                     trade.setAndSendPrice(currencyName, nextPrice, playerSide);
                 }
-                player.closeInventory();//To trigger handleClose
+                player.closeInventory();
                 return;
             }
 
@@ -139,6 +137,8 @@ public class MoneySelectorGUI extends MoneySelector{
                 player.getWorld().dropItem(player.getLocation(), itemStack)
         );
         player.setItemOnCursor(null);
-        trade.openWindow(player, playerSide);
+        RedisTrade.getInstance().getServer().getScheduler().runTaskLater(RedisTrade.getInstance(), () ->
+                trade.openWindow(player, playerSide), 1);
+
     }
 }

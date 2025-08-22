@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'dev.unnm3d'
-version = '2.0.3'
+version = '2.1-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -35,7 +35,7 @@ dependencies {
     compileOnly 'org.black_ixx:playerpoints:3.3.0'
     compileOnly 'org.geysermc.floodgate:api:2.2.3-SNAPSHOT'
 
-    implementation 'de.exlll:configlib-paper:4.5.0' exclude group: 'org.snakeyaml', module: 'snakeyaml-engine'
+    implementation 'de.exlll:configlib-paper:4.6.1' exclude group: 'org.snakeyaml', module: 'snakeyaml-engine'
     implementation 'com.github.alexdev03:drink:1.5.3'
     implementation 'xyz.xenondevs.invui:invui-core:1.46'
     implementation 'xyz.xenondevs.invui:inventory-access-r19:1.46'
@@ -43,7 +43,7 @@ dependencies {
     implementation 'xyz.xenondevs.invui:inventory-access-r21:1.46'
     implementation 'xyz.xenondevs.invui:inventory-access-r22:1.46'
     implementation 'xyz.xenondevs.invui:inventory-access-r23:1.46'
-    implementation 'xyz.xenondevs.invui:inventory-access-r23:1.46'
+    implementation 'xyz.xenondevs.invui:inventory-access-r24:1.46'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
 
@@ -113,7 +113,7 @@ modrinth {
     projectId = "redistrade" // This can be the project ID or the slug. Either will work!
     versionType = "release" // This is the default -- can also be `beta` or `alpha`
     uploadFile = shadowJar // With Loom, this MUST be set to `remapJar` instead of `jar`!
-    gameVersions = ["1.21.5","1.21.4", "1.21.3","1.21.1","1.21.2","1.20.6"] // Must be an array, even with only one version
+    gameVersions = ["1.21.8","1.21.7","1.21.5","1.21.4", "1.21.3","1.21.1","1.21.2","1.20.6"] // Must be an array, even with only one version
     loaders = ["paper","spigot","bukkit"] // Must also be an array - no need to specify this if you're using Loom or ForgeGradle
 }
 
