@@ -82,8 +82,9 @@ public class IntegrationManager {
     }
 
     public void openMoneySelectorGUI(NewTrade trade, Actor playerSide, Player player, String currencyName) {
-        if (plugin.getServer().getPluginManager().isPluginEnabled("Floodgate") &&
-                BedrockMoneySelectorGUI.isBedrockPlayer(player)) {
+        boolean floodgateEnabled = plugin.getServer().getPluginManager().isPluginEnabled("floodgate");
+        boolean isBedrockPlayer = floodgateEnabled && BedrockMoneySelectorGUI.isBedrockPlayer(player.getUniqueId());
+        if (isBedrockPlayer) {
             new BedrockMoneySelectorGUI(trade, playerSide, player, currencyName).openWindow();
         } else {
             new MoneySelectorGUI(trade, playerSide, player, currencyName).openWindow();

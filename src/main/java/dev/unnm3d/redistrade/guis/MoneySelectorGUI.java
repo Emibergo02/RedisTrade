@@ -137,6 +137,7 @@ public class MoneySelectorGUI extends MoneySelector {
                 player.getWorld().dropItem(player.getLocation(), itemStack)
         );
         player.setItemOnCursor(null);
+        // Delay the reopening of the trade window to avoid skipping the modifications made up in this method
         RedisTrade.getInstance().getServer().getScheduler().runTaskLater(RedisTrade.getInstance(), () ->
                 trade.openWindow(player, playerSide), 1);
 

@@ -9,9 +9,10 @@ import org.geysermc.cumulus.form.CustomForm;
 import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.text.ParseException;
+import java.util.UUID;
 
 public class BedrockMoneySelectorGUI extends MoneySelector {
-    private final CustomForm bedrockForm;
+    private final CustomForm.Builder bedrockForm;
 
     public BedrockMoneySelectorGUI(NewTrade trade, Actor playerSide, Player player, String currencyName) {
         super(trade, playerSide, player, currencyName);
@@ -20,12 +21,11 @@ public class BedrockMoneySelectorGUI extends MoneySelector {
                 .validResultHandler(result -> {
                     changingPriceString = result.asInput();
                     handleConfirm();
-                })
-                .build();
+                });
     }
 
-    public static boolean isBedrockPlayer(Player player) {
-        return FloodgateApi.getInstance().isFloodgatePlayer(player.getUniqueId());
+    public static boolean isBedrockPlayer(UUID playerUUID) {
+        return FloodgateApi.getInstance().isFloodgatePlayer(playerUUID);
     }
 
     @Override
