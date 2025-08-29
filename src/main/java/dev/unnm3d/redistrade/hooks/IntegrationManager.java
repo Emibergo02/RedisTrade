@@ -11,6 +11,8 @@ import dev.unnm3d.redistrade.utils.MyItemBuilder;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -90,6 +92,10 @@ public class IntegrationManager {
 
     public Set<String> getCurrencyNames() {
         return currencies.keySet();
+    }
+
+    public List<CurrencyHook> getCurrencyHooks() {
+        return new ArrayList<>(currencies.values());
     }
 
 }

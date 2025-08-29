@@ -77,6 +77,7 @@ public class GuiSettings {
     public SimpleSerializableItem openRatingMenu = new SimpleSerializableItem("NETHER_STAR", 1, 0, "<yellow>Review this trade", List.of("<white>You can edit your rating inside the receipt"));
 
     public String ratingMenuTitle = "Review %player%'s traded items";
+    public String xpBottleDisplayName = "<green>Bottled XP (%amount% points)";
 
     @Comment({"Remember that a book line contains 20 large characters",
             "(if you use 'i's or 'l's it will be contain more characters)",

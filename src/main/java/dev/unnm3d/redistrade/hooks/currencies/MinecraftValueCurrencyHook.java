@@ -1,9 +1,15 @@
 package dev.unnm3d.redistrade.hooks.currencies;
 
 import dev.unnm3d.redistrade.RedisTrade;
-import org.bukkit.attribute.Attribute;
+import dev.unnm3d.redistrade.configs.GuiSettings;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
+import xyz.xenondevs.invui.inventory.VirtualInventory;
 
 import java.util.UUID;
 
@@ -15,23 +21,9 @@ public class MinecraftValueCurrencyHook extends CurrencyHook {
 
     @Override
     public boolean depositPlayer(@NotNull UUID playerUUID, double amount, String reason) {
-        Player player = RedisTrade.getInstance().getServer().getPlayer(playerUUID);
-        if (player == null) return false;
-        return switch (name) {
-            case "xp" -> {
-                player.setExperienceLevelAndProgress(player.calculateTotalExperiencePoints() + (int) amount);
-                yield true;
-            }
-            case "xplevel" -> {
-                player.setLevel(player.getLevel() + (int) amount);
-                yield true;
-            }
-            case "health" -> {
-                player.setHealth(Math.min(player.getHealth() + amount, player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue()));
-                yield true;
-            }
-            default -> false;
-        };
+        // We don't support adding XP directly to the player, only through XP bottles in trades
+        // This is to prevent XP to be given twice or only on one server
+        return false;
     }
 
     @Override
@@ -40,8 +32,7 @@ public class MinecraftValueCurrencyHook extends CurrencyHook {
         if (player == null) return 0D;
         return switch (name) {
             case "xp" -> player.calculateTotalExperiencePoints();
-            case "xplevel" -> player.getLevel();
-            case "health" -> player.getHealth();
+            //Keep the switch for new implementations
             default -> 0D;
         };
     }
@@ -50,29 +41,38 @@ public class MinecraftValueCurrencyHook extends CurrencyHook {
     public boolean withdrawPlayer(@NotNull UUID playerUUID, double amount, String reason) {
         Player player = RedisTrade.getInstance().getServer().getPlayer(playerUUID);
         if (player == null) return false;
-        switch (name) {
+
+        return switch (name) {
             case "xp":
-                if (getBalance(playerUUID) < (int) amount) return false;
+                //Check if the player has enough of the currency
+                if (getBalance(playerUUID) < (int) amount) yield false;
                 player.setExperienceLevelAndProgress(player.calculateTotalExperiencePoints() - (int) amount);
-                return true;
-            case "xplevel":
-                if (getBalance(playerUUID) < (int) amount) return false;
-                player.setLevel(player.getLevel() - (int) amount);
-                return true;
-            case "health":
-                if (getBalance(playerUUID) < amount) return false;
-                player.setHealth(player.getHealth() - amount);
-                return true;
-        }
-        return false;
+                //Add xp bottle to the trade
+                RedisTrade.getInstance().getTradeManager().getActiveTrade(playerUUID).ifPresent(trade -> {
+                    VirtualInventory traderInventory = trade.getTradeSide(trade.getActor(player)).getOrder().getVirtualInventory();
+                    ItemStack itemStack = new ItemStack(Material.EXPERIENCE_BOTTLE);
+                    itemStack.editMeta(meta -> {
+                        meta.displayName(MiniMessage.miniMessage().deserialize(GuiSettings.instance().xpBottleDisplayName
+                                .replace("%amount%", String.valueOf((int) amount))));
+                        meta.getPersistentDataContainer().set(new NamespacedKey("redistrade", "xp"), PersistentDataType.INTEGER, (int) amount);
+                    });
+                    if (traderInventory.addItem(null, itemStack) != 0) {
+                        player.setExperienceLevelAndProgress(player.calculateTotalExperiencePoints() + (int) amount);
+                    }
+                });
+                yield true;
+
+            //Keep the switch for new implementations
+            default:
+                yield false;
+        };
     }
 
     @Override
     public @NotNull String getCurrencySymbol() {
         return switch (name) {
             case "xp" -> "XP";
-            case "xplevel" -> "XPLVL";
-            case "health" -> "❤";
+            //Keep the switch for new implementations
             default -> "";
         };
     }

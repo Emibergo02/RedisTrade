@@ -16,10 +16,13 @@ import dev.unnm3d.redistrade.guis.buttons.ProfileDisplay;
 import dev.unnm3d.redistrade.guis.buttons.ReviewButton;
 import lombok.Getter;
 import lombok.Setter;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
 import xyz.xenondevs.invui.inventory.event.ItemPreUpdateEvent;
@@ -74,6 +77,7 @@ public final class TradeGuiBuilder {
                 if (virtualInventoryListener(event, actorSide)) {
                     event.setCancelled(true);
                 } else {
+                    checkXpBottle(event, actorSide);
                     trade.updateItem(event.getSlot(), event.getNewItem(), actorSide, true);
                 }
             });
@@ -81,6 +85,24 @@ public final class TradeGuiBuilder {
         if (virtualInventory.getPostUpdateHandler() == null) {
             virtualInventory.setPostUpdateHandler(event -> trade.retrievedPhase(actorSide, actorSide.opposite()));
         }
+    }
+
+    private void checkXpBottle(@NotNull ItemPreUpdateEvent event, Actor actorSide) {
+        if (!(event.getUpdateReason() instanceof PlayerUpdateReason pur)) return;
+        if (event.getPreviousItem() == null) return;
+        Integer xpAmount = event.getPreviousItem().getItemMeta().getPersistentDataContainer()
+                .get(new NamespacedKey("redistrade", "xp"), PersistentDataType.INTEGER);
+        if (xpAmount == null) return;
+        pur.getPlayer().giveExp(xpAmount);
+        pur.getPlayer().playSound(pur.getPlayer(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+
+        TradeSide actorTradeSide = trade.getTradeSide(actorSide);
+        trade.setAndSendPrice("xp", Math.max(actorTradeSide.getOrder().getPrice("xp") - xpAmount, 0), actorSide);
+        actorTradeSide.getOrder().getVirtualInventory().setItemSilently(event.getSlot(), null);
+
+        //This is needed to update the item correctly outside this method
+        event.setNewItem(null);
+        event.setCancelled(true);
     }
 
     /**

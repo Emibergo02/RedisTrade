@@ -92,7 +92,7 @@ public class Settings {
             "rediseconomy:lyra - Custom currency from RedisEconomy",
             "playerpoints:default - Custom currency from PlayerPoints",
             "Leave this empty [] if you don't want to use any currency",
-            "Don't name the same currency twice on different integrations"})
+            "YOU MUST CHOOSE A DIFFERENT NAME FOR EACH CURRENCY",})
     public List<CurrencyItemSerializable> allowedCurrencies = List.of(
             new CurrencyItemSerializable("vault:default", "GOLD_INGOT", 0, "<gold>Money"),
             new CurrencyItemSerializable("minecraft:xp", "EXPERIENCE_BOTTLE", 0, "<green>Exp")
@@ -137,9 +137,6 @@ public class Settings {
                     .setCustomModelData(customModelData)
                     .setMiniMessageItemName(displayName);
         }
-    }
-
-    public record CurrencyInfo(String integrationName, CurrencyItemSerializable itemSerializable) {
     }
 
     public record MySQL(String databaseHost, int databasePort, String driverClass,

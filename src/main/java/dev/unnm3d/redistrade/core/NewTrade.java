@@ -7,6 +7,7 @@ import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.enums.*;
 import dev.unnm3d.redistrade.data.Database;
 import dev.unnm3d.redistrade.guis.buttons.ReceiptButton;
+import dev.unnm3d.redistrade.hooks.currencies.CurrencyHook;
 import dev.unnm3d.redistrade.utils.Permissions;
 import dev.unnm3d.redistrade.utils.Utils;
 import lombok.EqualsAndHashCode;
@@ -19,7 +20,6 @@ import xyz.xenondevs.invui.window.Window;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -235,18 +235,23 @@ public class NewTrade {
             if (status1 != Status.COMPLETED || status2 != Status.COMPLETED) return;
             //Apply the economy changes only if the current server is the owner of the trade
             //Owner means the last server that modified the trade
-            if (RedisTrade.getInstance().getTradeManager().isOwner(uuid)) {
-                for (Map.Entry<String, Double> currencyPrice : customerSide.getOrder().getPrices().entrySet()) {
-                    RedisTrade.getInstance().getIntegrationManager().getCurrencyHook(currencyPrice.getKey())
-                            .depositPlayer(traderSide.getTraderUUID(), currencyPrice.getValue(), "Trade completion");
-                    RedisTrade.debug(uuid + " Depositing trader " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + traderSide.getTraderName());
+            for (CurrencyHook currencyHook : RedisTrade.getInstance().getIntegrationManager().getCurrencyHooks()) {
+                //If the current server is not the owner, skip to avoid double giving
+                if (!RedisTrade.getInstance().getTradeManager().isOwner(uuid)) {
+                    continue;
                 }
-                for (Map.Entry<String, Double> currencyPrice : traderSide.getOrder().getPrices().entrySet()) {
-                    RedisTrade.getInstance().getIntegrationManager().getCurrencyHook(currencyPrice.getKey())
-                            .depositPlayer(customerSide.getTraderUUID(), currencyPrice.getValue(), "Trade completion");
-                    RedisTrade.debug(uuid + " Depositing customer " + currencyPrice.getValue() + " " + currencyPrice.getKey() + " to " + customerSide.getTraderName());
-                }
+
+                double traderCurrencyPrice = traderSide.getOrder().getPrice(currencyHook.getName());
+                if (traderCurrencyPrice <= 0) continue;
+                currencyHook.depositPlayer(traderSide.getTraderUUID(), traderCurrencyPrice, "Trade completion");
+                RedisTrade.debug(uuid + " Depositing trader " + traderCurrencyPrice + " " + currencyHook.getName() + " to " + traderSide.getTraderName());
+
+                double customerCurrencyPrice = customerSide.getOrder().getPrice(currencyHook.getName());
+                if (customerCurrencyPrice <= 0) continue;
+                currencyHook.depositPlayer(customerSide.getTraderUUID(), customerCurrencyPrice, "Trade completion");
+                RedisTrade.debug(uuid + " Depositing customer " + customerCurrencyPrice + " " + currencyHook.getName() + " to " + customerSide.getTraderName());
             }
+
             retrievedPhase(Actor.TRADER, Actor.CUSTOMER);
             retrievedPhase(Actor.CUSTOMER, Actor.TRADER);
             //Change cancel trade to get all items
