@@ -18,51 +18,27 @@ RedisTrade enables players to trade items, currency, or other in-game assets sec
 ## Installation
 
 1. **Prerequisites**:
-   - A Minecraft server running Spigot, Paper, or a compatible fork (version X.X or higher).
-   - A Redis server (version X.X or higher) installed and accessible.
-   - Java X or higher.
+   - A Minecraft server running Spigot, Paper, or a compatible fork (version 1.20.6 or higher).
+   - A Redis server installed and accessible.
+   - Java 21 or higher.
 
 2. **Steps**:
-   - Download the latest `RedisTrade.jar` from the [Releases](https://github.com/Emibergo02/RedisTrade/releases) page.
+   - Download the latest `RedisTrade.jar` from the [SpigotMC](https://www.spigotmc.org/resources/redistrade%E2%9A%A1cross-server-trades%E2%9A%A1plug-play.120797/) or [Modrinth](https://modrinth.com/plugin/redistrade) page.
    - Place the `RedisTrade.jar` file in your server's `plugins` folder.
-   - Configure your Redis server details in the `config.yml` file (generated on first run).
    - Restart your server to load the plugin.
-   - Verify the connection to Redis and adjust settings as needed.
-
-## Configuration
-
-After the first run, a `config.yml` file will be generated in the `plugins/RedisTrade` folder. Key configuration options include:
-
-```yaml
-redis:
-  host: localhost
-  port: 6379
-  password: yourpassword
-  database: 0
-trade:
-  max-trade-distance: 100
-  allowed-items:
-    - DIAMOND
-    - EMERALD
-  trade-timeout: 300
-```
-
-- `redis`: Configure your Redis server connection details.
-- `trade.max-trade-distance`: Maximum distance (in blocks) between players for cross-server trades.
-- `trade.allowed-items`: List of items allowed for trading.
-- `trade.trade-timeout`: Time (in seconds) before an unaccepted trade request expires.
 
 ## Usage
 
 ### Commands
-- `/trade <player>`: Initiate a trade request with another player (on the same or different server).
-- `/trade accept`: Accept a pending trade request.
-- `/trade decline`: Decline a pending trade request.
-- `/trade list`: View all active trade requests.
+- `/trade <player>`: Initiate a trade request with another player.
+- `/trade`: Resume trade
+- `/trade-browse`: Browse trades
 
 ### Permissions
-- `redistrade.use`: Allows players to use the `/trade` command.
-- `redistrade.admin`: Grants access to administrative commands (e.g., reloading config).
+- `redistrade.trade`: Allows players to use the `/trade` command.
+- `redistrade.usecurrency.<currencyName>`: Allows the use of a currency for a player
+- `redistrade.browse`: Browse archived trades
+- `redistrade.admin`: Grants access to administrative commands (e.g., reloading config or using browser).
 
 ## Contributing
 
@@ -86,7 +62,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Contact
 
-For questions or support, reach out via the [GitHub Issues](https://github.com/Emibergo02/RedisTrade/issues) page or contact the developer at [insert contact info if available].
+For questions or support, reach out via the [Discord](https://discord.gg/c6MBaKtkDc) server or contact the developer at [insert contact info if available].
 
 ---
 
