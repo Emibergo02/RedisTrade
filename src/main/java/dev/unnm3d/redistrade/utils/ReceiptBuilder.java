@@ -2,7 +2,6 @@ package dev.unnm3d.redistrade.utils;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.GuiSettings;
-import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;
@@ -23,11 +22,15 @@ import xyz.xenondevs.invui.item.impl.AbstractItem;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @UtilityClass
 public class ReceiptBuilder {
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
     private static final DecimalFormat decimalFormat = new DecimalFormat("#.##");
+    private static final Pattern PRICE_PATTERN = Pattern.compile("%price_([a-zA-Z0-9]+?)_(trader|customer)%");
+    private static final Pattern SYMBOL_PATTERN = Pattern.compile("%symbol_([a-zA-Z0-9]+?)%");
 
     public Item buildReceipt(NewTrade trade, long timestamp) {
         // Create the receipt item
@@ -110,19 +113,36 @@ public class ReceiptBuilder {
 
 
     public String tradePlaceholders(NewTrade trade, String toParse) {
-        String strText = toParse.replace("%trader%", trade.getTraderSide().getTraderName())
+        // Initial replacements for trader, customer, and trade UUID
+        StringBuilder sb = new StringBuilder(toParse.replace("%trader%", trade.getTraderSide().getTraderName())
                 .replace("%customer%", trade.getCustomerSide().getTraderName())
-                .replace("%trade_uuid%", trade.getUuid().toString());
+                .replace("%trade_uuid%", trade.getUuid().toString()));
 
-        for (String currencyName : RedisTrade.getInstance().getIntegrationManager().getCurrencyNames()) {
-            strText = strText.replace("%price_" + currencyName + "_trader%",
-                            decimalFormat.format(trade.getTraderSide().getOrder().getPrice(currencyName)))
-                    .replace("%price_" + currencyName + "_customer%",
-                            decimalFormat.format(trade.getCustomerSide().getOrder().getPrice(currencyName)))
-                    .replace("%symbol_" + currencyName + "%",
-                            RedisTrade.getInstance().getIntegrationManager().getCurrencyHook(currencyName).getCurrencySymbol());
+        // Replace price placeholders
+        Matcher priceMatcher = PRICE_PATTERN.matcher(sb);
+        StringBuilder tempSb = new StringBuilder(); // Temporary buffer for price replacements
+        while (priceMatcher.find()) {
+            String currencyName = priceMatcher.group(1);
+            String side = priceMatcher.group(2);
+            double price = side.equals("trader") ?
+                    trade.getTraderSide().getOrder().getPrice(currencyName) :
+                    trade.getCustomerSide().getOrder().getPrice(currencyName);
+            priceMatcher.appendReplacement(tempSb, Matcher.quoteReplacement(decimalFormat.format(price)));
         }
-        return strText;
+        priceMatcher.appendTail(tempSb);
+
+        // Replace symbol placeholders
+        Matcher symbolMatcher = SYMBOL_PATTERN.matcher(tempSb);
+        sb.setLength(0); // Clear and reuse the original StringBuilder
+        while (symbolMatcher.find()) {
+            String currencyName = symbolMatcher.group(1);
+            String symbol = RedisTrade.getInstance().getIntegrationManager()
+                    .getCurrencyHook(currencyName).getCurrencySymbol();
+            symbolMatcher.appendReplacement(sb, Matcher.quoteReplacement(symbol));
+        }
+        symbolMatcher.appendTail(sb);
+
+        return sb.toString();
     }
 
     private List<Component> buildPages(boolean isTrader, ItemStack... items) {

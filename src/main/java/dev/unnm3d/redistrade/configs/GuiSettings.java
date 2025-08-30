@@ -59,6 +59,9 @@ public class GuiSettings {
             "LLLLxRRRR");
 
     public String tradeGuiTitle = "Trading with %player%";
+    public String ratingMenuTitle = "Review %player%'s traded items";
+    public String moneyEditorTitle = "Change %currency% amount";
+    public String moneyEditorLabel = "Amount";
 
     public SimpleSerializableItem nextPage = new SimpleSerializableItem("ARROW", 1, 0, "<blue>Next Page", List.of());
     public SimpleSerializableItem previousPage = new SimpleSerializableItem("ARROW", 1, 0, "<blue>Previous Page", List.of());
@@ -76,7 +79,6 @@ public class GuiSettings {
     public SimpleSerializableItem separator = new SimpleSerializableItem("GRAY_STAINED_GLASS_PANE", 1, 0, "", List.of());
     public SimpleSerializableItem openRatingMenu = new SimpleSerializableItem("NETHER_STAR", 1, 0, "<yellow>Review this trade", List.of("<white>You can edit your rating inside the receipt"));
 
-    public String ratingMenuTitle = "Review %player%'s traded items";
     public String xpBottleDisplayName = "<green>Bottled XP (%amount% points)";
 
     @Comment({"Remember that a book line contains 20 large characters",

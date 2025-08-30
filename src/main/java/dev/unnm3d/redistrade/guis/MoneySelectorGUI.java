@@ -6,10 +6,12 @@ import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.core.enums.Actor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.jetbrains.annotations.NotNull;
+import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
 import xyz.xenondevs.invui.gui.Gui;
 import xyz.xenondevs.invui.item.Item;
 import xyz.xenondevs.invui.item.ItemProvider;
@@ -53,7 +55,7 @@ public class MoneySelectorGUI extends MoneySelector {
             @Override
             public ItemProvider getItemProvider() {
                 return GuiSettings.instance().moneyDisplay.toItemBuilder()
-                        .setLegacyDisplayName(changingPriceString);
+                        .setMiniMessageDisplayName(changingPriceString);
             }
 
             @Override
@@ -91,6 +93,8 @@ public class MoneySelectorGUI extends MoneySelector {
                 }))
                 .setGui(currentGui)
                 .setCloseable(true)
+                .setTitle(new AdventureComponentWrapper(MiniMessage.miniMessage().deserialize(
+                        GuiSettings.instance().moneyEditorTitle.replace("%currency%", currencyName))))
                 .addCloseHandler(this::handleClose)
                 .open(player);
     }
@@ -114,7 +118,7 @@ public class MoneySelectorGUI extends MoneySelector {
             notifyInsufficientFunds(nextPrice, balance + previousPrice);
 
         } catch (NumberFormatException | ParseException ignored) {
-            changingPriceString = Settings.getDecimalFormat().format(previousPrice);
+            changingPriceString = Messages.instance().invalidFormat;
         }
 
         notifyButtons();
