@@ -5,7 +5,7 @@ import lombok.Getter;
 @Getter
 public enum Permissions {
     MODIFY_TRADE("redistrade.modify"),
-    URE_CURRENCY_PREFIX("redistrade.usecurrency."),
+    USE_CURRENCY_PREFIX("redistrade.usecurrency."),
 
     ;
 

@@ -2,15 +2,11 @@ package dev.unnm3d.redistrade.guis.buttons;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
-import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.core.enums.Actor;
-import dev.unnm3d.redistrade.guis.MoneySelectorGUI;
 import dev.unnm3d.redistrade.utils.Permissions;
 import dev.unnm3d.redistrade.utils.Utils;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -31,7 +27,7 @@ public class MoneyEditorButton extends AbstractItem {
 
     @Override
     public @NotNull ItemProvider getItemProvider() {
-        double amount = trade.getTradeSide(actorSide).getOrder().getPrices().getOrDefault(currencyName, 0.0);
+        double amount = trade.getTradeSide(actorSide).getOrder().getPrices().getOrDefault(currencyName, 0.0D);
 
         return RedisTrade.getInstance().getIntegrationManager().getDisplayItem(currencyName)
                 .clearLore()
@@ -49,7 +45,7 @@ public class MoneyEditorButton extends AbstractItem {
         if (trade.getTradeSide(actorSide).getOrder().getStatus() != Status.REFUSED) return;
         //Be sure that the player isn't modifying the other side
         if (!actorSide.isSideOf(trade.getActor(player))) return;
-        if (!player.hasPermission(Permissions.URE_CURRENCY_PREFIX.getPermission() + currencyName)) {
+        if (!player.hasPermission(Permissions.USE_CURRENCY_PREFIX.getPermission() + currencyName)) {
             player.sendRichMessage(Messages.instance().noPermission);
             return;
         }
