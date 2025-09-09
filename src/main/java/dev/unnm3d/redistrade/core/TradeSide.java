@@ -32,6 +32,12 @@ public class TradeSide {
         sidePerspective.notifyItem('c');
     }
 
+    public void setStatus(Status status) {
+        order.setStatus(status);
+        sidePerspective.notifyItem('C');
+        sidePerspective.notifyItem('D');
+    }
+
     public void notifyOppositePrice() {
         sidePerspective.notifyItem('m');
         sidePerspective.notifyItem('n');
@@ -43,11 +49,6 @@ public class TradeSide {
         sidePerspective.notifyItem('M');
         sidePerspective.notifyItem('N');
         sidePerspective.notifyItem('O');
-    }
-
-    public void setStatus(Status status) {
-        order.setStatus(status);
-        sidePerspective.notifyItem('C');
     }
 
     public byte[] serialize() {

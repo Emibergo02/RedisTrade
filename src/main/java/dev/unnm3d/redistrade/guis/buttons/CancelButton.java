@@ -4,7 +4,6 @@ import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.core.enums.Actor;
-import dev.unnm3d.redistrade.core.enums.Status;
 import lombok.AllArgsConstructor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -21,11 +20,11 @@ public class CancelButton extends AbstractItem {
 
     @Override
     public ItemProvider getItemProvider(Player player) {
-        Status currentStatus = trade.getTradeSide(actorSide).getOrder().getStatus();
-        if (currentStatus == Status.REFUSED || currentStatus == Status.CONFIRMED) {
-            return GuiSettings.instance().cancelTradeButton.toItemBuilder();
-        }
-        return GuiSettings.instance().getAllItems.toItemBuilder();
+        return switch (trade.getTradeSide(actorSide).getOrder().getStatus()) {
+            case REFUSED -> GuiSettings.instance().cancelTradeButton.toItemBuilder();
+            case CONFIRMED -> GuiSettings.instance().separator.toItemBuilder();
+            default -> GuiSettings.instance().getAllItems.toItemBuilder();
+        };
     }
 
     @Override
