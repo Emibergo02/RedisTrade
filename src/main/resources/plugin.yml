@@ -1,7 +1,7 @@
 name: RedisTrade
 version: '${version}'
 main: dev.unnm3d.redistrade.RedisTrade
-api-version: '1.19'
+api-version: '1.21'
 depend:
   - Vault
 softdepend:

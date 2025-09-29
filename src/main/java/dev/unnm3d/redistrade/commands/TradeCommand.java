@@ -6,6 +6,7 @@ import com.jonahseguin.drink.annotation.Require;
 import com.jonahseguin.drink.annotation.Sender;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
+import dev.unnm3d.redistrade.core.enums.Actor;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.entity.Player;
 
@@ -21,7 +22,8 @@ public class TradeCommand {
         plugin.getTradeManager().getActiveTrade(player.getUniqueId())
                 .ifPresentOrElse(trade -> {
                             // If the player is already in a trade, open the trade window
-                            if (targetName == null || targetName.playerName() == null || trade.getCustomerSide().getTraderName().equals(targetName.playerName())) {
+                            boolean isTargetTradingAlready = trade.getActor(player) != Actor.SPECTATOR;
+                            if (targetName == null || targetName.playerName() == null || isTargetTradingAlready) {
                                 plugin.getServer().getScheduler().runTask(plugin, () ->
                                         plugin.getTradeManager().openWindow(trade, player));
                                 return;

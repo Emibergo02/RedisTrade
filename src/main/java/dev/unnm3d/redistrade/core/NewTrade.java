@@ -153,15 +153,20 @@ public class NewTrade {
         getTradeSide(actorSide).setStatus(status.getStatus());
         //Notify the confirm button on the opposite side and the current side
         getTradeSide(actorSide.opposite()).notifyOppositeStatus();
-        confirmPhase();
 
         RedisTrade.debug(uuid + " Setting status to " + status.getStatus().name() + " for " + actorSide.name());
-        //If you receive a remote retrieved status, try to finish and delete the trade
-        if (status.getStatus() == Status.RETRIEVED) {
-            RedisTrade.getInstance().getTradeManager().finishTrade(uuid, status.getViewerActor());
-        } else if (status.getStatus() == Status.COMPLETED && Settings.instance().deliverReceipt) {
-            getTradeSide(actorSide).getSidePerspective().setIngredient('r', new ReceiptButton(this));
+
+        switch (status.getStatus()) {
+            case REFUSED, CONFIRMED -> confirmPhase();
+            case COMPLETED -> {
+                if (Settings.instance().deliverReceipt) {
+                    getTradeSide(actorSide).getSidePerspective().setIngredient('r', new ReceiptButton(this));
+                }
+            }
+            //If you receive a remote retrieved status, try to finish and delete the trade
+            case RETRIEVED -> RedisTrade.getInstance().getTradeManager().finishTrade(uuid, status.getViewerActor());
         }
+
     }
 
     /**
