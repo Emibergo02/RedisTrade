@@ -34,14 +34,14 @@ public class IntegrationManager {
         for (Settings.CurrencyItemSerializable currencyConfig : Settings.instance().allowedCurrencies) {
             final String[] split = currencyConfig.name().split(":"); // <plugin>:<currency>
             if (split.length != 2) {
-                plugin.getLogger().warning("Invalid currency name: " + currencyConfig.name() + ". Must be in the format <plugin>:<currency>");
+                plugin.getLogger().severe("Invalid currency name: " + currencyConfig.name() + ". Must be in the format <plugin>:<currency>");
                 continue;
             }
             try {
                 final CurrencyHook currencyHook = createCurrencyHook(split[0], split[1]);
                 addCurrencyHook(split[1], currencyHook, currencyConfig.toItemBuilder());
             } catch (Exception e) {
-                plugin.getLogger().warning("Error creating currency hook for " + currencyConfig.name() + ": " + e.getMessage());
+                plugin.getLogger().severe("Error creating currency hook for " + currencyConfig.name() + ": " + e.getMessage());
             }
         }
     }
@@ -74,7 +74,7 @@ public class IntegrationManager {
      */
     public void addCurrencyHook(String currencyName, CurrencyHook currencyHook, MyItemBuilder displayItem) {
         if (currencies.containsKey(currencyName)) {
-            plugin.getLogger().warning("Currency hook for " + currencyName + " already exists. Ignoring.");
+            plugin.getLogger().severe("Currency hook for " + currencyName + " already exists. Ignoring.");
             return;
         }
         currencies.put(currencyName, currencyHook);

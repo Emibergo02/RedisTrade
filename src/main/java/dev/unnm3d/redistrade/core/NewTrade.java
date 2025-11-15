@@ -55,6 +55,12 @@ public class NewTrade {
         return Actor.SPECTATOR;
     }
 
+    public Actor getActor(UUID playerUUID) {
+        if (traderSide.getTraderUUID().equals(playerUUID)) return Actor.TRADER;
+        if (customerSide.getTraderUUID().equals(playerUUID)) return Actor.CUSTOMER;
+        return Actor.SPECTATOR;
+    }
+
     public TradeSide getTradeSide(Actor actor) {
         if (actor == Actor.CUSTOMER) return customerSide;
         return traderSide;
@@ -238,24 +244,23 @@ public class NewTrade {
         this.completionTimer.cancel();
         final BiConsumer<Status, Status> finallyConsumer = (status1, status2) -> {
             if (status1 != Status.COMPLETED || status2 != Status.COMPLETED) return;
+
             //Apply the economy changes only if the current server is the owner of the trade
             //Owner means the last server that modified the trade
-            for (CurrencyHook currencyHook : RedisTrade.getInstance().getIntegrationManager().getCurrencyHooks()) {
-                //If the current server is not the owner, skip to avoid double giving
-                if (!RedisTrade.getInstance().getTradeManager().isOwner(uuid)) {
-                    continue;
+            if (RedisTrade.getInstance().getTradeManager().isOwner(uuid))
+                for (CurrencyHook currencyHook : RedisTrade.getInstance().getIntegrationManager().getCurrencyHooks()) {
+                    double traderCurrencyPrice = customerSide.getOrder().getPrice(currencyHook.getName());
+                    if (traderCurrencyPrice > 0) {
+                        currencyHook.depositPlayer(traderSide.getTraderUUID(), traderCurrencyPrice, "Trade completion");
+                        RedisTrade.debug(uuid + " Depositing trader " + traderCurrencyPrice + " " + currencyHook.getName() + " to " + traderSide.getTraderName());
+                    }
+
+                    double customerCurrencyPrice = traderSide.getOrder().getPrice(currencyHook.getName());
+                    if (customerCurrencyPrice > 0) {
+                        currencyHook.depositPlayer(customerSide.getTraderUUID(), customerCurrencyPrice, "Trade completion");
+                        RedisTrade.debug(uuid + " Depositing customer " + customerCurrencyPrice + " " + currencyHook.getName() + " to " + customerSide.getTraderName());
+                    }
                 }
-
-                double traderCurrencyPrice = traderSide.getOrder().getPrice(currencyHook.getName());
-                if (traderCurrencyPrice <= 0) continue;
-                currencyHook.depositPlayer(traderSide.getTraderUUID(), traderCurrencyPrice, "Trade completion");
-                RedisTrade.debug(uuid + " Depositing trader " + traderCurrencyPrice + " " + currencyHook.getName() + " to " + traderSide.getTraderName());
-
-                double customerCurrencyPrice = customerSide.getOrder().getPrice(currencyHook.getName());
-                if (customerCurrencyPrice <= 0) continue;
-                currencyHook.depositPlayer(customerSide.getTraderUUID(), customerCurrencyPrice, "Trade completion");
-                RedisTrade.debug(uuid + " Depositing customer " + customerCurrencyPrice + " " + currencyHook.getName() + " to " + customerSide.getTraderName());
-            }
 
             retrievedPhase(Actor.TRADER, Actor.CUSTOMER);
             retrievedPhase(Actor.CUSTOMER, Actor.TRADER);
