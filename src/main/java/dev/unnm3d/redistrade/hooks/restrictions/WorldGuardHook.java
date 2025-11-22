@@ -6,6 +6,7 @@ import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.managers.RegionManager;
+import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.restriction.RestrictionHook;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -30,10 +31,10 @@ public class WorldGuardHook implements RestrictionHook {
     }
 
     @Override
-    public boolean restrict(Player player, Location playerLocation) {
+    public boolean restrict(Player player, NewTrade trade) {
         return Optional.ofNullable(WorldGuard.getInstance().getPlatform().getRegionContainer()
-                        .get(BukkitAdapter.adapt(playerLocation.getWorld())))
-                .map(manager -> getOverlappingRegions(manager, playerLocation).getRegions().stream()
+                        .get(BukkitAdapter.adapt(player.getLocation().getWorld())))
+                .map(manager -> getOverlappingRegions(manager, player.getLocation()).getRegions().stream()
                         .anyMatch(overlapped -> overlapped.getFlag(restrictFlag) == StateFlag.State.DENY))
                 .orElse(false);
     }

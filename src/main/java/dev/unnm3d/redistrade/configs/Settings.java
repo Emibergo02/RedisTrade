@@ -113,6 +113,12 @@ public class Settings {
             KnownRestriction.WORLD_CHANGE.toString(), 1000,
             "WORLD_GUARD", 1000);
 
+    @Comment({"Trade distance",
+            "-1 for cross-server trades",
+            "0 to trade only on the same world",
+            ">0 to set the max distance allowed to trade"})
+    public int tradeDistance = -1;
+
     @Comment("World blacklist, the trade will be closed if one of these worlds is detected")
     public List<String> worldBlacklist = List.of("world_nether", "world_the_end");
 

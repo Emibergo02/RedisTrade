@@ -1,7 +1,6 @@
 package dev.unnm3d.redistrade.configs;
 
 
-import de.exlll.configlib.Comment;
 import de.exlll.configlib.Configuration;
 import de.exlll.configlib.YamlConfigurations;
 import dev.unnm3d.redistrade.restriction.KnownRestriction;
@@ -36,6 +35,7 @@ public class Messages {
     public String getItemField = "<green>You successfully get the item %field% to your inventory";
     public String completionTimer = "<green>The trade will be finalized in %time% seconds";
     public String playerNotFound = "<red>Player %player% not found";
+    public String tradeDistance = "<red>You must be at least %blocks% distant from the other player to trade";
     public String notEnoughMoney = "<red>You don't have enough of this currency";
     public String invalidFormat = "<red>Invalid format";
     public String tradeWithYourself = "<red>You can't trade with yourself";

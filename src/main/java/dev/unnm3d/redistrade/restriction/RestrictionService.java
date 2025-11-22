@@ -3,9 +3,9 @@ package dev.unnm3d.redistrade.restriction;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
+import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.core.TradeSide;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,9 +23,9 @@ public class RestrictionService {
         this.plugin = plugin;
     }
 
-    public @Nullable Restriction getRestriction(Player player, Location playerLocation) {
+    public @Nullable Restriction getRestriction(Player player, NewTrade trade) {
         for (RestrictionHook restrictionHook : restrictionHooks) {
-            boolean isRestricted = restrictionHook.restrict(player, playerLocation);
+            boolean isRestricted = restrictionHook.restrict(player, trade);
             if (!isRestricted) continue;
             addPlayerRestriction(player, restrictionHook.getName());
         }

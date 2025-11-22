@@ -158,10 +158,17 @@ public final class TradeGuiBuilder {
 
             @Override
             public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-                if (!confirmActorSide.isSideOf(trade.getActor(player))) return;
+                final Actor actor = trade.getActor(player);
+                if (!confirmActorSide.isSideOf(actor)) return;
                 switch (orderInfo.getStatus()) {
-                    case REFUSED ->
-                            trade.changeAndSendStatus(StatusActor.valueOf(confirmActorSide, Status.CONFIRMED), orderInfo.getStatus(), confirmActorSide);
+                    case REFUSED -> {
+                        if (RedisTrade.getInstance().getTradeManager().checkInvalidDistance(player, trade.getTradeSide(actor.opposite()).getTraderUUID())) {
+                            player.sendRichMessage(Messages.instance().tradeDistance
+                                    .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
+                            return;
+                        }
+                        trade.changeAndSendStatus(StatusActor.valueOf(confirmActorSide, Status.CONFIRMED), orderInfo.getStatus(), confirmActorSide);
+                    }
                     case CONFIRMED ->
                             trade.changeAndSendStatus(StatusActor.valueOf(confirmActorSide, Status.REFUSED), orderInfo.getStatus(), confirmActorSide);
                     case COMPLETED, RETRIEVED -> {

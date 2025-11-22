@@ -2,6 +2,7 @@ package dev.unnm3d.redistrade.core;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
+import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.enums.Actor;
 import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.data.Database;
@@ -52,11 +53,19 @@ public class TradeManager {
             return CompletableFuture.completedFuture(Optional.empty());
         }
 
+        final Optional<NewTrade> noTradeOpt = Optional.empty();
         //Create Trade and send update (and open inventories)
         return plugin.getPlayerListManager().getPlayerUUID(targetName)
                 .map(uuid -> {
                     final Optional<NewTrade> alreadyTrade = Optional.ofNullable(openAlreadyStarted(traderPlayer, uuid));
                     if (alreadyTrade.isPresent()) return CompletableFuture.completedFuture(alreadyTrade);
+
+                    if (checkInvalidDistance(traderPlayer, uuid)) {
+                        traderPlayer.sendRichMessage(Messages.instance().tradeDistance
+                                .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
+
+                        return CompletableFuture.completedFuture(noTradeOpt);
+                    }
 
                     final NewTrade trade = new NewTrade(traderPlayer.getUniqueId(), uuid,
                             traderPlayer.getName(), targetName);
@@ -66,19 +75,32 @@ public class TradeManager {
                                 traderPlayer.sendRichMessage(Messages.instance().newTradesLock);
                                 return -1L;
                             }).thenApply(aLong -> {
-                                Optional<NewTrade> tradeOptional = Optional.empty();
-                                if (aLong == -1) return tradeOptional;
-                                tradeOptional = Optional.of(trade);
+                                if (aLong == -1) return noTradeOpt;
 
                                 initializeTrade(RedisTrade.getServerId(), trade);
                                 traderPlayer.sendRichMessage(Messages.instance().tradeCreated.replace("%player%", targetName));
                                 plugin.getServer().getScheduler().runTask(plugin, () -> openWindow(trade, traderPlayer));
-                                return tradeOptional;
+                                return Optional.of(trade);
                             });
                 }).orElseGet(() -> {
                     traderPlayer.sendRichMessage(Messages.instance().playerNotFound.replace("%player%", targetName));
-                    return CompletableFuture.completedFuture(Optional.empty());
+                    return CompletableFuture.completedFuture(noTradeOpt);
                 });
+    }
+
+    /**
+     * Check if the distance is invalid
+     *
+     * @param traderPlayer The first player
+     * @param otherPlayer  The second player
+     * @return true if invalid, false otherwise
+     */
+    public boolean checkInvalidDistance(Player traderPlayer, UUID otherPlayer) {
+        if (Settings.instance().tradeDistance < 0) return false;
+        final Player p = plugin.getServer().getPlayer(otherPlayer);
+        if (p == null) return true;
+        if (Settings.instance().tradeDistance == 0 && traderPlayer.getWorld().equals(p.getWorld())) return false;
+        return Settings.instance().tradeDistance < traderPlayer.getLocation().distance(p.getLocation());
     }
 
     /**
@@ -276,7 +298,7 @@ public class TradeManager {
 
 
     public void openWindow(NewTrade trade, Player player) {
-        final RestrictionService.Restriction restriction = plugin.getRestrictionService().getRestriction(player, player.getLocation());
+        final RestrictionService.Restriction restriction = plugin.getRestrictionService().getRestriction(player, trade);
         if (restriction != null) {
             player.sendRichMessage(Messages.instance().restrictionMessages
                     .getOrDefault(restriction.restrictionName(), Messages.instance().tradeRestricted));
