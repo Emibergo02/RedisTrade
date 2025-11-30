@@ -105,11 +105,13 @@ public class Settings {
 
     @Comment({"Action blacklist, the trade will be closed if one of these actions is detected",
             "Cooldown time is measured in milliseconds",
-            "Remove an action to disable the restrict"})
+            "Remove an action to disable the restrict",
+            "MOUNT and DISMOUNT are handled with MOUNT restriction"})
     public Map<String, Integer> actionCooldowns = Map.of(
             KnownRestriction.DAMAGED.toString(), 1000,
             KnownRestriction.COMBAT.toString(), 5000,
             KnownRestriction.MOVED.toString(), 400,
+            KnownRestriction.MOUNT.toString(), 1000,
             KnownRestriction.WORLD_CHANGE.toString(), 1000,
             "WORLD_GUARD", 1000);
 

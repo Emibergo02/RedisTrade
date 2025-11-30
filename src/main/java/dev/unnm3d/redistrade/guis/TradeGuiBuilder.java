@@ -113,10 +113,12 @@ public final class TradeGuiBuilder {
      */
     public boolean virtualInventoryListener(ItemPreUpdateEvent event, Actor actorSide) {
         if (!(event.getUpdateReason() instanceof PlayerUpdateReason playerUpdateReason)) return false;
+        //Check integrity system
         if (RedisTrade.getInstance().getIntegritySystem().isFaulted()) {
             playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().newTradesLock);
             return true;
         }
+        //Check invalid items
         if (event.getNewItem() != null) {
             for (Settings.BlacklistedItem blacklistedItem : Settings.instance().blacklistedItems) {
                 if (blacklistedItem.isSimilar(event.getNewItem())) {
@@ -125,6 +127,13 @@ public final class TradeGuiBuilder {
                 }
             }
         }
+        //Check distance
+        if (RedisTrade.getInstance().getTradeManager().checkInvalidDistance(playerUpdateReason.getPlayer(), trade.getTradeSide(actorSide.opposite()).getTraderUUID())) {
+            playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().tradeDistance
+                    .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
+            return true;
+        }
+
         final Actor tradeActor = trade.getActor(playerUpdateReason.getPlayer());
         final TradeSide operatingSide = trade.getTradeSide(actorSide);
 
@@ -162,6 +171,7 @@ public final class TradeGuiBuilder {
                 if (!confirmActorSide.isSideOf(actor)) return;
                 switch (orderInfo.getStatus()) {
                     case REFUSED -> {
+                        //Check distance
                         if (RedisTrade.getInstance().getTradeManager().checkInvalidDistance(player, trade.getTradeSide(actor.opposite()).getTraderUUID())) {
                             player.sendRichMessage(Messages.instance().tradeDistance
                                     .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));

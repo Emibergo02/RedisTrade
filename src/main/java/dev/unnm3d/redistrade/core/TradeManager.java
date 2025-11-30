@@ -59,7 +59,7 @@ public class TradeManager {
                 .map(uuid -> {
                     final Optional<NewTrade> alreadyTrade = Optional.ofNullable(openAlreadyStarted(traderPlayer, uuid));
                     if (alreadyTrade.isPresent()) return CompletableFuture.completedFuture(alreadyTrade);
-
+                    //Check distance
                     if (checkInvalidDistance(traderPlayer, uuid)) {
                         traderPlayer.sendRichMessage(Messages.instance().tradeDistance
                                 .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));

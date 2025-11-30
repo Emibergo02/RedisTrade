@@ -11,6 +11,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDismountEvent;
+import org.bukkit.event.entity.EntityMountEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -38,6 +40,18 @@ public class PlayerListener implements Listener {
     public void onPlayerMove(PlayerMoveEvent event) {
         if (event.getFrom().distanceSquared(event.getTo()) == 0) return;
         plugin.getRestrictionService().addPlayerRestriction(event.getPlayer(), KnownRestriction.MOVED.toString());
+    }
+
+    @EventHandler
+    public void onPlayerMount(EntityMountEvent event) {
+        if(!(event.getEntity() instanceof Player p)) return;
+        plugin.getRestrictionService().addPlayerRestriction(p, KnownRestriction.MOUNT.toString());
+    }
+
+    @EventHandler
+    public void onPlayerDismount(EntityDismountEvent event) {
+        if(!(event.getEntity() instanceof Player p)) return;
+        plugin.getRestrictionService().addPlayerRestriction(p, KnownRestriction.MOUNT.toString());
     }
 
     @EventHandler
