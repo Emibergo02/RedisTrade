@@ -30,7 +30,7 @@ public class ReviewButton extends AbstractItem {
 
     @Override
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-        if (tradeSide.getOrder().getStatus() == Status.RETRIEVED) {
+        if (tradeSide.getOrder().getStatus() == Status.COMPLETED || tradeSide.getOrder().getStatus() == Status.RETRIEVED) {
             ReviewGUI.open(tradeUUID, player);
         }
     }

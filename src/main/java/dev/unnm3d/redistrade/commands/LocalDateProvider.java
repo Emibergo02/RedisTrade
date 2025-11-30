@@ -42,6 +42,7 @@ public class LocalDateProvider extends DrinkProvider<LocalDateTime> {
     @Nullable
     @Override
     public LocalDateTime provide(@Nonnull CommandArg arg, @Nonnull List<? extends Annotation> annotations) throws CommandExitMessage {
+        if (arg.get() == null) return null;
         try {
             return LocalDateTime.parse(arg.get(), format);
         } catch (DateTimeParseException e) {
