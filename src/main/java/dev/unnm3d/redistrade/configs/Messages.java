@@ -28,6 +28,7 @@ public class Messages {
     public String noPendingTrades = "<red>You don't have any pending trades";
     public String noPendingTradesOther = "<red>%player% doesn't have any pending trades";
     public String tradeNotFound = "<red>Trade not found";
+    public String tradeExpired = "<red>Trade expired";
     public String targetAlreadyInTrade = "<red>The player %player% is already trading with someone else";
     public String tradeCreated = "<gradient:green:gray>You started a trade with %player%<br><dark_aqua><click:run_command:'/trade %player%'>[Click to open]</click> <white>or </white>execute /trade %player%</dark_aqua>";
     public String tradeReceived = "<green>%player% wants to trade with you <click:run_command:'/trade %player%'><dark_aqua>[Click to open or execute /trade %player%]</dark_aqua></click>";

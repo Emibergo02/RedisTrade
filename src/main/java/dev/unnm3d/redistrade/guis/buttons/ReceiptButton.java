@@ -13,12 +13,17 @@ import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.item.ItemWrapper;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
 
+import java.sql.Date;
+import java.time.Instant;
+
 public class ReceiptButton extends AbstractItem {
     private final ItemStack receipt;
     private int retrieveTimes = 0;
 
     public ReceiptButton(NewTrade trade) {
-        this.receipt = ReceiptBuilder.buildReceipt(trade, System.currentTimeMillis()).getItemProvider().get();
+        //This could be milliseconds different from the actual archived trade time, because it is generated right after the complete phase
+        //This is registered before the trade is actually archived
+        this.receipt = ReceiptBuilder.buildReceipt(trade, Date.from(Instant.now())).getItemProvider().get();
     }
 
     @Override

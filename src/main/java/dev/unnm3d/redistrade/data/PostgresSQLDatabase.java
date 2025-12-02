@@ -7,6 +7,7 @@ import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.integrity.RedisTradeStorageException;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -91,7 +92,7 @@ public class PostgresSQLDatabase extends MySQLDatabase {
     }
 
     @Override
-    public CompletableFuture<Boolean> archiveTrade(NewTrade trade) {
+    public CompletableFuture<Boolean> archiveTrade(@NotNull NewTrade trade) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
@@ -131,7 +132,7 @@ public class PostgresSQLDatabase extends MySQLDatabase {
     }
 
     @Override
-    public void backupTrade(NewTrade trade) {
+    public void backupTrade(@NotNull NewTrade trade) {
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("""
                      INSERT INTO backup (trade_uuid, server_id, serialized)
@@ -150,7 +151,7 @@ public class PostgresSQLDatabase extends MySQLDatabase {
     }
 
     @Override
-    public void updateStoragePlayerList(String playerName, UUID playerUUID) {
+    public void updateStoragePlayerList(@NotNull String playerName, @NotNull UUID playerUUID) {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""

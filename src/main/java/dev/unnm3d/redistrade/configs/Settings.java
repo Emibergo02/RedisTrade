@@ -121,6 +121,11 @@ public class Settings {
             ">0 to set the max distance allowed to trade"})
     public int tradeDistance = -1;
 
+    @Comment({"Trade rating time in seconds after the trade is closed until the player can rate the trade",
+            "After this time, the trade is considered expired and cannot be rated anymore",
+            "-1 to disable the expiring time"})
+    public int tradeReviewTime = 86400;
+
     @Comment("World blacklist, the trade will be closed if one of these worlds is detected")
     public List<String> worldBlacklist = List.of("world_nether", "world_the_end");
 

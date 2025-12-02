@@ -4,7 +4,6 @@ import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.restriction.KnownRestriction;
-import lombok.AllArgsConstructor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,10 +16,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
-@AllArgsConstructor
-public class PlayerListener implements Listener {
-    private final RedisTrade plugin;
-
+public record PlayerListener(RedisTrade plugin) implements Listener {
     @EventHandler
     public void onPlayerInteract(PlayerInteractEntityEvent event) {
         if (!Settings.instance().rightClickToOpen) return;
@@ -44,13 +40,13 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onPlayerMount(EntityMountEvent event) {
-        if(!(event.getEntity() instanceof Player p)) return;
+        if (!(event.getEntity() instanceof Player p)) return;
         plugin.getRestrictionService().addPlayerRestriction(p, KnownRestriction.MOUNT.toString());
     }
 
     @EventHandler
     public void onPlayerDismount(EntityDismountEvent event) {
-        if(!(event.getEntity() instanceof Player p)) return;
+        if (!(event.getEntity() instanceof Player p)) return;
         plugin.getRestrictionService().addPlayerRestriction(p, KnownRestriction.MOUNT.toString());
     }
 

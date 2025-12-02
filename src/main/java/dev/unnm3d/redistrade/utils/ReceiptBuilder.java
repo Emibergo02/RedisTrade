@@ -32,13 +32,13 @@ public class ReceiptBuilder {
     private static final Pattern PRICE_PATTERN = Pattern.compile("%price_([a-zA-Z0-9]+?)_(trader|customer)%");
     private static final Pattern SYMBOL_PATTERN = Pattern.compile("%symbol_([a-zA-Z0-9]+?)%");
 
-    public Item buildReceipt(NewTrade trade, long timestamp) {
+    public Item buildReceipt(NewTrade trade, Date timestamp) {
         // Create the receipt item
         ItemStack receipt = new ItemStack(Material.WRITTEN_BOOK);
         BookMeta writtenMeta = (BookMeta) receipt.getItemMeta();
 
         // Format the timestamp
-        String parsedDate = dateFormat.format(new Date(timestamp));
+        String parsedDate = dateFormat.format(timestamp);
 
         // Build the receipt intestation
         for (List<String> formatList : GuiSettings.instance().receiptIntestationFormat) {

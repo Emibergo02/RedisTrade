@@ -134,8 +134,8 @@ public class TradeManager {
         if (plugin.getDataStorage() instanceof Database database) {
             database.getArchivedTrades(targetUUID, start, end)
                     .thenAcceptAsync(trades -> {
-                        final List<Item> receiptItems = trades.entrySet().stream()
-                                .map(entry -> ReceiptBuilder.buildReceipt(entry.getValue(), entry.getKey()))
+                        final List<Item> receiptItems = trades.stream()
+                                .map(entry -> ReceiptBuilder.buildReceipt(entry.getTrade(), entry.getArchivedAt()))
                                 .toList();
                         Bukkit.getScheduler().runTask(plugin, () ->
                                 new TradeBrowserGUI(receiptItems).openWindow(player));

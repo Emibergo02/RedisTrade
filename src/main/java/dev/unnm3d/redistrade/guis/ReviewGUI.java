@@ -3,7 +3,8 @@ package dev.unnm3d.redistrade.guis;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
-import dev.unnm3d.redistrade.core.NewTrade;
+import dev.unnm3d.redistrade.configs.Settings;
+import dev.unnm3d.redistrade.core.ArchivedTrade;
 import dev.unnm3d.redistrade.core.enums.Actor;
 import dev.unnm3d.redistrade.utils.Utils;
 import org.bukkit.entity.Player;
@@ -17,16 +18,17 @@ import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
 import xyz.xenondevs.invui.window.Window;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
 public class ReviewGUI {
 
     private final Gui currentGui;
-    private final NewTrade archivedTrade;
+    private final ArchivedTrade archivedTrade;
     private final Player player;
 
-    public ReviewGUI(NewTrade archivedTrade, Player player) {
+    public ReviewGUI(ArchivedTrade archivedTrade, Player player) {
         this.archivedTrade = archivedTrade;
         this.player = player;
         Structure structure = new Structure(
@@ -52,9 +54,10 @@ public class ReviewGUI {
     }
 
     private void openWindow() {
-        final Actor oppositeActor = archivedTrade.getActor(player).opposite();
+        final Actor oppositeActor = archivedTrade.getTrade().getActor(player).opposite();
         Window.single().setGui(currentGui)
-                .setTitle(GuiSettings.instance().ratingMenuTitle.replace("%player%", archivedTrade.getTradeSide(oppositeActor).getTraderName()))
+                .setTitle(GuiSettings.instance().ratingMenuTitle.replace("%player%", archivedTrade.getTrade()
+                        .getTradeSide(oppositeActor).getTraderName()))
                 .addCloseHandler(() -> {
                     player.getInventory().addItem(player.getItemOnCursor()).values().forEach(itemStack ->
                             player.getWorld().dropItem(player.getLocation(), itemStack)
@@ -76,12 +79,19 @@ public class ReviewGUI {
 
             @Override
             public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-                final Actor oppositeActor = archivedTrade.getActor(player).opposite();
+                final Actor oppositeActor = archivedTrade.getTrade().getActor(player).opposite();
                 if (!oppositeActor.isParticipant()) {
                     player.sendRichMessage(Messages.instance().noPermission);
                     return;
                 }
-                RedisTrade.getInstance().getDataStorage().rateTrade(archivedTrade, oppositeActor, rating);
+                //Check if the review time has expired
+                if (archivedTrade.getArchivedAt().toInstant().isBefore(
+                        Instant.now().minusSeconds(Settings.instance().tradeReviewTime))) {
+                    player.sendRichMessage(Messages.instance().noPermission);
+                    return;
+                }
+
+                RedisTrade.getInstance().getDataStorage().rateTrade(archivedTrade.getTrade(), oppositeActor, rating);
                 player.closeInventory();
             }
         };

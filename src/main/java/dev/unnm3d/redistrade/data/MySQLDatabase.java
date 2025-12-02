@@ -7,6 +7,7 @@ import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.integrity.RedisTradeStorageException;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -88,7 +89,7 @@ public class MySQLDatabase extends SQLiteDatabase {
     }
 
     @Override
-    public CompletableFuture<Boolean> archiveTrade(NewTrade trade) {
+    public CompletableFuture<Boolean> archiveTrade(@NotNull NewTrade trade) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
@@ -127,7 +128,7 @@ public class MySQLDatabase extends SQLiteDatabase {
     }
 
     @Override
-    public void backupTrade(NewTrade trade) {
+    public void backupTrade(@NotNull NewTrade trade) {
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("""
                      INSERT INTO backup (trade_uuid, server_id, serialized)
@@ -145,7 +146,7 @@ public class MySQLDatabase extends SQLiteDatabase {
     }
 
     @Override
-    public void updateStoragePlayerList(String playerName, UUID playerUUID) {
+    public void updateStoragePlayerList(@NotNull String playerName, @NotNull UUID playerUUID) {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
@@ -162,7 +163,7 @@ public class MySQLDatabase extends SQLiteDatabase {
     }
 
     @Override
-    public void ignorePlayer(String playerName, String targetName, boolean ignore) {
+    public void ignorePlayer(@NotNull String playerName, @NotNull String targetName, boolean ignore) {
         CompletableFuture.runAsync(() -> {
             String query = ignore ?
                     "INSERT INTO ignored_players (ignorer,ignored) VALUES (?,?);" :

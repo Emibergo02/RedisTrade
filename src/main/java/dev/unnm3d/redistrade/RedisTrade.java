@@ -6,6 +6,10 @@ import de.exlll.configlib.ConfigLib;
 import de.exlll.configlib.ConfigurationException;
 import de.exlll.configlib.YamlConfigurations;
 import dev.unnm3d.redistrade.commands.*;
+import dev.unnm3d.redistrade.commands.providers.ItemFieldProvider;
+import dev.unnm3d.redistrade.commands.providers.LocalDateProvider;
+import dev.unnm3d.redistrade.commands.providers.TargetProvider;
+import dev.unnm3d.redistrade.commands.providers.UUIDProvider;
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
@@ -36,6 +40,7 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class RedisTrade extends JavaPlugin {
@@ -182,6 +187,7 @@ public class RedisTrade extends JavaPlugin {
         CommandService drink = Drink.get(this);
         drink.bind(PlayerListManager.Target.class).toProvider(new TargetProvider(playerListManager));
         drink.bind(LocalDateTime.class).toProvider(new LocalDateProvider(settings.dateFormat, settings.timeZone));
+        drink.bind(UUID.class).toProvider(new UUIDProvider());
         drink.bind(Field.class).toProvider(new ItemFieldProvider());
 
         applyAliasesAndRegister(drink, new TradeCommand(this), "trade");

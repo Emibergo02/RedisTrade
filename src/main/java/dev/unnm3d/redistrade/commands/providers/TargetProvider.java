@@ -1,8 +1,9 @@
-package dev.unnm3d.redistrade.commands;
+package dev.unnm3d.redistrade.commands.providers;
 
 import com.jonahseguin.drink.argument.CommandArg;
 import com.jonahseguin.drink.exception.CommandExitMessage;
 import com.jonahseguin.drink.parametric.DrinkProvider;
+import dev.unnm3d.redistrade.commands.PlayerListManager;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;

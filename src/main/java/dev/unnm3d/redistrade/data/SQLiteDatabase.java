@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import dev.unnm3d.redistrade.RedisTrade;
+import dev.unnm3d.redistrade.core.ArchivedTrade;
 import dev.unnm3d.redistrade.core.NewTrade;
 import dev.unnm3d.redistrade.core.OrderInfo;
 import dev.unnm3d.redistrade.core.TradeSide;
@@ -12,6 +13,7 @@ import dev.unnm3d.redistrade.core.enums.Actor;
 import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.integrity.RedisTradeStorageException;
 import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
 
 import java.io.File;
@@ -22,6 +24,7 @@ import java.nio.file.Files;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.logging.Level;
@@ -116,7 +119,7 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public CompletableFuture<Boolean> archiveTrade(NewTrade trade) {
+    public CompletableFuture<Boolean> archiveTrade(@NotNull NewTrade trade) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
@@ -150,7 +153,7 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public CompletableFuture<Map<Long, NewTrade>> getArchivedTrades(UUID playerUUID, LocalDateTime startTimestamp, LocalDateTime endTimestamp) {
+    public CompletableFuture<List<ArchivedTrade>> getArchivedTrades(@NotNull UUID playerUUID, @NotNull LocalDateTime startTimestamp, @NotNull LocalDateTime endTimestamp) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
@@ -162,10 +165,10 @@ public class SQLiteDatabase implements Database {
                 statement.setTimestamp(4, Timestamp.valueOf(endTimestamp));
 
                 try (ResultSet result = statement.executeQuery()) {
-                    final Map<Long, NewTrade> trades = new LinkedHashMap<>();
+                    final List<ArchivedTrade> trades = new ArrayList<>();
                     while (result.next()) {
                         try {
-                            trades.put(result.getTimestamp("trade_timestamp").getTime(), tradeFromResultSet(result));
+                            trades.add(tradeFromResultSet(result));
                         } catch (Exception e) {
                             plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.SERIALIZATION));
                         }
@@ -174,13 +177,13 @@ public class SQLiteDatabase implements Database {
                 }
             } catch (SQLException e) {
                 plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.UNARCHIVE_TRADE));
-                return Collections.emptyMap();
+                return Collections.emptyList();
             }
         });
     }
 
     @Override
-    public CompletableFuture<Optional<NewTrade>> getArchivedTrade(UUID tradeUUID) {
+    public CompletableFuture<Optional<ArchivedTrade>> getArchivedTrade(@NotNull UUID tradeUUID) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
@@ -201,7 +204,7 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public void backupTrade(NewTrade trade) {
+    public void backupTrade(@NotNull NewTrade trade) {
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("""
                      INSERT OR REPLACE INTO backup (trade_uuid,server_id,serialized)
@@ -220,7 +223,7 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public void removeTradeBackup(UUID tradeUUID) {
+    public void removeTradeBackup(@NotNull UUID tradeUUID) {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
@@ -236,7 +239,7 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public void updateStoragePlayerList(String playerName, UUID playerUUID) {
+    public void updateStoragePlayerList(@NotNull String playerName, @NotNull UUID playerUUID) {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
@@ -253,7 +256,7 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public void ignorePlayer(String playerName, String targetName, boolean ignore) {
+    public void ignorePlayer(@NotNull String playerName, @NotNull String targetName, boolean ignore) {
         CompletableFuture.runAsync(() -> {
             String query = ignore ?
                     "INSERT OR REPLACE INTO ignored_players (ignorer,ignored) VALUES (?,?);" :
@@ -270,7 +273,7 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public void rateTrade(NewTrade archivedTrade, Actor actor, int rating) {
+    public void rateTrade(@NotNull NewTrade archivedTrade, @NotNull Actor actor, int rating) {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement(
@@ -331,7 +334,7 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public CompletionStage<Set<String>> getIgnoredPlayers(String playerName) {
+    public CompletionStage<Set<String>> getIgnoredPlayers(@NotNull String playerName) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
@@ -352,7 +355,7 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public CompletionStage<TradeRating> getTradeRating(UUID tradeUUID) {
+    public CompletionStage<TradeRating> getTradeRating(@NotNull UUID tradeUUID) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
@@ -373,7 +376,7 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public CompletableFuture<MeanRating> getMeanRating(UUID playerUUID) {
+    public CompletableFuture<MeanRating> getMeanRating(@NotNull UUID playerUUID) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
@@ -399,7 +402,7 @@ public class SQLiteDatabase implements Database {
         });
     }
 
-    private NewTrade tradeFromResultSet(ResultSet result) throws SQLException {
+    private ArchivedTrade tradeFromResultSet(ResultSet result) throws SQLException {
         Type typeOfPriceHashMap = new TypeToken<Map<String, Double>>() {
         }.getType();
         HashMap<String, Double> traderPrice = new HashMap<>(gson.fromJson(result.getString("trader_price"), typeOfPriceHashMap));
@@ -415,6 +418,8 @@ public class SQLiteDatabase implements Database {
                 Status.COMPLETED, result.getInt("customer_rating"), customerPrice);
         TradeSide customerSide = new TradeSide(UUID.fromString(result.getString("customer_uuid")),
                 result.getString("customer_name"), customerOrder, false);
-        return new NewTrade(UUID.fromString(result.getString("trade_uuid")), traderSide, customerSide);
+        Date tradeDate = result.getTimestamp("trade_timestamp");
+        return new ArchivedTrade(tradeDate,
+                new NewTrade(UUID.fromString(result.getString("trade_uuid")), traderSide, customerSide));
     }
 }

@@ -1,4 +1,4 @@
-package dev.unnm3d.redistrade.commands;
+package dev.unnm3d.redistrade.commands.providers;
 
 import com.jonahseguin.drink.argument.CommandArg;
 import com.jonahseguin.drink.exception.CommandExitMessage;
