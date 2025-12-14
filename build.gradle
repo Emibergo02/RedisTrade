@@ -24,7 +24,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly "io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT"
+    compileOnly "io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT"
     compileOnly 'com.zaxxer:HikariCP:5.1.0'
     compileOnly 'org.postgresql:postgresql:42.7.5'
     compileOnly 'org.projectlombok:lombok:1.18.34'
