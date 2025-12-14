@@ -14,14 +14,18 @@ import dev.unnm3d.redistrade.guis.buttons.CancelButton;
 import dev.unnm3d.redistrade.guis.buttons.MoneyEditorButton;
 import dev.unnm3d.redistrade.guis.buttons.ProfileDisplay;
 import dev.unnm3d.redistrade.guis.buttons.ReviewButton;
+import io.papermc.paper.datacomponent.DataComponentType;
+import io.papermc.paper.datacomponent.DataComponentTypes;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
@@ -120,8 +124,16 @@ public final class TradeGuiBuilder {
         }
         //Check invalid items
         if (event.getNewItem() != null) {
-            for (Settings.BlacklistedItem blacklistedItem : Settings.instance().blacklistedItems) {
-                if (blacklistedItem.isSimilar(event.getNewItem())) {
+            final String itemTypeKey = event.getNewItem().getType().getKey().toString(); // example: "minecraft:diamond_sword"
+            final String itemAsString = itemTypeKey + event.getNewItem().getItemMeta().getAsComponentString(); // results in: "minecraft:diamond_sword[minecraft:damage=53]"
+
+
+            for (Settings.BlacklistedItemRegex blacklistedRegex : Settings.instance().blacklistedItemRegexes) {
+                boolean matches = blacklistedRegex.containsOnly()
+                        ? itemAsString.contains(blacklistedRegex.regex())
+                        : itemAsString.matches(blacklistedRegex.regex());
+
+                if (matches) {
                     playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().blacklistedItem);
                     return true;
                 }

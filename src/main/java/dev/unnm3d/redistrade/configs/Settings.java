@@ -98,10 +98,12 @@ public class Settings {
             new CurrencyItemSerializable("minecraft:xp", "EXPERIENCE_BOTTLE", 0, "<green>Exp")
     );
 
-    @Comment("Component blacklist will come in the future")
-    public List<BlacklistedItem> blacklistedItems = List.of(
-            new BlacklistedItem("FIREWORK_ROCKET", 0, Map.of("flight_duration", "3"))
-    );
+    @Comment({"Component blacklist via regex, the trade will be closed if one of these regexes match the item data string",
+    "if containsOnly is true, the string will not be treated as a regex match but as a simple contains check"})
+    public List<BlacklistedItemRegex> blacklistedItemRegexes = List.of(
+            BlacklistedItemRegex.regex(".*minecraft:flight_duration=\\d.*"),
+            BlacklistedItemRegex.containsOnly("MMOITEMS_"));
+
 
     @Comment({"Action blacklist, the trade will be closed if one of these actions is detected",
             "Cooldown time is measured in milliseconds",
@@ -158,12 +160,12 @@ public class Settings {
                         String clientName, int poolSize) {
     }
 
-    public record BlacklistedItem(String material, int customModelData, Map<String, String> componentBlacklist) {
-        public boolean isSimilar(ItemStack item) {
-            boolean modelData = item.getItemMeta().hasCustomModelData() ?
-                    item.getItemMeta().getCustomModelData() == customModelData : true;
-            return item.getType() == Material.valueOf(material) &&
-                    modelData;
+    public record BlacklistedItemRegex(String regex, boolean containsOnly) {
+        public static BlacklistedItemRegex containsOnly(String checkString) {
+            return new BlacklistedItemRegex(checkString, true);
+        }
+        public static BlacklistedItemRegex regex(String regex) {
+            return new BlacklistedItemRegex(regex, false);
         }
     }
 
