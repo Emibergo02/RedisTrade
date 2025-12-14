@@ -66,10 +66,10 @@ public abstract class RedisAbstract implements ICacheData {
             }
         });
         pubSubConnection.async().subscribe(listenedChannels)
-                .exceptionally(throwable -> {
-                    throwable.printStackTrace();
-                    return null;
-                });
+          .exceptionally(throwable -> {
+              throwable.printStackTrace();
+              return null;
+          });
     }
 
     public <T> CompletionStage<T> getConnectionAsync(Function<RedisAsyncCommands<String, String>, CompletionStage<T>> redisCallBack) {

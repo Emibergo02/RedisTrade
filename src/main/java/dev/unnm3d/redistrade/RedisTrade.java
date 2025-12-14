@@ -16,7 +16,7 @@ import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.PlayerListener;
 import dev.unnm3d.redistrade.core.TradeManager;
 import dev.unnm3d.redistrade.data.*;
-import dev.unnm3d.redistrade.hooks.*;
+import dev.unnm3d.redistrade.hooks.IntegrationManager;
 import dev.unnm3d.redistrade.hooks.restrictions.WorldGuardHook;
 import dev.unnm3d.redistrade.integrity.IntegritySystem;
 import dev.unnm3d.redistrade.restriction.RestrictionService;
@@ -71,9 +71,9 @@ public class RedisTrade extends JavaPlugin {
             try {
                 final FileWriter writer = new FileWriter(debugFile.getAbsoluteFile(), true);
                 writer.append("[")
-                        .append(String.valueOf(LocalDateTime.now()))
-                        .append("] ")
-                        .append(string);
+                  .append(String.valueOf(LocalDateTime.now()))
+                  .append("] ")
+                  .append(string);
                 if (Settings.instance().debugStrace && Thread.currentThread().getStackTrace().length > 1) {
                     for (int i = 2; i < Math.min(Thread.currentThread().getStackTrace().length, 7); i++) {
                         writer.append("\n\t").append(Thread.currentThread().getStackTrace()[i].toString());
@@ -108,7 +108,7 @@ public class RedisTrade extends JavaPlugin {
         try {
             dataCache = switch (settings.cacheType) {
                 case REDIS -> new RedisDataManager(this, craftRedisClient(),
-                        settings.redis.poolSize());
+                  settings.redis.poolSize());
                 case MEMORY -> {
                     this.integritySystem = new IntegritySystem(this, null);
                     yield ICacheData.createEmpty();
@@ -129,7 +129,7 @@ public class RedisTrade extends JavaPlugin {
         ((Database) dataStorage).connect();
 
         this.playerListManager = new PlayerListManager(this);
-        this.integrationManager= new IntegrationManager(this);
+        this.integrationManager = new IntegrationManager(this);
         this.tradeManager = new TradeManager(this);
         try {
             loadCommands();
@@ -167,17 +167,17 @@ public class RedisTrade extends JavaPlugin {
 
     private RedisClient craftRedisClient() {
         RedisURI.Builder redisURIBuilder = RedisURI.builder()
-                .withHost(settings.redis.host())
-                .withPort(settings.redis.port())
-                .withDatabase(settings.redis.database())
-                .withTimeout(Duration.of(settings.redis.timeout(), TimeUnit.MILLISECONDS.toChronoUnit()))
-                .withSsl(settings.redis.ssl())
-                .withClientName(settings.redis.clientName());
+          .withHost(settings.redis.host())
+          .withPort(settings.redis.port())
+          .withDatabase(settings.redis.database())
+          .withTimeout(Duration.of(settings.redis.timeout(), TimeUnit.MILLISECONDS.toChronoUnit()))
+          .withSsl(settings.redis.ssl())
+          .withClientName(settings.redis.clientName());
         redisURIBuilder = settings.redis.password().isEmpty() ?
-                redisURIBuilder :
-                settings.redis.user().isEmpty() ?
-                        redisURIBuilder.withPassword(settings.redis.password().toCharArray()) :
-                        redisURIBuilder.withAuthentication(settings.redis.user(), settings.redis.password());
+          redisURIBuilder :
+          settings.redis.user().isEmpty() ?
+            redisURIBuilder.withPassword(settings.redis.password().toCharArray()) :
+            redisURIBuilder.withAuthentication(settings.redis.user(), settings.redis.password());
         final RedisClient redisClient = RedisClient.create(redisURIBuilder.build());
         this.integritySystem = new IntegritySystem(this, redisClient);
         return redisClient;
@@ -242,11 +242,11 @@ public class RedisTrade extends JavaPlugin {
     public void saveYML() {
         Path configFile = new File(getDataFolder(), "config.yml").toPath();
         YamlConfigurations.save(configFile, Settings.class, Settings.instance(),
-                ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
-                        .header("RedisTrade config")
-                        .footer("Authors: Unnm3d")
-                        .charset(StandardCharsets.UTF_8)
-                        .build()
+          ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
+            .header("RedisTrade config")
+            .footer("Authors: Unnm3d")
+            .charset(StandardCharsets.UTF_8)
+            .build()
         );
         Path guisFile = new File(getDataFolder(), "guis.yml").toPath();
         GuiSettings.saveGuiSettings(guisFile);

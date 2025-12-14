@@ -9,7 +9,6 @@ import dev.unnm3d.redistrade.restriction.KnownRestriction;
 import dev.unnm3d.redistrade.utils.MyItemBuilder;
 import org.apache.commons.lang3.LocaleUtils;
 import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -30,13 +29,13 @@ public class Settings {
 
     public static Settings initSettings(Path configFile) {
         SETTINGS = YamlConfigurations.update(
-                configFile,
-                Settings.class,
-                ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
-                        .header("RedisTrade config")
-                        .footer("Authors: Unnm3d")
-                        .charset(StandardCharsets.UTF_8)
-                        .build()
+          configFile,
+          Settings.class,
+          ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
+            .header("RedisTrade config")
+            .footer("Authors: Unnm3d")
+            .charset(StandardCharsets.UTF_8)
+            .build()
         );
         DECIMAL_FORMAT = (DecimalFormat) NumberFormat.getInstance(LocaleUtils.toLocale(SETTINGS.locale));
         DECIMAL_FORMAT.applyLocalizedPattern(SETTINGS.decimalFormat);
@@ -48,31 +47,31 @@ public class Settings {
     }
 
     @Comment({"Storage type for the plugin",
-            "MYSQL - MySQL or MariaDB storage",
-            "POSTGRESQL - POSTGRESQL storage",
-            "SQLITE - SQLite storage"})
+      "MYSQL - MySQL or MariaDB storage",
+      "POSTGRESQL - POSTGRESQL storage",
+      "SQLITE - SQLite storage"})
     public StorageType storageType = StorageType.SQLITE;
 
     @Comment({"Cache type for the plugin",
-            "REDIS - Redis cache",
-            "PLUGIN_MESSAGE - Plugin message cache (not implemented yet)",
-            "MEMORY - Memory cache (RAM) (does not enable cross-server features)"})
+      "REDIS - Redis cache",
+      "PLUGIN_MESSAGE - Plugin message cache (not implemented yet)",
+      "MEMORY - Memory cache (RAM) (does not enable cross-server features)"})
     public CacheType cacheType = CacheType.MEMORY;
 
     public MySQL mysql = new MySQL("localhost", 3306, "com.mysql.cj.jdbc.Driver",
-            "redistrade", "root", "password",
-            10, 10, 1800000, 0, 5000);
+      "redistrade", "root", "password",
+      10, 10, 1800000, 0, 5000);
 
     @Comment("Leave password or user empty if you don't have a password or user")
     public Redis redis = new Redis("localhost",
-            6379,
-            "",
-            "",
-            0,
-            1000,
-            false,
-            "RedisTrade",
-            3);
+      6379,
+      "",
+      "",
+      0,
+      1000,
+      false,
+      "RedisTrade",
+      3);
 
     @Comment("Show receipt button at the end of the trade")
     public boolean deliverReceipt = true;
@@ -88,44 +87,46 @@ public class Settings {
     public String locale = "en_US";
 
     @Comment({"Currencies used in trades",
-            "vault:default - Default currency from Vault",
-            "rediseconomy:lyra - Custom currency from RedisEconomy",
-            "playerpoints:default - Custom currency from PlayerPoints",
-            "Leave this empty [] if you don't want to use any currency",
-            "YOU MUST CHOOSE A DIFFERENT NAME FOR EACH CURRENCY",})
+      "vault:default - Default currency from Vault",
+      "rediseconomy:lyra - Custom currency from RedisEconomy",
+      "playerpoints:default - Custom currency from PlayerPoints",
+      "Leave this empty [] if you don't want to use any currency",
+      "YOU MUST CHOOSE A DIFFERENT NAME FOR EACH CURRENCY",})
     public List<CurrencyItemSerializable> allowedCurrencies = List.of(
-            new CurrencyItemSerializable("vault:default", "GOLD_INGOT", 0, "<gold>Money"),
-            new CurrencyItemSerializable("minecraft:xp", "EXPERIENCE_BOTTLE", 0, "<green>Exp")
+      new CurrencyItemSerializable("vault:default", "GOLD_INGOT", 0, "<gold>Money"),
+      new CurrencyItemSerializable("minecraft:xp", "EXPERIENCE_BOTTLE", 0, "<green>Exp")
     );
 
     @Comment({"Component blacklist via regex, the trade will be closed if one of these regexes match the item data string",
-    "if containsOnly is true, the string will not be treated as a regex match but as a simple contains check"})
+      "if containsOnly is true, the string will not be treated as a regex match but as a simple contains check",
+      "To inspect the item to see the data string, use /redistrade inspect with the item in your main hand",
+      "Performance tips: avoid using too many regexes, avoid using complex regexes, prefer containsOnly when possible"})
     public List<BlacklistedItemRegex> blacklistedItemRegexes = List.of(
-            BlacklistedItemRegex.regex(".*minecraft:flight_duration=\\d.*"),
-            BlacklistedItemRegex.containsOnly("MMOITEMS_"));
+      BlacklistedItemRegex.regex(".*minecraft:flight_duration=\\d.*"),
+      BlacklistedItemRegex.containsOnly("MMOITEMS_"));
 
 
     @Comment({"Action blacklist, the trade will be closed if one of these actions is detected",
-            "Cooldown time is measured in milliseconds",
-            "Remove an action to disable the restrict",
-            "MOUNT and DISMOUNT are handled with MOUNT restriction"})
+      "Cooldown time is measured in milliseconds",
+      "Remove an action to disable the restrict",
+      "MOUNT and DISMOUNT are handled with MOUNT restriction"})
     public Map<String, Integer> actionCooldowns = Map.of(
-            KnownRestriction.DAMAGED.toString(), 1000,
-            KnownRestriction.COMBAT.toString(), 5000,
-            KnownRestriction.MOVED.toString(), 400,
-            KnownRestriction.MOUNT.toString(), 1000,
-            KnownRestriction.WORLD_CHANGE.toString(), 1000,
-            "WORLD_GUARD", 1000);
+      KnownRestriction.DAMAGED.toString(), 1000,
+      KnownRestriction.COMBAT.toString(), 5000,
+      KnownRestriction.MOVED.toString(), 400,
+      KnownRestriction.MOUNT.toString(), 1000,
+      KnownRestriction.WORLD_CHANGE.toString(), 1000,
+      "WORLD_GUARD", 1000);
 
     @Comment({"Trade distance",
-            "-1 for cross-server trades",
-            "0 to trade only on the same world",
-            ">0 to set the max distance allowed to trade"})
+      "-1 for cross-server trades",
+      "0 to trade only on the same world",
+      ">0 to set the max distance allowed to trade"})
     public int tradeDistance = -1;
 
     @Comment({"Trade rating time in seconds after the trade is closed until the player can rate the trade",
-            "After this time, the trade is considered expired and cannot be rated anymore",
-            "-1 to disable the expiring time"})
+      "After this time, the trade is considered expired and cannot be rated anymore",
+      "-1 to disable the expiring time"})
     public int tradeReviewTime = 86400;
 
     @Comment("World blacklist, the trade will be closed if one of these worlds is detected")
@@ -138,10 +139,10 @@ public class Settings {
     public boolean rightClickToOpen = true;
 
     public Map<String, List<String>> commandAliases = Map.of("trade", List.of("trade", "t"),
-            "trade-ignore", List.of("trade-ignore", "tignore"),
-            "trade-browse", List.of("trade-browse", "tbrowse"),
-            "trade-spectate", List.of("trade-spectate", "tspec"),
-            "trade-rate", List.of("trade-rate", "trate"));
+      "trade-ignore", List.of("trade-ignore", "tignore"),
+      "trade-browse", List.of("trade-browse", "tbrowse"),
+      "trade-spectate", List.of("trade-spectate", "tspec"),
+      "trade-rate", List.of("trade-rate", "trate"));
 
     public boolean debug = true;
     public boolean debugStrace = false;
@@ -149,8 +150,8 @@ public class Settings {
     public record CurrencyItemSerializable(String name, String material, int customModelData, String displayName) {
         public MyItemBuilder toItemBuilder() {
             return new MyItemBuilder(Material.valueOf(material))
-                    .setCustomModelData(customModelData)
-                    .setMiniMessageItemName(displayName);
+              .setCustomModelData(customModelData)
+              .setMiniMessageItemName(displayName);
         }
     }
 
@@ -169,6 +170,7 @@ public class Settings {
         public static BlacklistedItemRegex containsOnly(String checkString) {
             return new BlacklistedItemRegex(checkString, true);
         }
+
         public static BlacklistedItemRegex regex(String regex) {
             return new BlacklistedItemRegex(regex, false);
         }

@@ -38,7 +38,7 @@ public class NewTrade {
 
     public NewTrade(UUID traderUUID, UUID targetUUID, String traderName, String targetName) {
         this(UUID.randomUUID(), new TradeSide(traderUUID, traderName, new OrderInfo(25), true),
-                new TradeSide(targetUUID, targetName, new OrderInfo(25), false));
+          new TradeSide(targetUUID, targetName, new OrderInfo(25), false));
     }
 
     public NewTrade(UUID uuid, TradeSide traderSide, TradeSide customerSide) {
@@ -99,8 +99,8 @@ public class NewTrade {
         setPrice(currencyName, price, actorSide);
         final ViewerUpdate updateType = ViewerUpdate.valueOf(actorSide, UpdateType.PRICE);
         RedisTrade.getInstance().getDataCache().updateTrade(uuid,
-                updateType,
-                currencyName + ":" + price);
+          updateType,
+          currencyName + ":" + price);
     }
 
     /**
@@ -128,7 +128,7 @@ public class NewTrade {
             updateItem(i, null, tradeSide, true);
 
             player.getInventory().addItem(item).forEach((slot, itemStack) ->
-                    player.getWorld().dropItem(player.getLocation(), itemStack));
+              player.getWorld().dropItem(player.getLocation(), itemStack));
             returnedItems++;
         }
         return returnedItems;
@@ -144,7 +144,7 @@ public class NewTrade {
         side.getOrder().getPrices().forEach((currency, price) -> {
             setAndSendPrice(currency, 0, refundSide);
             RedisTrade.getInstance().getIntegrationManager().getCurrencyHook(currency)
-                    .depositPlayer(side.getTraderUUID(), price, "Trade cancellation");
+              .depositPlayer(side.getTraderUUID(), price, "Trade cancellation");
             RedisTrade.debug(uuid + " Refunded " + price + " " + currency + " to " + side.getTraderUUID());
         });
     }
@@ -187,23 +187,23 @@ public class NewTrade {
         if (newStatus.getStatus() == previousStatus) return CompletableFuture.completedFuture(newStatus.getStatus());
         final ViewerUpdate updateType = ViewerUpdate.valueOf(viewerSide, UpdateType.STATUS);
         return RedisTrade.getInstance().getDataCache().updateTrade(uuid, updateType, newStatus.toChar())
-                .thenApply(aLong -> {
-                    if (aLong != -1) {
-                        setStatus(newStatus, viewerSide);
-                        return newStatus.getStatus();
-                    } else {
-                        //If the update failed, revert the status without triggering the completion timer
-                        getTradeSide(viewerSide).setStatus(previousStatus);
-                        getTradeSide(viewerSide.opposite()).notifyOppositeStatus();
-                        return previousStatus;
-                    }
-                });
+          .thenApply(aLong -> {
+              if (aLong != -1) {
+                  setStatus(newStatus, viewerSide);
+                  return newStatus.getStatus();
+              } else {
+                  //If the update failed, revert the status without triggering the completion timer
+                  getTradeSide(viewerSide).setStatus(previousStatus);
+                  getTradeSide(viewerSide.opposite()).notifyOppositeStatus();
+                  return previousStatus;
+              }
+          });
     }
 
     public void setOpened(boolean opened, Actor actor) {
         if (opened) {//The closing is handled by the finishTrade method
             RedisTrade.getInstance().getDataCache().updateTrade(uuid,
-                    ViewerUpdate.valueOf(actor, UpdateType.OPEN), true);
+              ViewerUpdate.valueOf(actor, UpdateType.OPEN), true);
         }
         getTradeSide(actor).setOpened(opened);
     }
@@ -280,9 +280,9 @@ public class NewTrade {
         //Check if both sides are confirmed
 
         changeAndSendStatus(StatusActor.valueOf(Actor.TRADER, Status.COMPLETED), traderSide.getOrder().getStatus(), Actor.TRADER)
-                .thenAcceptBothAsync(
-                        changeAndSendStatus(StatusActor.valueOf(Actor.CUSTOMER, Status.COMPLETED), customerSide.getOrder().getStatus(), Actor.CUSTOMER),
-                        finallyConsumer);
+          .thenAcceptBothAsync(
+            changeAndSendStatus(StatusActor.valueOf(Actor.CUSTOMER, Status.COMPLETED), customerSide.getOrder().getStatus(), Actor.CUSTOMER),
+            finallyConsumer);
     }
 
     /**
@@ -312,19 +312,19 @@ public class NewTrade {
 
     public void openWindow(Player player, Actor actorSide) {
         Window.single()
-                .setTitle(GuiSettings.instance().tradeGuiTitle.replace("%player%",
-                        getTradeSide(actorSide.opposite()).getTraderName()))
-                .setGui(getTradeSide(actorSide).getSidePerspective())
-                .addCloseHandler(() -> {
-                    //If the player is a spectator/admin, don't send the message
-                    if (!getActor(player).isParticipant()) return;
-                    final OrderInfo traderOrder = getTradeSide(actorSide).getOrder();
-                    if (traderOrder.getStatus() != Status.RETRIEVED) {
-                        player.sendRichMessage(Messages.instance().tradeRunning
-                                .replace("%player%", getTradeSide(actorSide.opposite()).getTraderName()));
-                    }
-                })
-                .open(player);
+          .setTitle(GuiSettings.instance().tradeGuiTitle.replace("%player%",
+            getTradeSide(actorSide.opposite()).getTraderName()))
+          .setGui(getTradeSide(actorSide).getSidePerspective())
+          .addCloseHandler(() -> {
+              //If the player is a spectator/admin, don't send the message
+              if (!getActor(player).isParticipant()) return;
+              final OrderInfo traderOrder = getTradeSide(actorSide).getOrder();
+              if (traderOrder.getStatus() != Status.RETRIEVED) {
+                  player.sendRichMessage(Messages.instance().tradeRunning
+                    .replace("%player%", getTradeSide(actorSide.opposite()).getTraderName()));
+              }
+          })
+          .open(player);
     }
 
     public byte[] serialize() {

@@ -33,8 +33,8 @@ public class CancelButton extends AbstractItem {
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
         if (getSideStatus() == Status.CONFIRMED) {
             trade.changeAndSendStatus(StatusActor.valueOf(actorSide, Status.REFUSED),
-                    getSideStatus(),
-                    actorSide);
+              getSideStatus(),
+              actorSide);
             return;
         }
         RedisTrade.getInstance().getTradeManager().collectItemsAndClose(player, trade.getUuid());

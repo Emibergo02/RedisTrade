@@ -39,30 +39,30 @@ public class RateCommand {
         }
 
         plugin.getDataStorage().getArchivedTrade(tradeUUID)
-                .thenAccept(trade -> trade.ifPresentOrElse(t -> {
-                    Actor oppositeActor = t.getTrade().getActor(player).opposite();
-                    //Check if is the right actor
-                    if (!oppositeActor.isParticipant()) {
-                        player.sendRichMessage(Messages.instance().noPermission);
-                        return;
-                    }
-                    //Check expiration
-                    if (t.getArchivedAt().toInstant().isBefore(
-                            Instant.now().minusSeconds(Settings.instance().tradeReviewTime))) {
-                        player.sendRichMessage(Messages.instance().tradeExpired);
-                        return;
-                    }
-                    //Open GUI if rating is 0
-                    if (rating == 0) {
-                        ReviewGUI.open(t.getTrade().getUuid(), player);
-                        return;
-                    }
-                    RedisTrade.getInstance().getDataStorage().rateTrade(t.getTrade(), oppositeActor, rating);
-                    player.sendRichMessage(Messages.instance().tradeRated
-                            .replace("%rate%", String.valueOf(rating))
-                            .replace("%stars%", Utils.starsOf(rating))
-                    );
-                }, () -> player.sendRichMessage(Messages.instance().tradeNotFound)));
+          .thenAccept(trade -> trade.ifPresentOrElse(t -> {
+              Actor oppositeActor = t.getTrade().getActor(player).opposite();
+              //Check if is the right actor
+              if (!oppositeActor.isParticipant()) {
+                  player.sendRichMessage(Messages.instance().noPermission);
+                  return;
+              }
+              //Check expiration
+              if (t.getArchivedAt().toInstant().isBefore(
+                Instant.now().minusSeconds(Settings.instance().tradeReviewTime))) {
+                  player.sendRichMessage(Messages.instance().tradeExpired);
+                  return;
+              }
+              //Open GUI if rating is 0
+              if (rating == 0) {
+                  ReviewGUI.open(t.getTrade().getUuid(), player);
+                  return;
+              }
+              RedisTrade.getInstance().getDataStorage().rateTrade(t.getTrade(), oppositeActor, rating);
+              player.sendRichMessage(Messages.instance().tradeRated
+                .replace("%rate%", String.valueOf(rating))
+                .replace("%stars%", Utils.starsOf(rating))
+              );
+          }, () -> player.sendRichMessage(Messages.instance().tradeNotFound)));
     }
 
     @Command(name = "show-trade", desc = "Show trade ratings", usage = "<tradeUUID>")
@@ -74,10 +74,10 @@ public class RateCommand {
         }
 
         plugin.getDataStorage().getArchivedTrade(tradeUUID)
-                .thenAccept(optTrade -> optTrade.ifPresentOrElse(archivedTrade -> {
-                    sendTradeRating(player, archivedTrade.getTrade().getTraderSide(), archivedTrade.getTrade().getCustomerSide().getTraderName());
-                    sendTradeRating(player, archivedTrade.getTrade().getCustomerSide(), archivedTrade.getTrade().getTraderSide().getTraderName());
-                }, () -> player.sendRichMessage(Messages.instance().tradeNotFound)));
+          .thenAccept(optTrade -> optTrade.ifPresentOrElse(archivedTrade -> {
+              sendTradeRating(player, archivedTrade.getTrade().getTraderSide(), archivedTrade.getTrade().getCustomerSide().getTraderName());
+              sendTradeRating(player, archivedTrade.getTrade().getCustomerSide(), archivedTrade.getTrade().getTraderSide().getTraderName());
+          }, () -> player.sendRichMessage(Messages.instance().tradeNotFound)));
     }
 
     @Command(name = "show-player", desc = "Show player rating stats", usage = "[playerNameOrUUID]")
@@ -90,17 +90,17 @@ public class RateCommand {
 
         if (playerNameUUID == null) {
             plugin.getDataStorage().getMeanRating(player.getUniqueId())
-                    .thenAccept(meanRating -> sendMeanRating(player, meanRating));
+              .thenAccept(meanRating -> sendMeanRating(player, meanRating));
             return;
         }
         if (playerNameUUID.length() > 16) {//If it's a UUID
             plugin.getDataStorage().getMeanRating(UUID.fromString(playerNameUUID))
-                    .thenAccept(meanRating -> sendMeanRating(player, meanRating));
+              .thenAccept(meanRating -> sendMeanRating(player, meanRating));
             return;
         }
         plugin.getPlayerListManager().getPlayerUUID(playerNameUUID)
-                .ifPresent(uuid -> plugin.getDataStorage().getMeanRating(uuid)
-                        .thenAccept(meanRating -> sendMeanRating(player, meanRating)));
+          .ifPresent(uuid -> plugin.getDataStorage().getMeanRating(uuid)
+            .thenAccept(meanRating -> sendMeanRating(player, meanRating)));
     }
 
     private void sendMeanRating(Player player, IStorageData.MeanRating meanRating) {
@@ -109,10 +109,10 @@ public class RateCommand {
             return;
         }
         player.sendRichMessage(Messages.instance().playerShowRating
-                .replace("%player%", meanRating.playerName())
-                .replace("%mean%", String.valueOf(meanRating.mean()))
-                .replace("%count%", String.valueOf(meanRating.countedTrades()))
-                .replace("%stars%", Utils.starsOf(meanRating.mean()))
+          .replace("%player%", meanRating.playerName())
+          .replace("%mean%", String.valueOf(meanRating.mean()))
+          .replace("%count%", String.valueOf(meanRating.countedTrades()))
+          .replace("%stars%", Utils.starsOf(meanRating.mean()))
         );
     }
 
@@ -120,14 +120,14 @@ public class RateCommand {
         int rating = tradeSide.getOrder().getRating();
         if (rating != 0) {
             player.sendRichMessage(Messages.instance().tradeShowRating
-                    .replace("%reviewer%", otherTraderName)
-                    .replace("%reviewed%", tradeSide.getTraderName())
-                    .replace("%rate%", String.valueOf(rating))
-                    .replace("%stars%", Utils.starsOf(rating))
+              .replace("%reviewer%", otherTraderName)
+              .replace("%reviewed%", tradeSide.getTraderName())
+              .replace("%rate%", String.valueOf(rating))
+              .replace("%stars%", Utils.starsOf(rating))
             );
         } else {
             player.sendRichMessage(Messages.instance().tradeShowNoRating
-                    .replace("%trader_name%", tradeSide.getTraderName())
+              .replace("%trader_name%", tradeSide.getTraderName())
             );
         }
     }

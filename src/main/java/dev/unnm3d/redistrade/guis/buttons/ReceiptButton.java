@@ -37,7 +37,7 @@ public class ReceiptButton extends AbstractItem {
         if (retrieveTimes++ >= Settings.instance().receiptDelivered) return;
         // Return the cursor item to the player's inventory or drop it if full
         player.getInventory().addItem(receipt).values().forEach(itemStack ->
-                player.getWorld().dropItem(player.getLocation(), itemStack)
+          player.getWorld().dropItem(player.getLocation(), itemStack)
         );
     }
 }

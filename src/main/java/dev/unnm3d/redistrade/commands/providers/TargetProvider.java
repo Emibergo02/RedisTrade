@@ -42,9 +42,9 @@ public class TargetProvider extends DrinkProvider<PlayerListManager.Target> {
     @Override
     public List<String> getSuggestions(CommandSender sender, @NotNull String prefix) {
         return playerListManager.getPlayerList(null)
-                .stream()
-                .filter(s -> s.toLowerCase().startsWith(prefix.toLowerCase()) && !sender.getName().equalsIgnoreCase(s))
-                .toList();
+          .stream()
+          .filter(s -> s.toLowerCase().startsWith(prefix.toLowerCase()) && !sender.getName().equalsIgnoreCase(s))
+          .toList();
     }
 
 }

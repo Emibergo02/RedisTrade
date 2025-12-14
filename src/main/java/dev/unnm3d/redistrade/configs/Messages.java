@@ -46,7 +46,7 @@ public class Messages {
     public String blacklistedItem = "<red>You can't trade this item, it's blacklisted";
     public String notSupported = "<red>This feature is not supported with %feature%";
     public List<String> moneyButtonLore = List.of("<white>Currency: %currency%",
-            "Value: <gold>%amount%%symbol%");
+      "Value: <gold>%amount%%symbol%");
     public String confirmMoneyDisplay = "<green>Confirm the price %amount%%symbol%";
     public String tradeRunning = "<color:#39abab>The trade is still opened in background</color><br><color:#bfbfbf><click:run_command:'/trade %player%'>[Click to resume]</click> or <click:suggest_command:'/trade'>[/trade]</click>";
     public String newTradesLock = "<red>Sorry for the inconvenience. There are temporary synchronization issues<br> Please try again in a few seconds";
@@ -57,10 +57,10 @@ public class Messages {
     public String tradeWindowClosed = "<aqua>Your trade has been put it background<br><color:#bfbfbf><click:run_command:'/trade %player%'>[Click to resume]</click> or <click:suggest_command:'/trade'>[/trade]</click><br><red>You did something you're not allowed to do when trading";
     public String tradeRestricted = "<red>You can't open the trade window because you did something you're not allowed to do: moving, getting damaged, being in combat";
     public Map<String, String> restrictionMessages = Map.of(
-            KnownRestriction.MOVED.toString(), "<red>You can't move while trading",
-            KnownRestriction.DAMAGED.toString(), "<red>You can't get damaged while trading",
-            KnownRestriction.COMBAT.toString(), "<red>You can't be in combat while trading",
-            KnownRestriction.WORLD_CHANGE.toString(), "<red>You can't change world while trading",
-            "WORLD_GUARD", "<red>You can't trade in this region"
+      KnownRestriction.MOVED.toString(), "<red>You can't move while trading",
+      KnownRestriction.DAMAGED.toString(), "<red>You can't get damaged while trading",
+      KnownRestriction.COMBAT.toString(), "<red>You can't be in combat while trading",
+      KnownRestriction.WORLD_CHANGE.toString(), "<red>You can't change world while trading",
+      "WORLD_GUARD", "<red>You can't trade in this region"
     );
 }

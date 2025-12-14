@@ -56,14 +56,13 @@ public class RestrictionService {
             //Close trade GUI for the player if open
             plugin.getTradeManager().getActiveTrade(player.getUniqueId()).ifPresent(trade -> {
                 final TradeSide playerSide = trade.getTradeSide(trade.getActor(player));
-                if(playerSide.getSidePerspective().findAllCurrentViewers().contains(player)){
+                if (playerSide.getSidePerspective().findAllCurrentViewers().contains(player)) {
                     player.closeInventory();
                     player.sendRichMessage(Messages.instance().tradeWindowClosed);
                 }
             });
         }
     }
-
 
 
     public record Restriction(String restrictionName, long endRestrictionTimestamp) {

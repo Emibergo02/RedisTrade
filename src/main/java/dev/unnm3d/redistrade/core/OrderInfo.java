@@ -1,12 +1,10 @@
 package dev.unnm3d.redistrade.core;
 
 import dev.unnm3d.redistrade.core.enums.Status;
-import dev.unnm3d.redistrade.utils.Utils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
 
@@ -80,7 +78,7 @@ public class OrderInfo {
             buffer.get(currencyName);
             //Remove trailing 0s
             prices.put(new String(trim(currencyName), StandardCharsets.ISO_8859_1),
-                    buffer.getDouble());
+              buffer.getDouble());
         }
 
         byte[] serializedInventory = new byte[buffer.remaining()];

@@ -11,7 +11,7 @@ import java.util.UUID;
 public class VaultCurrencyHook extends CurrencyHook {
     private final Economy economy;
 
-    public VaultCurrencyHook(RedisTrade plugin,String currencyName) {
+    public VaultCurrencyHook(RedisTrade plugin, String currencyName) {
         super(currencyName);
         final RegisteredServiceProvider<Economy> rsp = plugin.getServer().getServicesManager().getRegistration(Economy.class);
         if (rsp == null) {

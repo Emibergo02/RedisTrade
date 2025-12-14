@@ -33,9 +33,9 @@ public class BedrockMoneySelectorGUI extends MoneySelector {
 
     private CustomForm createForm(@Nullable String errorMessage) {
         final CustomForm.Builder builder = CustomForm.builder()
-                .title(LegacyComponentSerializer.legacySection().serialize(
-                        MiniMessage.miniMessage().deserialize(GuiSettings.instance().moneyEditorTitle)))
-                .input(GuiSettings.instance().moneyEditorLabel, "", changingPriceString);
+          .title(LegacyComponentSerializer.legacySection().serialize(
+            MiniMessage.miniMessage().deserialize(GuiSettings.instance().moneyEditorTitle)))
+          .input(GuiSettings.instance().moneyEditorLabel, "", changingPriceString);
         if (errorMessage != null) {
             builder.label(errorMessage);
         }
@@ -49,8 +49,8 @@ public class BedrockMoneySelectorGUI extends MoneySelector {
         try {
             double nextPrice = parseNextPrice();
             double balance = RedisTrade.getInstance()
-                    .getIntegrationManager().getCurrencyHook(currencyName)
-                    .getBalance(player.getUniqueId());
+              .getIntegrationManager().getCurrencyHook(currencyName)
+              .getBalance(player.getUniqueId());
             double priceDifference = previousPrice - nextPrice;
 
             if (processTransaction(priceDifference)) {
@@ -58,7 +58,7 @@ public class BedrockMoneySelectorGUI extends MoneySelector {
                     trade.setAndSendPrice(currencyName, nextPrice, playerSide);
                 }
                 RedisTrade.getInstance().getServer().getScheduler().runTaskLater(RedisTrade.getInstance(), () ->
-                        trade.openWindow(player, playerSide), 10L);
+                  trade.openWindow(player, playerSide), 10L);
                 return;
             }
 
@@ -79,7 +79,7 @@ public class BedrockMoneySelectorGUI extends MoneySelector {
      */
     private void sendDelayedForm(CustomForm form) {
         RedisTrade.getInstance().getServer().getScheduler().runTaskLaterAsynchronously(RedisTrade.getInstance(), () ->
-                FloodgateApi.getInstance().sendForm(player.getUniqueId(), form), 10L);
+          FloodgateApi.getInstance().sendForm(player.getUniqueId(), form), 10L);
     }
 
     private double parseNextPrice() throws ParseException, NumberFormatException {

@@ -56,36 +56,36 @@ public class TradeManager {
         final Optional<NewTrade> noTradeOpt = Optional.empty();
         //Create Trade and send update (and open inventories)
         return plugin.getPlayerListManager().getPlayerUUID(targetName)
-                .map(uuid -> {
-                    final Optional<NewTrade> alreadyTrade = Optional.ofNullable(openAlreadyStarted(traderPlayer, uuid));
-                    if (alreadyTrade.isPresent()) return CompletableFuture.completedFuture(alreadyTrade);
-                    //Check distance
-                    if (checkInvalidDistance(traderPlayer, uuid)) {
-                        traderPlayer.sendRichMessage(Messages.instance().tradeDistance
-                                .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
+          .map(uuid -> {
+              final Optional<NewTrade> alreadyTrade = Optional.ofNullable(openAlreadyStarted(traderPlayer, uuid));
+              if (alreadyTrade.isPresent()) return CompletableFuture.completedFuture(alreadyTrade);
+              //Check distance
+              if (checkInvalidDistance(traderPlayer, uuid)) {
+                  traderPlayer.sendRichMessage(Messages.instance().tradeDistance
+                    .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
 
-                        return CompletableFuture.completedFuture(noTradeOpt);
-                    }
+                  return CompletableFuture.completedFuture(noTradeOpt);
+              }
 
-                    final NewTrade trade = new NewTrade(traderPlayer.getUniqueId(), uuid,
-                            traderPlayer.getName(), targetName);
-                    //Update trade calls invite message remotely
-                    return plugin.getDataCache().sendFullTrade(trade)
-                            .exceptionally(throwable -> {
-                                traderPlayer.sendRichMessage(Messages.instance().newTradesLock);
-                                return -1L;
-                            }).thenApply(aLong -> {
-                                if (aLong == -1) return noTradeOpt;
+              final NewTrade trade = new NewTrade(traderPlayer.getUniqueId(), uuid,
+                traderPlayer.getName(), targetName);
+              //Update trade calls invite message remotely
+              return plugin.getDataCache().sendFullTrade(trade)
+                .exceptionally(throwable -> {
+                    traderPlayer.sendRichMessage(Messages.instance().newTradesLock);
+                    return -1L;
+                }).thenApply(aLong -> {
+                    if (aLong == -1) return noTradeOpt;
 
-                                initializeTrade(RedisTrade.getServerId(), trade);
-                                traderPlayer.sendRichMessage(Messages.instance().tradeCreated.replace("%player%", targetName));
-                                plugin.getServer().getScheduler().runTask(plugin, () -> openWindow(trade, traderPlayer));
-                                return Optional.of(trade);
-                            });
-                }).orElseGet(() -> {
-                    traderPlayer.sendRichMessage(Messages.instance().playerNotFound.replace("%player%", targetName));
-                    return CompletableFuture.completedFuture(noTradeOpt);
+                    initializeTrade(RedisTrade.getServerId(), trade);
+                    traderPlayer.sendRichMessage(Messages.instance().tradeCreated.replace("%player%", targetName));
+                    plugin.getServer().getScheduler().runTask(plugin, () -> openWindow(trade, traderPlayer));
+                    return Optional.of(trade);
                 });
+          }).orElseGet(() -> {
+              traderPlayer.sendRichMessage(Messages.instance().playerNotFound.replace("%player%", targetName));
+              return CompletableFuture.completedFuture(noTradeOpt);
+          });
     }
 
     /**
@@ -109,12 +109,12 @@ public class TradeManager {
      */
     public void sendAllCurrentTrades() {
         tradeServerOwners.entrySet().stream().filter(record -> record.getValue() == RedisTrade.getServerId())
-                .forEach(record -> {
-                    NewTrade trade = trades.get(record.getKey());
-                    if (trade == null) return;
-                    plugin.getDataCache().sendFullTrade(trade);
-                    RedisTrade.debug("Sending trade query response: " + trade.getUuid());
-                });
+          .forEach(record -> {
+              NewTrade trade = trades.get(record.getKey());
+              if (trade == null) return;
+              plugin.getDataCache().sendFullTrade(trade);
+              RedisTrade.debug("Sending trade query response: " + trade.getUuid());
+          });
     }
 
     public void setTradeServerOwner(UUID tradeUUID, int serverId) {
@@ -127,26 +127,26 @@ public class TradeManager {
 
     public Optional<NewTrade> getActiveTrade(UUID playerUUID) {
         return Optional.ofNullable(playerTrades.get(playerUUID))
-                .map(trades::get);
+          .map(trades::get);
     }
 
     public void openBrowser(Player player, UUID targetUUID, LocalDateTime start, LocalDateTime end) {
         if (plugin.getDataStorage() instanceof Database database) {
             database.getArchivedTrades(targetUUID, start, end)
-                    .thenAcceptAsync(trades -> {
-                        final List<Item> receiptItems = trades.stream()
-                                .map(entry -> ReceiptBuilder.buildReceipt(entry.getTrade(), entry.getArchivedAt()))
-                                .toList();
-                        Bukkit.getScheduler().runTask(plugin, () ->
-                                new TradeBrowserGUI(receiptItems).openWindow(player));
-                    })
-                    .exceptionally(e -> {
-                        e.printStackTrace();
-                        return null;
-                    });
+              .thenAcceptAsync(trades -> {
+                  final List<Item> receiptItems = trades.stream()
+                    .map(entry -> ReceiptBuilder.buildReceipt(entry.getTrade(), entry.getArchivedAt()))
+                    .toList();
+                  Bukkit.getScheduler().runTask(plugin, () ->
+                    new TradeBrowserGUI(receiptItems).openWindow(player));
+              })
+              .exceptionally(e -> {
+                  e.printStackTrace();
+                  return null;
+              });
         } else {
             player.sendRichMessage(Messages.instance().notSupported
-                    .replace("%feature%", "Redis database"));
+              .replace("%feature%", "Redis database"));
         }
     }
 
@@ -159,35 +159,35 @@ public class TradeManager {
     @Nullable
     public NewTrade openAlreadyStarted(Player traderPlayer, UUID targetUUID) {
         final NewTrade traderTrade = Optional.ofNullable(playerTrades.get(traderPlayer.getUniqueId()))
-                .map(trades::get)
-                .orElse(null);
+          .map(trades::get)
+          .orElse(null);
         if (traderTrade != null) {
             if (traderTrade.isCustomer(targetUUID) || traderTrade.isTrader(targetUUID)) {
                 plugin.getServer().getScheduler().runTask(plugin, () ->
-                        openWindow(traderTrade, traderPlayer));
+                  openWindow(traderTrade, traderPlayer));
                 return traderTrade;
             }
 
             plugin.getPlayerListManager().getPlayerName(traderTrade.getCustomerSide().getTraderUUID())
-                    .ifPresent(name -> traderPlayer.sendRichMessage(Messages.instance().alreadyInTrade
-                            .replace("%player%", name)));
+              .ifPresent(name -> traderPlayer.sendRichMessage(Messages.instance().alreadyInTrade
+                .replace("%player%", name)));
 
             return traderTrade;
         }
 
         final NewTrade targetTrade = Optional.ofNullable(playerTrades.get(targetUUID))
-                .map(trades::get)
-                .orElse(null);
+          .map(trades::get)
+          .orElse(null);
         if (targetTrade != null) {
             if (targetTrade.isCustomer(traderPlayer.getUniqueId()) || targetTrade.isTrader(traderPlayer.getUniqueId())) {
                 plugin.getServer().getScheduler().runTask(plugin, () ->
-                        openWindow(targetTrade, traderPlayer));
+                  openWindow(targetTrade, traderPlayer));
                 return targetTrade;
             }
 
             plugin.getPlayerListManager().getPlayerName(targetUUID)
-                    .ifPresent(name -> traderPlayer.sendRichMessage(Messages.instance().targetAlreadyInTrade
-                            .replace("%player%", name)));
+              .ifPresent(name -> traderPlayer.sendRichMessage(Messages.instance().targetAlreadyInTrade
+                .replace("%player%", name)));
             return targetTrade;
         }
         return null;
@@ -250,14 +250,14 @@ public class TradeManager {
             trade.retrievedPhase(tradeSide, tradeSide).thenAcceptAsync(finalStatus -> {
                 if (finalStatus != Status.RETRIEVED) {
                     player.sendRichMessage(Messages.instance().tradeRunning
-                            .replace("%player%", trade.getTradeSide(tradeSide.opposite()).getTraderName()));
+                      .replace("%player%", trade.getTradeSide(tradeSide.opposite()).getTraderName()));
                     return;
                 }
 
                 trade.refundSide(tradeSide);
                 actorSide.getSidePerspective().findAllCurrentViewers()
-                        .stream().filter(he -> trade.getActor(he) != Actor.ADMIN)
-                        .forEach(Player::closeInventory);
+                  .stream().filter(he -> trade.getActor(he) != Actor.ADMIN)
+                  .forEach(Player::closeInventory);
 
                 if (oppositeTradeSide.getOrder().getStatus() == Status.RETRIEVED) {
                     player.closeInventory();
@@ -282,18 +282,18 @@ public class TradeManager {
             trade.retrievedPhase(tradeSide.opposite(), tradeSide).thenAccept(result -> {
                 if (result != Status.RETRIEVED) {
                     player.sendRichMessage(Messages.instance().tradeRunning
-                            .replace("%player%", trade.getTradeSide(tradeSide.opposite()).getTraderName()));
+                      .replace("%player%", trade.getTradeSide(tradeSide.opposite()).getTraderName()));
                     return;
                 }
                 actorSide.getSidePerspective().findAllCurrentViewers()
-                        .stream().filter(he -> trade.getActor(he) != Actor.ADMIN)
-                        .forEach(Player::closeInventory);
+                  .stream().filter(he -> trade.getActor(he) != Actor.ADMIN)
+                  .forEach(Player::closeInventory);
             });
             RedisTrade.debug(trade.getUuid() + " Returned " + returnedItems + " items to " + player.getName());
             return;
         }
         player.sendRichMessage(Messages.instance().tradeRunning
-                .replace("%player%", trade.getTradeSide(tradeSide.opposite()).getTraderName()));
+          .replace("%player%", trade.getTradeSide(tradeSide.opposite()).getTraderName()));
     }
 
 
@@ -301,7 +301,7 @@ public class TradeManager {
         final RestrictionService.Restriction restriction = plugin.getRestrictionService().getRestriction(player, trade);
         if (restriction != null) {
             player.sendRichMessage(Messages.instance().restrictionMessages
-                    .getOrDefault(restriction.restrictionName(), Messages.instance().tradeRestricted));
+              .getOrDefault(restriction.restrictionName(), Messages.instance().tradeRestricted));
             return;
         }
         final Actor actorSide = trade.getActor(player);
@@ -343,7 +343,7 @@ public class TradeManager {
 
     public void loadIgnoredPlayers(String playerName) {
         plugin.getDataStorage().getIgnoredPlayers(playerName)
-                .thenAccept(ignoredPlayers -> ignorePlayers.put(playerName, new HashSet<>(ignoredPlayers)));
+          .thenAccept(ignoredPlayers -> ignorePlayers.put(playerName, new HashSet<>(ignoredPlayers)));
     }
 
     public void ignorePlayerCloud(String playerName, String targetName, boolean ignore) {
@@ -375,9 +375,9 @@ public class TradeManager {
         RedisTrade.debug("Trade initialized: " + trade.getUuid());
         try {
             trade.getTradeSide(Actor.TRADER).setSidePerspective(
-                    new TradeGuiBuilder(trade, Actor.TRADER).build());
+              new TradeGuiBuilder(trade, Actor.TRADER).build());
             trade.getTradeSide(Actor.CUSTOMER).setSidePerspective(
-                    new TradeGuiBuilder(trade, Actor.CUSTOMER).build());
+              new TradeGuiBuilder(trade, Actor.CUSTOMER).build());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -386,20 +386,20 @@ public class TradeManager {
         //This happens when the trade is taken from backup table,
         // and we receive a full trade update from the query system
         Optional.ofNullable(trades.get(trade.getUuid()))
-                .ifPresent(tradeFound -> {
+          .ifPresent(tradeFound -> {
 
-                    final Set<Player> traderViewers = tradeFound.getTradeSide(Actor.TRADER).getSidePerspective()
-                            .findAllCurrentViewers();
-                    final Set<Player> customerViewers = tradeFound.getTradeSide(Actor.CUSTOMER).getSidePerspective()
-                            .findAllCurrentViewers();
-                    tradeFound.getTradeSide(Actor.TRADER).getSidePerspective().closeForAllViewers();
-                    tradeFound.getTradeSide(Actor.CUSTOMER).getSidePerspective().closeForAllViewers();
+              final Set<Player> traderViewers = tradeFound.getTradeSide(Actor.TRADER).getSidePerspective()
+                .findAllCurrentViewers();
+              final Set<Player> customerViewers = tradeFound.getTradeSide(Actor.CUSTOMER).getSidePerspective()
+                .findAllCurrentViewers();
+              tradeFound.getTradeSide(Actor.TRADER).getSidePerspective().closeForAllViewers();
+              tradeFound.getTradeSide(Actor.CUSTOMER).getSidePerspective().closeForAllViewers();
 
-                    removeTrade(tradeFound.getUuid());
+              removeTrade(tradeFound.getUuid());
 
-                    traderViewers.forEach(player -> trade.openWindow(player, Actor.TRADER));
-                    customerViewers.forEach(player -> trade.openWindow(player, Actor.CUSTOMER));
-                });
+              traderViewers.forEach(player -> trade.openWindow(player, Actor.TRADER));
+              customerViewers.forEach(player -> trade.openWindow(player, Actor.CUSTOMER));
+          });
         setTradeServerOwner(trade.getUuid(), serverId);
         trades.put(trade.getUuid(), trade);
 
@@ -418,8 +418,8 @@ public class TradeManager {
         Player foundPlayer = plugin.getServer().getPlayer(trade.getCustomerSide().getTraderUUID());
         if (foundPlayer != null) {
             plugin.getPlayerListManager().getPlayerName(trade.getTraderSide().getTraderUUID())
-                    .ifPresent(name -> foundPlayer.sendRichMessage(Messages.instance().tradeReceived
-                            .replace("%player%", name)));
+              .ifPresent(name -> foundPlayer.sendRichMessage(Messages.instance().tradeReceived
+                .replace("%player%", name)));
         }
     }
 

@@ -53,7 +53,7 @@ public class MinecraftValueCurrencyHook extends CurrencyHook {
                     ItemStack itemStack = new ItemStack(Material.EXPERIENCE_BOTTLE);
                     itemStack.editMeta(meta -> {
                         meta.displayName(MiniMessage.miniMessage().deserialize(GuiSettings.instance().xpBottleDisplayName
-                                .replace("%amount%", String.valueOf((int) amount))));
+                          .replace("%amount%", String.valueOf((int) amount))));
                         meta.getPersistentDataContainer().set(new NamespacedKey("redistrade", "xp"), PersistentDataType.INTEGER, (int) amount);
                     });
                     if (traderInventory.addItem(null, itemStack) != 0) {
@@ -62,7 +62,7 @@ public class MinecraftValueCurrencyHook extends CurrencyHook {
                 });
                 yield true;
 
-            //Keep the switch for new implementations
+                //Keep the switch for new implementations
             default:
                 yield false;
         };

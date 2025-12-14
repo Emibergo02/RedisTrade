@@ -28,12 +28,13 @@ public class PlayerListManager implements Listener {
         this.task = new BukkitRunnable() {
             @Override
             public void run() {
-                onlinePlayerList.entrySet().removeIf(stringLongEntry -> System.currentTimeMillis() - stringLongEntry.getValue() > 1000 * 4);
+                onlinePlayerList.entrySet().removeIf(stringLongEntry ->
+                  System.currentTimeMillis() - stringLongEntry.getValue() > 1000 * 4);
 
                 final List<String> tempList = plugin.getServer().getOnlinePlayers().stream()
-                        .map(HumanEntity::getName)
-                        .filter(n -> !n.isEmpty())
-                        .toList();
+                  .map(HumanEntity::getName)
+                  .filter(n -> !n.isEmpty())
+                  .toList();
                 if (!tempList.isEmpty())
                     plugin.getDataCache().publishPlayerList(tempList);
                 tempList.forEach(s -> onlinePlayerList.put(s, System.currentTimeMillis()));
@@ -43,16 +44,16 @@ public class PlayerListManager implements Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
 
         plugin.getDataStorage().loadNameUUIDs()
-                .thenAccept(map -> {
-                    //Allow the plugin to load the players that are already online
-                    plugin.getServer().getOnlinePlayers().forEach(player ->
-                            map.put(player.getName(), player.getUniqueId())
-                    );
-                    nameUUIDs.clear();
-                    nameUUIDs.putAll(map);
+          .thenAccept(map -> {
+              //Allow the plugin to load the players that are already online
+              plugin.getServer().getOnlinePlayers().forEach(player ->
+                map.put(player.getName(), player.getUniqueId())
+              );
+              nameUUIDs.clear();
+              nameUUIDs.putAll(map);
 
-                    plugin.getLogger().info("Loaded " + map.size() + " nameUUIDs from database");
-                });
+              plugin.getLogger().info("Loaded " + map.size() + " nameUUIDs from database");
+          });
 
 
     }

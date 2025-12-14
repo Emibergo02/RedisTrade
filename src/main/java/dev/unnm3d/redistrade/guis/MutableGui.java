@@ -40,8 +40,8 @@ public class MutableGui extends AbstractGui {
         if (itemPositions == null) return this;
 
         itemPositions.forEach(itemPosition ->
-                setSlotElement(itemPosition.x, itemPosition.y,
-                        new SlotElement.ItemSlotElement(item)));
+          setSlotElement(itemPosition.x, itemPosition.y,
+            new SlotElement.ItemSlotElement(item)));
         return this;
     }
 
@@ -56,7 +56,7 @@ public class MutableGui extends AbstractGui {
         int i = 0;
         for (ItemPosition itemPosition : itemPositions) {
             setSlotElement(itemPosition.x, itemPosition.y,
-                    new SlotElement.InventorySlotElement(inventory, i++));
+              new SlotElement.InventorySlotElement(inventory, i++));
         }
         return this;
     }
@@ -73,17 +73,17 @@ public class MutableGui extends AbstractGui {
                 continue;
             }
             itemPositions.forEach(itemPosition -> setSlotElement(itemPosition.x, itemPosition.y,
-                    new SlotElement.ItemSlotElement(item)));
+              new SlotElement.ItemSlotElement(item)));
         }
         return this;
     }
 
     public void notifyItem(char c) {
         Optional.ofNullable(itemPositionsMap.get(c))
-                .ifPresent(itemPositions -> itemPositions.stream()
-                        .map(itemPosition -> getItem(itemPosition.x, itemPosition.y))
-                        .filter(Objects::nonNull)
-                        .forEach(Item::notifyWindows));
+          .ifPresent(itemPositions -> itemPositions.stream()
+            .map(itemPosition -> getItem(itemPosition.x, itemPosition.y))
+            .filter(Objects::nonNull)
+            .forEach(Item::notifyWindows));
     }
 
 

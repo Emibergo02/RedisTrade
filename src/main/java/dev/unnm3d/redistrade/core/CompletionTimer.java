@@ -29,16 +29,16 @@ public class CompletionTimer extends BukkitRunnable {
         }
 
         Optional.ofNullable(Bukkit.getPlayer(this.traderUUID))
-                .ifPresent(player -> {
-                    player.sendRichMessage(Messages.instance().completionTimer.replace("%time%", String.valueOf(4 - this.iteration)));
-                    player.playSound(player, "entity.experience_orb.pickup", 1, 1);
-                });
+          .ifPresent(player -> {
+              player.sendRichMessage(Messages.instance().completionTimer.replace("%time%", String.valueOf(4 - this.iteration)));
+              player.playSound(player, "entity.experience_orb.pickup", 1, 1);
+          });
 
         Optional.ofNullable(Bukkit.getPlayer(this.targetUUID))
-                .ifPresent(player -> {
-                    player.sendRichMessage(Messages.instance().completionTimer.replace("%time%", String.valueOf(4 - this.iteration)));
-                    player.playSound(player, "entity.experience_orb.pickup", 1, 1);
-                });
+          .ifPresent(player -> {
+              player.sendRichMessage(Messages.instance().completionTimer.replace("%time%", String.valueOf(4 - this.iteration)));
+              player.playSound(player, "entity.experience_orb.pickup", 1, 1);
+          });
 
         this.iteration++;
     }

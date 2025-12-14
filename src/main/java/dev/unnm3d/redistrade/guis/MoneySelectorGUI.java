@@ -55,7 +55,7 @@ public class MoneySelectorGUI extends MoneySelector {
             @Override
             public ItemProvider getItemProvider() {
                 return GuiSettings.instance().moneyDisplay.toItemBuilder()
-                        .setMiniMessageDisplayName(changingPriceString);
+                  .setMiniMessageDisplayName(changingPriceString);
             }
 
             @Override
@@ -70,10 +70,10 @@ public class MoneySelectorGUI extends MoneySelector {
             @Override
             public ItemProvider getItemProvider() {
                 return GuiSettings.instance().moneyConfirmButton.toItemBuilder()
-                        .setMiniMessageItemName(Messages.instance().confirmMoneyDisplay
-                                .replace("%amount%", changingPriceString)
-                                .replace("%symbol%", RedisTrade.getInstance().getIntegrationManager()
-                                        .getCurrencyHook(currencyName).getCurrencySymbol()));
+                  .setMiniMessageItemName(Messages.instance().confirmMoneyDisplay
+                    .replace("%amount%", changingPriceString)
+                    .replace("%symbol%", RedisTrade.getInstance().getIntegrationManager()
+                      .getCurrencyHook(currencyName).getCurrencySymbol()));
             }
 
             @Override
@@ -87,24 +87,24 @@ public class MoneySelectorGUI extends MoneySelector {
     @Override
     public void openWindow() {
         AnvilWindow.single()
-                .setRenameHandlers(List.of(stringRename -> {
-                    this.changingPriceString = stringRename;
-                    this.moneyConfirmButton.notifyWindows();
-                }))
-                .setGui(currentGui)
-                .setCloseable(true)
-                .setTitle(new AdventureComponentWrapper(MiniMessage.miniMessage().deserialize(
-                        GuiSettings.instance().moneyEditorTitle.replace("%currency%", currencyName))))
-                .addCloseHandler(this::handleClose)
-                .open(player);
+          .setRenameHandlers(List.of(stringRename -> {
+              this.changingPriceString = stringRename;
+              this.moneyConfirmButton.notifyWindows();
+          }))
+          .setGui(currentGui)
+          .setCloseable(true)
+          .setTitle(new AdventureComponentWrapper(MiniMessage.miniMessage().deserialize(
+            GuiSettings.instance().moneyEditorTitle.replace("%currency%", currencyName))))
+          .addCloseHandler(this::handleClose)
+          .open(player);
     }
 
     public void handleConfirm() {
         try {
             double nextPrice = parseNextPrice();
             double balance = RedisTrade.getInstance()
-                    .getIntegrationManager().getCurrencyHook(currencyName)
-                    .getBalance(player.getUniqueId());
+              .getIntegrationManager().getCurrencyHook(currencyName)
+              .getBalance(player.getUniqueId());
             double priceDifference = previousPrice - nextPrice;
 
             if (processTransaction(priceDifference)) {
@@ -138,12 +138,12 @@ public class MoneySelectorGUI extends MoneySelector {
 
     public void handleClose() {
         player.getInventory().addItem(player.getItemOnCursor()).values().forEach(itemStack ->
-                player.getWorld().dropItem(player.getLocation(), itemStack)
+          player.getWorld().dropItem(player.getLocation(), itemStack)
         );
         player.setItemOnCursor(null);
         // Delay the reopening of the trade window to avoid skipping the modifications made up in this method
         RedisTrade.getInstance().getServer().getScheduler().runTaskLater(RedisTrade.getInstance(), () ->
-                trade.openWindow(player, playerSide), 1);
+          trade.openWindow(player, playerSide), 1);
 
     }
 }

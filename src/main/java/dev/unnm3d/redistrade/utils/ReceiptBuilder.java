@@ -45,7 +45,7 @@ public class ReceiptBuilder {
             Component pageContent = Component.empty();
             for (Iterator<String> it = formatList.iterator(); it.hasNext(); ) {
                 pageContent = pageContent.append(MiniMessage.miniMessage().deserialize(
-                        tradePlaceholders(trade, it.next()).replace("%timestamp%", parsedDate)
+                  tradePlaceholders(trade, it.next()).replace("%timestamp%", parsedDate)
                 ));
                 if (it.hasNext()) {
                     pageContent = pageContent.append(Component.newline());
@@ -56,15 +56,15 @@ public class ReceiptBuilder {
 
         // Add pages for trader and customer items
         buildPages(true, trade.getTraderSide().getOrder().getVirtualInventory().getItems())
-                .forEach(writtenMeta::addPages);
+          .forEach(writtenMeta::addPages);
 
         buildPages(false, trade.getCustomerSide().getOrder().getVirtualInventory().getItems())
-                .forEach(writtenMeta::addPages);
+          .forEach(writtenMeta::addPages);
 
         // Set the book display name
         writtenMeta.itemName(MiniMessage.miniMessage().deserialize(
-                tradePlaceholders(trade, "<!i>" + GuiSettings.instance().receiptBookDisplayName)
-                        .replace("%timestamp%", parsedDate)
+          tradePlaceholders(trade, "<!i>" + GuiSettings.instance().receiptBookDisplayName)
+            .replace("%timestamp%", parsedDate)
         ));
 
         // Build the book lore
@@ -78,7 +78,7 @@ public class ReceiptBuilder {
                 addItemsToLore(lore, trade.getCustomerSide().getOrder().getVirtualInventory().getItems());
             } else {
                 lore.add(MiniMessage.miniMessage().deserialize("<white><!i>" +
-                        tradePlaceholders(trade, loreString).replace("%timestamp%", parsedDate)
+                  tradePlaceholders(trade, loreString).replace("%timestamp%", parsedDate)
                 ));
             }
         }
@@ -103,20 +103,20 @@ public class ReceiptBuilder {
 
     private void addItemsToLore(List<Component> lore, ItemStack[] items) {
         Arrays.stream(items)
-                .filter(Objects::nonNull)
-                .map(item -> MiniMessage.miniMessage().deserialize(
-                        GuiSettings.instance().itemDisplayLoreFormat.replace("%amount%", String.valueOf(item.getAmount()))
-                ).replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
-                        .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
-                .forEach(lore::add);
+          .filter(Objects::nonNull)
+          .map(item -> MiniMessage.miniMessage().deserialize(
+            GuiSettings.instance().itemDisplayLoreFormat.replace("%amount%", String.valueOf(item.getAmount()))
+          ).replaceText(rBuilder -> rBuilder.matchLiteral("%item_display%")
+            .replacement(getItemDisplay(item.getItemMeta(), item.translationKey()))))
+          .forEach(lore::add);
     }
 
 
     public String tradePlaceholders(NewTrade trade, String toParse) {
         // Initial replacements for trader, customer, and trade UUID
         StringBuilder sb = new StringBuilder(toParse.replace("%trader%", trade.getTraderSide().getTraderName())
-                .replace("%customer%", trade.getCustomerSide().getTraderName())
-                .replace("%trade_uuid%", trade.getUuid().toString()));
+          .replace("%customer%", trade.getCustomerSide().getTraderName())
+          .replace("%trade_uuid%", trade.getUuid().toString()));
 
         // Replace price placeholders
         Matcher priceMatcher = PRICE_PATTERN.matcher(sb);
@@ -125,8 +125,8 @@ public class ReceiptBuilder {
             String currencyName = priceMatcher.group(1);
             String side = priceMatcher.group(2);
             double price = side.equals("trader") ?
-                    trade.getTraderSide().getOrder().getPrice(currencyName) :
-                    trade.getCustomerSide().getOrder().getPrice(currencyName);
+              trade.getTraderSide().getOrder().getPrice(currencyName) :
+              trade.getCustomerSide().getOrder().getPrice(currencyName);
             priceMatcher.appendReplacement(tempSb, Matcher.quoteReplacement(decimalFormat.format(price)));
         }
         priceMatcher.appendTail(tempSb);
@@ -137,7 +137,7 @@ public class ReceiptBuilder {
         while (symbolMatcher.find()) {
             String currencyName = symbolMatcher.group(1);
             String symbol = RedisTrade.getInstance().getIntegrationManager()
-                    .getCurrencyHook(currencyName).getCurrencySymbol();
+              .getCurrencyHook(currencyName).getCurrencySymbol();
             symbolMatcher.appendReplacement(sb, Matcher.quoteReplacement(symbol));
         }
         symbolMatcher.appendTail(sb);
@@ -166,10 +166,10 @@ public class ReceiptBuilder {
 
             // Format the item name with placeholders and hover event
             final Component itemName = MiniMessage.miniMessage().deserialize(
-                            GuiSettings.instance().itemFormat.replace("%amount%", String.valueOf(item.getAmount())))
-                    .replaceText(rBuilder -> rBuilder.matchLiteral("%item_name%")
-                            .replacement(getItemDisplay(item.getItemMeta(), item.translationKey())))
-                    .hoverEvent(item.asHoverEvent());
+                GuiSettings.instance().itemFormat.replace("%amount%", String.valueOf(item.getAmount())))
+              .replaceText(rBuilder -> rBuilder.matchLiteral("%item_name%")
+                .replacement(getItemDisplay(item.getItemMeta(), item.translationKey())))
+              .hoverEvent(item.asHoverEvent());
 
             // Append the item name to the current page
             currentPage = currentPage.append(itemName).appendNewline();

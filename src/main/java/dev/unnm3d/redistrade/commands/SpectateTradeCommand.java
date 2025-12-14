@@ -22,17 +22,17 @@ public class SpectateTradeCommand {
         }
         String playerName = targetName.playerName();
         plugin.getPlayerListManager().getPlayerUUID(playerName)
-                //Find player's UUID
-                .ifPresentOrElse(targetUUID -> plugin.getTradeManager().getActiveTrade(targetUUID)
-                                //Open trade window if player is in a trade
-                                .ifPresentOrElse(trade -> {
-                                            Actor targetActor = trade.isTrader(targetUUID) ? Actor.TRADER : Actor.CUSTOMER;
-                                            plugin.getServer().getScheduler().runTask(plugin, () ->
-                                                    //Open the window on the main thread
-                                                    trade.openWindow(player, targetActor));
-                                        },
-                                        () -> player.sendRichMessage(Messages.instance().noPendingTradesOther
-                                                .replace("%player%", playerName))),
-                        () -> player.sendRichMessage(Messages.instance().playerNotFound.replace("%player%", playerName)));
+          //Find player's UUID
+          .ifPresentOrElse(targetUUID -> plugin.getTradeManager().getActiveTrade(targetUUID)
+              //Open trade window if player is in a trade
+              .ifPresentOrElse(trade -> {
+                    Actor targetActor = trade.isTrader(targetUUID) ? Actor.TRADER : Actor.CUSTOMER;
+                    plugin.getServer().getScheduler().runTask(plugin, () ->
+                      //Open the window on the main thread
+                      trade.openWindow(player, targetActor));
+                },
+                () -> player.sendRichMessage(Messages.instance().noPendingTradesOther
+                  .replace("%player%", playerName))),
+            () -> player.sendRichMessage(Messages.instance().playerNotFound.replace("%player%", playerName)));
     }
 }

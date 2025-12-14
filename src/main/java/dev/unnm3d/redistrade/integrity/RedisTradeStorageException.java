@@ -14,6 +14,7 @@ public class RedisTradeStorageException extends Exception {
         this.source = source;
         this.tradeUUID = tradeUUID;
     }
+
     public RedisTradeStorageException(Throwable cause, ExceptionSource source) {
         this(cause, source, null);
     }

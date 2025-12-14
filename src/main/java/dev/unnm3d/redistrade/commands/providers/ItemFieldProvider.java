@@ -32,8 +32,8 @@ public class ItemFieldProvider extends DrinkProvider<Field> {
     @Override
     public Field provide(@Nonnull CommandArg arg, @Nonnull List<? extends Annotation> annotations) throws CommandExitMessage {
         final Optional<Field> optionalField = Arrays.stream(GuiSettings.class.getDeclaredFields())
-                .filter(f -> f.getName().equals(arg.get()))
-                .findFirst();
+          .filter(f -> f.getName().equals(arg.get()))
+          .findFirst();
         if (optionalField.isEmpty()) {
             throw new CommandExitMessage("Field not found");
         }
@@ -48,9 +48,9 @@ public class ItemFieldProvider extends DrinkProvider<Field> {
     @Override
     public List<String> getSuggestions(CommandSender sender, @Nonnull String prefix, Map<CommandParameter, String> parameters, List<Annotation> annotations) {
         return Arrays.stream(GuiSettings.class.getDeclaredFields())
-                .filter(f -> f.getType().equals(GuiSettings.SimpleSerializableItem.class))
-                .map(Field::getName)
-                .filter(n -> n.startsWith(prefix))
-                .toList();
+          .filter(f -> f.getType().equals(GuiSettings.SimpleSerializableItem.class))
+          .map(Field::getName)
+          .filter(n -> n.startsWith(prefix))
+          .toList();
     }
 }

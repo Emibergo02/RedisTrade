@@ -29,7 +29,7 @@ public class IgnoreCommand {
     @Require("redistrade.ignore")
     public void ignoreList(@Sender Player player) {
         player.sendRichMessage(Messages.instance().tradeIgnoreList.replace("%list%",
-                String.join(", ", tradeManager.getIgnoredPlayers(player.getName()))));
+          String.join(", ", tradeManager.getIgnoredPlayers(player.getName()))));
     }
 
 }

@@ -14,18 +14,14 @@ import dev.unnm3d.redistrade.guis.buttons.CancelButton;
 import dev.unnm3d.redistrade.guis.buttons.MoneyEditorButton;
 import dev.unnm3d.redistrade.guis.buttons.ProfileDisplay;
 import dev.unnm3d.redistrade.guis.buttons.ReviewButton;
-import io.papermc.paper.datacomponent.DataComponentType;
-import io.papermc.paper.datacomponent.DataComponentTypes;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
@@ -55,15 +51,15 @@ public final class TradeGuiBuilder {
         TradeSide oppositeTradeSide = trade.getTradeSide(actorSide.opposite());
 
         final MutableGui gui = new MutableGui(GuiSettings.instance().tradeGuiStructure.toArray(new String[0]))
-                .setIngredient('L', actorTradeSide.getOrder().getVirtualInventory())
-                .setIngredient('R', oppositeTradeSide.getOrder().getVirtualInventory())
-                .setIngredient('C', getConfirmButton(actorSide))
-                .setIngredient('c', getConfirmButton(actorSide.opposite()))
-                .setIngredient('D', new CancelButton(trade, actorSide))
-                .setIngredient('v', new ProfileDisplay(oppositeTradeSide))
-                .setIngredient('V', new ReviewButton(trade.getUuid(), oppositeTradeSide))
-                //Set the money editor buttons and rating GUI as background by default
-                .setIngredients("MNOPQmnopqrx", GuiSettings.instance().separator.toItemBuilder());
+          .setIngredient('L', actorTradeSide.getOrder().getVirtualInventory())
+          .setIngredient('R', oppositeTradeSide.getOrder().getVirtualInventory())
+          .setIngredient('C', getConfirmButton(actorSide))
+          .setIngredient('c', getConfirmButton(actorSide.opposite()))
+          .setIngredient('D', new CancelButton(trade, actorSide))
+          .setIngredient('v', new ProfileDisplay(oppositeTradeSide))
+          .setIngredient('V', new ReviewButton(trade.getUuid(), oppositeTradeSide))
+          //Set the money editor buttons and rating GUI as background by default
+          .setIngredients("MNOPQmnopqrx", GuiSettings.instance().separator.toItemBuilder());
         int i = 'M'; //Cycle MNOPQ... and mnopq... as many currencies are allowed
         for (String currencyName : RedisTrade.getInstance().getIntegrationManager().getCurrencyNames()) {
             gui.setIngredient((char) i, new MoneyEditorButton(trade, actorSide, currencyName));
@@ -95,7 +91,7 @@ public final class TradeGuiBuilder {
         if (!(event.getUpdateReason() instanceof PlayerUpdateReason pur)) return;
         if (event.getPreviousItem() == null) return;
         Integer xpAmount = event.getPreviousItem().getItemMeta().getPersistentDataContainer()
-                .get(new NamespacedKey("redistrade", "xp"), PersistentDataType.INTEGER);
+          .get(new NamespacedKey("redistrade", "xp"), PersistentDataType.INTEGER);
         if (xpAmount == null) return;
         pur.getPlayer().giveExp(xpAmount);
         pur.getPlayer().playSound(pur.getPlayer(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
@@ -126,12 +122,10 @@ public final class TradeGuiBuilder {
         if (event.getNewItem() != null) {
             final String itemTypeKey = event.getNewItem().getType().getKey().toString(); // example: "minecraft:diamond_sword"
             final String itemAsString = itemTypeKey + event.getNewItem().getItemMeta().getAsComponentString(); // results in: "minecraft:diamond_sword[minecraft:damage=53]"
-
-
             for (Settings.BlacklistedItemRegex blacklistedRegex : Settings.instance().blacklistedItemRegexes) {
                 boolean matches = blacklistedRegex.containsOnly()
-                        ? itemAsString.contains(blacklistedRegex.regex())
-                        : itemAsString.matches(blacklistedRegex.regex());
+                  ? itemAsString.contains(blacklistedRegex.regex())
+                  : itemAsString.matches(blacklistedRegex.regex());
 
                 if (matches) {
                     playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().blacklistedItem);
@@ -142,7 +136,7 @@ public final class TradeGuiBuilder {
         //Check distance
         if (RedisTrade.getInstance().getTradeManager().checkInvalidDistance(playerUpdateReason.getPlayer(), trade.getTradeSide(actorSide.opposite()).getTraderUUID())) {
             playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().tradeDistance
-                    .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
+              .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
             return true;
         }
 
@@ -186,13 +180,13 @@ public final class TradeGuiBuilder {
                         //Check distance
                         if (RedisTrade.getInstance().getTradeManager().checkInvalidDistance(player, trade.getTradeSide(actor.opposite()).getTraderUUID())) {
                             player.sendRichMessage(Messages.instance().tradeDistance
-                                    .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
+                              .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
                             return;
                         }
                         trade.changeAndSendStatus(StatusActor.valueOf(confirmActorSide, Status.CONFIRMED), orderInfo.getStatus(), confirmActorSide);
                     }
                     case CONFIRMED ->
-                            trade.changeAndSendStatus(StatusActor.valueOf(confirmActorSide, Status.REFUSED), orderInfo.getStatus(), confirmActorSide);
+                      trade.changeAndSendStatus(StatusActor.valueOf(confirmActorSide, Status.REFUSED), orderInfo.getStatus(), confirmActorSide);
                     case COMPLETED, RETRIEVED -> {
                     }
                 }

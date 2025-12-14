@@ -17,10 +17,11 @@ public enum Actor {
 
     /**
      * Check another actor is on this actor intended as side of the trade
+     *
      * @param otherActor the other actor to check
      * @return true if the other actor is on this actor side or is ADMIN
      */
-    public boolean isSideOf(Actor otherActor){
+    public boolean isSideOf(Actor otherActor) {
         return this == otherActor || otherActor == ADMIN;
     }
 

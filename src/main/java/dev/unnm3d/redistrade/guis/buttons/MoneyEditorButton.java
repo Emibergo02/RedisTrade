@@ -3,8 +3,8 @@ package dev.unnm3d.redistrade.guis.buttons;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.core.NewTrade;
-import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.core.enums.Actor;
+import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.utils.Permissions;
 import dev.unnm3d.redistrade.utils.Utils;
 import org.bukkit.entity.Player;
@@ -30,13 +30,13 @@ public class MoneyEditorButton extends AbstractItem {
         double amount = trade.getTradeSide(actorSide).getOrder().getPrices().getOrDefault(currencyName, 0.0D);
 
         return RedisTrade.getInstance().getIntegrationManager().getDisplayItem(currencyName)
-                .clearLore()
-                .addMiniMessageLoreLines(Messages.instance().moneyButtonLore.stream()
-                        .map(s -> s.replace("%currency%", currencyName)
-                                .replace("%amount%", Utils.parseDoubleFormat(amount))
-                                .replace("%symbol%", RedisTrade.getInstance().getIntegrationManager()
-                                        .getCurrencyHook(currencyName).getCurrencySymbol()))
-                        .toArray(String[]::new));
+          .clearLore()
+          .addMiniMessageLoreLines(Messages.instance().moneyButtonLore.stream()
+            .map(s -> s.replace("%currency%", currencyName)
+              .replace("%amount%", Utils.parseDoubleFormat(amount))
+              .replace("%symbol%", RedisTrade.getInstance().getIntegrationManager()
+                .getCurrencyHook(currencyName).getCurrencySymbol()))
+            .toArray(String[]::new));
     }
 
     @Override

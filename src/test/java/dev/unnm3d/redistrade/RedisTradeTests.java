@@ -1,8 +1,8 @@
 package dev.unnm3d.redistrade;
 
 import dev.unnm3d.redistrade.core.OrderInfo;
-import dev.unnm3d.redistrade.core.enums.Status;
 import dev.unnm3d.redistrade.core.TradeSide;
+import dev.unnm3d.redistrade.core.enums.Status;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;

@@ -33,10 +33,10 @@ public class WorldGuardHook implements RestrictionHook {
     @Override
     public boolean restrict(Player player, NewTrade trade) {
         return Optional.ofNullable(WorldGuard.getInstance().getPlatform().getRegionContainer()
-                        .get(BukkitAdapter.adapt(player.getLocation().getWorld())))
-                .map(manager -> getOverlappingRegions(manager, player.getLocation()).getRegions().stream()
-                        .anyMatch(overlapped -> overlapped.getFlag(restrictFlag) == StateFlag.State.DENY))
-                .orElse(false);
+            .get(BukkitAdapter.adapt(player.getLocation().getWorld())))
+          .map(manager -> getOverlappingRegions(manager, player.getLocation()).getRegions().stream()
+            .anyMatch(overlapped -> overlapped.getFlag(restrictFlag) == StateFlag.State.DENY))
+          .orElse(false);
     }
 
     @NotNull

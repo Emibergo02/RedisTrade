@@ -9,5 +9,5 @@ public enum UpdateType {
     CLOSE,
     ITEM,
     PRICE,
-    STATUS;
+    STATUS
 }

@@ -28,19 +28,19 @@ public abstract class MoneySelector {
     protected boolean processTransaction(double priceDifference) {
         if (priceDifference < 0) {
             return RedisTrade.getInstance().getIntegrationManager()
-                    .getCurrencyHook(currencyName)
-                    .withdrawPlayer(player.getUniqueId(), Math.abs(priceDifference), "Trade price");
+              .getCurrencyHook(currencyName)
+              .withdrawPlayer(player.getUniqueId(), Math.abs(priceDifference), "Trade price");
         } else if (priceDifference > 0) {
             return RedisTrade.getInstance().getIntegrationManager()
-                    .getCurrencyHook(currencyName)
-                    .depositPlayer(player.getUniqueId(), priceDifference, "Trade price");
+              .getCurrencyHook(currencyName)
+              .depositPlayer(player.getUniqueId(), priceDifference, "Trade price");
         }
         return true;
     }
 
     protected void notifyInsufficientFunds(double nextPrice, double balance) {
         player.sendRichMessage(Messages.instance().notEnoughMoney
-                .replace("%amount%", Settings.getDecimalFormat().format(nextPrice)));
+          .replace("%amount%", Settings.getDecimalFormat().format(nextPrice)));
         changingPriceString = Settings.getDecimalFormat().format(balance);
     }
 

@@ -20,8 +20,8 @@ public class BrowseTradeCommand {
     @Require("redistrade.browse")
     public void browseTrade(@Sender Player player, @OptArg("start") @StartDate LocalDateTime start, @OptArg("end") LocalDateTime end, @OptArg("target") PlayerListManager.Target target) {
         UUID targetUUID = target.playerName() == null ? player.getUniqueId() :
-                plugin.getPlayerListManager().getPlayerUUID(target.playerName())
-                        .orElse(null);
+          plugin.getPlayerListManager().getPlayerUUID(target.playerName())
+            .orElse(null);
         if (targetUUID == null) {
             player.sendRichMessage(Messages.instance().playerNotFound.replace("%player%", target.playerName()));
             return;

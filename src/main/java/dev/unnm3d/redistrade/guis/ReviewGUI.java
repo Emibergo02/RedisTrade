@@ -32,39 +32,39 @@ public class ReviewGUI {
         this.archivedTrade = archivedTrade;
         this.player = player;
         Structure structure = new Structure(
-                "#########",
-                "##12345##",
-                "#########")
-                .addIngredient('1', createStarButton(1))
-                .addIngredient('2', createStarButton(2))
-                .addIngredient('3', createStarButton(3))
-                .addIngredient('4', createStarButton(4))
-                .addIngredient('5', createStarButton(5));
+          "#########",
+          "##12345##",
+          "#########")
+          .addIngredient('1', createStarButton(1))
+          .addIngredient('2', createStarButton(2))
+          .addIngredient('3', createStarButton(3))
+          .addIngredient('4', createStarButton(4))
+          .addIngredient('5', createStarButton(5));
         this.currentGui = Gui.of(structure);
     }
 
     public static void open(UUID tradeUUID, Player player) {
         RedisTrade.getInstance().getDataStorage().getArchivedTrade(tradeUUID)
-                .thenAccept(optTrade -> optTrade.ifPresent(trade -> {
-                    final ReviewGUI reviewGUI = new ReviewGUI(trade, player);
-                    RedisTrade.getInstance().getServer().getScheduler()
-                            .runTask(RedisTrade.getInstance(), reviewGUI::openWindow);
-                }));
+          .thenAccept(optTrade -> optTrade.ifPresent(trade -> {
+              final ReviewGUI reviewGUI = new ReviewGUI(trade, player);
+              RedisTrade.getInstance().getServer().getScheduler()
+                .runTask(RedisTrade.getInstance(), reviewGUI::openWindow);
+          }));
 
     }
 
     private void openWindow() {
         final Actor oppositeActor = archivedTrade.getTrade().getActor(player).opposite();
         Window.single().setGui(currentGui)
-                .setTitle(GuiSettings.instance().ratingMenuTitle.replace("%player%", archivedTrade.getTrade()
-                        .getTradeSide(oppositeActor).getTraderName()))
-                .addCloseHandler(() -> {
-                    player.getInventory().addItem(player.getItemOnCursor()).values().forEach(itemStack ->
-                            player.getWorld().dropItem(player.getLocation(), itemStack)
-                    );
-                    player.setItemOnCursor(null);
-                })
-                .open(player);
+          .setTitle(GuiSettings.instance().ratingMenuTitle.replace("%player%", archivedTrade.getTrade()
+            .getTradeSide(oppositeActor).getTraderName()))
+          .addCloseHandler(() -> {
+              player.getInventory().addItem(player.getItemOnCursor()).values().forEach(itemStack ->
+                player.getWorld().dropItem(player.getLocation(), itemStack)
+              );
+              player.setItemOnCursor(null);
+          })
+          .open(player);
     }
 
 
@@ -74,7 +74,7 @@ public class ReviewGUI {
             @Override
             public @NotNull ItemProvider getItemProvider() {
                 return GuiSettings.instance().rateItem.toItemBuilder()
-                        .replacePlaceholders(Map.of("%stars%", Utils.starsOf(rating), "%rating%", String.valueOf(rating)));
+                  .replacePlaceholders(Map.of("%stars%", Utils.starsOf(rating), "%rating%", String.valueOf(rating)));
             }
 
             @Override
@@ -86,7 +86,7 @@ public class ReviewGUI {
                 }
                 //Check if the review time has expired
                 if (archivedTrade.getArchivedAt().toInstant().isBefore(
-                        Instant.now().minusSeconds(Settings.instance().tradeReviewTime))) {
+                  Instant.now().minusSeconds(Settings.instance().tradeReviewTime))) {
                     player.sendRichMessage(Messages.instance().noPermission);
                     return;
                 }

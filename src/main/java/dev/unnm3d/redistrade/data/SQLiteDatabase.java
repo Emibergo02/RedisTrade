@@ -123,9 +123,9 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         INSERT OR REPLACE INTO archived (trade_uuid,trade_timestamp,trader_uuid,trader_name,trader_rating,trader_price,
-                         customer_uuid,customer_name,customer_rating,customer_price,trader_items,customer_items)
-                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?);""")) {
+                   INSERT OR REPLACE INTO archived (trade_uuid,trade_timestamp,trader_uuid,trader_name,trader_rating,trader_price,
+                   customer_uuid,customer_name,customer_rating,customer_price,trader_items,customer_items)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?);""")) {
                 statement.setString(1, trade.getUuid().toString());
                 statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
                 //Trader side
@@ -140,9 +140,9 @@ public class SQLiteDatabase implements Database {
                 statement.setString(10, gson.toJson(trade.getCustomerSide().getOrder().getPrices()));
 
                 statement.setString(11, new String(
-                        trade.getTraderSide().getOrder().getVirtualInventory().serialize(), StandardCharsets.ISO_8859_1));
+                  trade.getTraderSide().getOrder().getVirtualInventory().serialize(), StandardCharsets.ISO_8859_1));
                 statement.setString(12, new String(
-                        trade.getCustomerSide().getOrder().getVirtualInventory().serialize(), StandardCharsets.ISO_8859_1));
+                  trade.getCustomerSide().getOrder().getVirtualInventory().serialize(), StandardCharsets.ISO_8859_1));
                 return statement.executeUpdate() != 0;
             } catch (SQLException e) {
                 plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.ARCHIVE_TRADE, trade.getUuid()));
@@ -157,8 +157,8 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         SELECT * FROM archived WHERE trader_uuid = ? OR customer_uuid = ? AND trade_timestamp BETWEEN ? AND ?
-                         ORDER BY trade_timestamp DESC;""")) {
+                   SELECT * FROM archived WHERE trader_uuid = ? OR customer_uuid = ? AND trade_timestamp BETWEEN ? AND ?
+                   ORDER BY trade_timestamp DESC;""")) {
                 statement.setString(1, playerUUID.toString());
                 statement.setString(2, playerUUID.toString());
                 statement.setTimestamp(3, Timestamp.valueOf(startTimestamp));
@@ -187,7 +187,7 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         SELECT * FROM archived WHERE trade_uuid = ?""")) {
+                   SELECT * FROM archived WHERE trade_uuid = ?""")) {
                 statement.setString(1, tradeUUID.toString());
 
                 try (ResultSet result = statement.executeQuery()) {
@@ -207,9 +207,9 @@ public class SQLiteDatabase implements Database {
     public void backupTrade(@NotNull NewTrade trade) {
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("""
-                     INSERT OR REPLACE INTO backup (trade_uuid,server_id,serialized)
-                     VALUES (?,?,?);
-                     """)) {
+               INSERT OR REPLACE INTO backup (trade_uuid,server_id,serialized)
+               VALUES (?,?,?);
+               """)) {
             statement.setString(1, trade.getUuid().toString());
             statement.setInt(2, RedisTrade.getServerId());
             statement.setString(3, new String(trade.serialize(), StandardCharsets.ISO_8859_1));
@@ -218,7 +218,7 @@ public class SQLiteDatabase implements Database {
             }
         } catch (Exception e) {
             plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e,
-                    RedisTradeStorageException.ExceptionSource.BACKUP_TRADE, trade.getUuid()));
+              RedisTradeStorageException.ExceptionSource.BACKUP_TRADE, trade.getUuid()));
         }
     }
 
@@ -227,13 +227,13 @@ public class SQLiteDatabase implements Database {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         DELETE FROM backup WHERE trade_uuid = ?;""")) {
+                   DELETE FROM backup WHERE trade_uuid = ?;""")) {
                 statement.setString(1,
-                        tradeUUID.toString());
+                  tradeUUID.toString());
                 statement.executeUpdate();
             } catch (SQLException e) {
                 plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.
-                        ExceptionSource.BACKUP_TRADE, tradeUUID));
+                  ExceptionSource.BACKUP_TRADE, tradeUUID));
             }
         });
     }
@@ -243,9 +243,9 @@ public class SQLiteDatabase implements Database {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         INSERT OR REPLACE INTO player_list (player_name,player_uuid)
-                         VALUES (?,?
-                         );""")) {
+                   INSERT OR REPLACE INTO player_list (player_name,player_uuid)
+                   VALUES (?,?
+                   );""")) {
                 statement.setString(1, playerName);
                 statement.setString(2, playerUUID.toString());
                 statement.executeUpdate();
@@ -259,8 +259,8 @@ public class SQLiteDatabase implements Database {
     public void ignorePlayer(@NotNull String playerName, @NotNull String targetName, boolean ignore) {
         CompletableFuture.runAsync(() -> {
             String query = ignore ?
-                    "INSERT OR REPLACE INTO ignored_players (ignorer,ignored) VALUES (?,?);" :
-                    "DELETE FROM ignored_players WHERE ignored = ? AND ignorer = ?;";
+              "INSERT OR REPLACE INTO ignored_players (ignorer,ignored) VALUES (?,?);" :
+              "DELETE FROM ignored_players WHERE ignored = ? AND ignorer = ?;";
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement(query)) {
                 statement.setString(1, playerName);
@@ -277,8 +277,8 @@ public class SQLiteDatabase implements Database {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement(
-                         "UPDATE archived SET " + (actor == Actor.CUSTOMER ? "customer_rating" : "trader_rating") +
-                                 " = ? WHERE trade_uuid = ?;")) {
+                   "UPDATE archived SET " + (actor == Actor.CUSTOMER ? "customer_rating" : "trader_rating") +
+                     " = ? WHERE trade_uuid = ?;")) {
                 statement.setInt(1, rating);
                 statement.setString(2, archivedTrade.getUuid().toString());
                 statement.executeUpdate();
@@ -293,13 +293,13 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         SELECT * FROM backup;""")) {
+                   SELECT * FROM backup;""")) {
                 try (ResultSet result = statement.executeQuery()) {
                     final HashMap<Integer, NewTrade> trades = new HashMap<>();
                     while (result.next()) {
                         try {
                             trades.put(result.getInt("server_id"),
-                                    NewTrade.deserialize(result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
+                              NewTrade.deserialize(result.getString("serialized").getBytes(StandardCharsets.ISO_8859_1)));
                         } catch (Exception e) {
                             plugin.getIntegritySystem().handleStorageException(new RedisTradeStorageException(e, RedisTradeStorageException.ExceptionSource.SERIALIZATION));
                         }
@@ -318,7 +318,7 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         SELECT * FROM player_list;""")) {
+                   SELECT * FROM player_list;""")) {
                 try (ResultSet result = statement.executeQuery()) {
                     final Map<String, UUID> nameUUIDs = new HashMap<>();
                     while (result.next()) {
@@ -338,7 +338,7 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         SELECT * FROM ignored_players WHERE ignorer = ?;""")) {
+                   SELECT * FROM ignored_players WHERE ignorer = ?;""")) {
                 statement.setString(1, playerName);
                 try (ResultSet result = statement.executeQuery()) {
                     final Set<String> ignoredPlayers = new HashSet<>();
@@ -359,8 +359,8 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         SELECT trader_rating, customer_rating FROM archived
-                         WHERE trade_uuid = ?;""")) {
+                   SELECT trader_rating, customer_rating FROM archived
+                   WHERE trade_uuid = ?;""")) {
                 statement.setString(1, tradeUUID.toString());
                 try (ResultSet result = statement.executeQuery()) {
                     if (result.next()) {
@@ -380,13 +380,13 @@ public class SQLiteDatabase implements Database {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement("""
-                         SELECT username,AVG(rating),COUNT(rating)
-                         FROM (SELECT trader_rating as rating,trader_name as username FROM archived WHERE archived.trader_uuid = ?
-                         UNION ALL
-                         SELECT customer_rating as rating,customer_name as username FROM archived WHERE archived.customer_uuid = ?)
-                         union_alias
-                         WHERE rating > 0
-                         GROUP BY username;""")) {
+                   SELECT username,AVG(rating),COUNT(rating)
+                   FROM (SELECT trader_rating as rating,trader_name as username FROM archived WHERE archived.trader_uuid = ?
+                   UNION ALL
+                   SELECT customer_rating as rating,customer_name as username FROM archived WHERE archived.customer_uuid = ?)
+                   union_alias
+                   WHERE rating > 0
+                   GROUP BY username;""")) {
                 statement.setString(1, playerUUID.toString());
                 statement.setString(2, playerUUID.toString());
                 try (ResultSet result = statement.executeQuery()) {
@@ -407,19 +407,19 @@ public class SQLiteDatabase implements Database {
         }.getType();
         HashMap<String, Double> traderPrice = new HashMap<>(gson.fromJson(result.getString("trader_price"), typeOfPriceHashMap));
         OrderInfo traderOrder = new OrderInfo(VirtualInventory.deserialize(
-                result.getString("trader_items").getBytes(StandardCharsets.ISO_8859_1)),
-                Status.COMPLETED, result.getInt("trader_rating"), traderPrice);
+          result.getString("trader_items").getBytes(StandardCharsets.ISO_8859_1)),
+          Status.COMPLETED, result.getInt("trader_rating"), traderPrice);
         TradeSide traderSide = new TradeSide(UUID.fromString(result.getString("trader_uuid")),
-                result.getString("trader_name"), traderOrder, false);
+          result.getString("trader_name"), traderOrder, false);
 
         HashMap<String, Double> customerPrice = new HashMap<>(gson.fromJson(result.getString("customer_price"), typeOfPriceHashMap));
         OrderInfo customerOrder = new OrderInfo(VirtualInventory.deserialize(
-                result.getString("customer_items").getBytes(StandardCharsets.ISO_8859_1)),
-                Status.COMPLETED, result.getInt("customer_rating"), customerPrice);
+          result.getString("customer_items").getBytes(StandardCharsets.ISO_8859_1)),
+          Status.COMPLETED, result.getInt("customer_rating"), customerPrice);
         TradeSide customerSide = new TradeSide(UUID.fromString(result.getString("customer_uuid")),
-                result.getString("customer_name"), customerOrder, false);
+          result.getString("customer_name"), customerOrder, false);
         Date tradeDate = result.getTimestamp("trade_timestamp");
         return new ArchivedTrade(tradeDate,
-                new NewTrade(UUID.fromString(result.getString("trade_uuid")), traderSide, customerSide));
+          new NewTrade(UUID.fromString(result.getString("trade_uuid")), traderSide, customerSide));
     }
 }

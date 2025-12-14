@@ -70,7 +70,7 @@ public class IntegrationManager {
      *
      * @param currencyName The name of the currency
      * @param currencyHook The currency hook
-     * @param displayItem The display item for the currency
+     * @param displayItem  The display item for the currency
      */
     public void addCurrencyHook(String currencyName, CurrencyHook currencyHook, MyItemBuilder displayItem) {
         if (currencies.containsKey(currencyName)) {

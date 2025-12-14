@@ -40,13 +40,13 @@ public class ProfileDisplay extends AbstractItem {
             }
         }).thenCombineAsync(RedisTrade.getInstance().getDataStorage().getMeanRating(tradeSide.getTraderUUID()), (builder, meanRating) -> {
             builder.setMiniMessageDisplayName(GuiSettings.instance().playerProfile.itemName()
-                    .replace("%player_name%", tradeSide.getTraderName()));
+              .replace("%player_name%", tradeSide.getTraderName()));
             builder.addMiniMessageLoreLines(GuiSettings.instance().playerProfile.lore().stream()
-                    .map(loreLine -> loreLine.replace("%player_name%", tradeSide.getTraderName())
-                            .replace("%stars%", Utils.starsOf(meanRating.mean()))
-                            .replace("%rating%", String.valueOf(meanRating.mean()))
-                            .replace("%trade_count%", String.valueOf(meanRating.countedTrades())))
-                    .toArray(String[]::new));
+              .map(loreLine -> loreLine.replace("%player_name%", tradeSide.getTraderName())
+                .replace("%stars%", Utils.starsOf(meanRating.mean()))
+                .replace("%rating%", String.valueOf(meanRating.mean()))
+                .replace("%trade_count%", String.valueOf(meanRating.countedTrades())))
+              .toArray(String[]::new));
             return builder;
         }).thenAccept(item -> {
             playerHead = item;
@@ -69,11 +69,11 @@ public class ProfileDisplay extends AbstractItem {
 
         if (profile.getTextures().getSkin() == null) {
             Optional.ofNullable(playerTextures.get(tradeSide.getTraderUUID()))
-                    .ifPresentOrElse(profile::setTextures, () -> {
-                        PlayerTextures textures = profile.update().join().getTextures();
-                        profile.setTextures(textures);
-                        playerTextures.put(tradeSide.getTraderUUID(), textures);
-                    });
+              .ifPresentOrElse(profile::setTextures, () -> {
+                  PlayerTextures textures = profile.update().join().getTextures();
+                  profile.setTextures(textures);
+                  playerTextures.put(tradeSide.getTraderUUID(), textures);
+              });
         }
         if (item.getItemMeta() instanceof SkullMeta sm) {
             sm.setPlayerProfile(profile);

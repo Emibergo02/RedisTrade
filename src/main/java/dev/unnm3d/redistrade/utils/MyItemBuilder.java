@@ -56,8 +56,8 @@ public class MyItemBuilder implements ItemProvider {
     }
 
     @Contract(
-            value = " -> new",
-            pure = true
+      value = " -> new",
+      pure = true
     )
     public @NotNull ItemStack get() {
         ItemStack itemStack;
@@ -97,11 +97,11 @@ public class MyItemBuilder implements ItemProvider {
             if (this.enchantments != null) {
                 if (this.base != null) {
                     itemMeta.getEnchants().forEach((enchantment, level) ->
-                            itemMeta.removeEnchant(enchantment));
+                      itemMeta.removeEnchant(enchantment));
                 }
 
                 this.enchantments.forEach((enchantment, pair) ->
-                        itemMeta.addEnchant(enchantment, pair.getKey(), pair.getValue()));
+                  itemMeta.addEnchant(enchantment, pair.getKey(), pair.getValue()));
             }
 
             if (this.itemFlags != null) {
@@ -346,13 +346,13 @@ public class MyItemBuilder implements ItemProvider {
         if (this.displayName != null) {
             for (Map.Entry<String, String> entry : replacements.entrySet()) {
                 this.displayName = this.displayName.replaceText(builder ->
-                        builder.matchLiteral(entry.getKey()).replacement(entry.getValue()));
+                  builder.matchLiteral(entry.getKey()).replacement(entry.getValue()));
             }
         }
         if (this.itemName != null) {
             for (Map.Entry<String, String> entry : replacements.entrySet()) {
                 this.itemName = this.itemName.replaceText(builder ->
-                        builder.matchLiteral(entry.getKey()).replacement(entry.getValue()));
+                  builder.matchLiteral(entry.getKey()).replacement(entry.getValue()));
             }
         }
         if (this.lore != null) {
@@ -360,7 +360,7 @@ public class MyItemBuilder implements ItemProvider {
             for (Component line : this.lore) {
                 for (Map.Entry<String, String> entry : replacements.entrySet()) {
                     line = line.replaceText(builder ->
-                            builder.matchLiteral(entry.getKey()).replacement(entry.getValue()));
+                      builder.matchLiteral(entry.getKey()).replacement(entry.getValue()));
                 }
                 newLore.add(line);
             }

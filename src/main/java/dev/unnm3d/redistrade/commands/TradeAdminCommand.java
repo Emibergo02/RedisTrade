@@ -7,6 +7,8 @@ import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
 import lombok.AllArgsConstructor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -30,13 +32,24 @@ public class TradeAdminCommand {
         sender.sendMessage("§2RedisTrade reloaded");
     }
 
+    @Command(name = "inspect", desc = "Inspect item with components")
+    @Require("redistrade.inspect")
+    public void inspect(@Sender Player sender) {
+        Component comp = MiniMessage.miniMessage().deserialize("<yellow>%item_type%<aqua>%components%</aqua>")
+          .replaceText(builder -> builder.matchLiteral("%item_type%")
+            .replacement(sender.getInventory().getItemInMainHand().getType().getKey().toString()))
+          .replaceText(builder -> builder.matchLiteral("%components%")
+            .replacement(sender.getInventory().getItemInMainHand().getItemMeta().getAsComponentString()));
+        sender.sendMessage(comp);
+    }
+
     @Command(name = "setitem", desc = "Set the item")
     @Require("redistrade.setitem")
     public void setItem(@Sender Player player, Field itemField) {
         itemField.setAccessible(true);
         try {
             itemField.set(GuiSettings.instance(), GuiSettings.SimpleSerializableItem
-                    .fromItemStack(player.getInventory().getItemInMainHand()));
+              .fromItemStack(player.getInventory().getItemInMainHand()));
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -78,12 +91,11 @@ public class TradeAdminCommand {
 
     @Command(name = "test", desc = "Stress test")
     public void test(@Sender Player sender) {
-        ;
         AnvilWindow.single().setGui(Gui.normal().setStructure("abc")
-                .addIngredient('a', new ItemStack(Material.DIAMOND))
-                .addIngredient('b', new ItemStack(Material.DIAMOND))
-                .addIngredient('c', new ItemStack(Material.DIAMOND)).build())
-                .open(sender);
+            .addIngredient('a', new ItemStack(Material.DIAMOND))
+            .addIngredient('b', new ItemStack(Material.DIAMOND))
+            .addIngredient('c', new ItemStack(Material.DIAMOND)).build())
+          .open(sender);
     }
 
 }

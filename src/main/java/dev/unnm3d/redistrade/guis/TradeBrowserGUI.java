@@ -17,23 +17,23 @@ public class TradeBrowserGUI {
 
     public TradeBrowserGUI(List<Item> receiptItems) {
         this.gui = PagedGui.items()
-                .setStructure(
-                        "# # # # # # # # #",
-                        "# x x x x x x x #",
-                        "# x x x x x x x #",
-                        "# # # < # > # # #")
-                .addIngredient('x', Markers.CONTENT_LIST_SLOT_HORIZONTAL) // where paged items should be pu
-                .addIngredient('<', backItem())
-                .addIngredient('>', forwardItem())
-                .setContent(receiptItems)
-                .build();
+          .setStructure(
+            "# # # # # # # # #",
+            "# x x x x x x x #",
+            "# x x x x x x x #",
+            "# # # < # > # # #")
+          .addIngredient('x', Markers.CONTENT_LIST_SLOT_HORIZONTAL) // where paged items should be pu
+          .addIngredient('<', backItem())
+          .addIngredient('>', forwardItem())
+          .setContent(receiptItems)
+          .build();
     }
 
     public void openWindow(Player player) {
         Window.single()
-                .setGui(gui)
-                .setTitle("Trade Browser")
-                .open(player);
+          .setGui(gui)
+          .setTitle("Trade Browser")
+          .open(player);
     }
 
     public Item forwardItem() {

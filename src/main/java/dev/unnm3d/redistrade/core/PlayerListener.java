@@ -24,12 +24,12 @@ public record PlayerListener(RedisTrade plugin) implements Listener {
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (!(event.getRightClicked() instanceof Player targetPlayer)) return;
         plugin.getTradeManager().getActiveTrade(event.getPlayer().getUniqueId())
-                .ifPresentOrElse(trade -> {
-                            if (!trade.getCustomerSide().getTraderName().equals(targetPlayer.getName()))
-                                event.getPlayer().sendRichMessage(Messages.instance().alreadyInTrade
-                                        .replace("%player%", trade.getTraderSide().getTraderName()));
-                        },
-                        () -> plugin.getTradeManager().startTrade(event.getPlayer(), targetPlayer.getName()));
+          .ifPresentOrElse(trade -> {
+                if (!trade.getCustomerSide().getTraderName().equals(targetPlayer.getName()))
+                    event.getPlayer().sendRichMessage(Messages.instance().alreadyInTrade
+                      .replace("%player%", trade.getTraderSide().getTraderName()));
+            },
+            () -> plugin.getTradeManager().startTrade(event.getPlayer(), targetPlayer.getName()));
     }
 
     @EventHandler

@@ -1,21 +1,18 @@
 plugins {
     id 'java'
-    id 'io.github.goooler.shadow' version "8.1.7"
+    id 'com.gradleup.shadow' version "9.3.0"
     id 'maven-publish'
     id "com.modrinth.minotaur" version "2.8.7"
 }
 
 group = 'dev.unnm3d'
-version = '2.1.7'
+version = '2.2.0'
 
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
     maven { url = "https://repo.papermc.io/repository/maven-public/" }
-    maven {
-        name = "sonatype"
-        url = "https://oss.sonatype.org/content/groups/public/"
-    }
+    maven { url = "https://oss.sonatype.org/content/groups/public/" }
     maven { url = "https://repo.codemc.io/repository/maven-public/" }
     maven { url 'https://repo.xenondevs.xyz/releases' }
     maven { url 'https://maven.enginehub.org/repo/' }
@@ -113,12 +110,15 @@ publishing {
 }
 
 modrinth {
-    token = System.getenv("MODRINTH_TOKEN") // Remember to have the MODRINTH_TOKEN environment variable set or else this will fail - just make sure it stays private!
+    token = System.getenv("MODRINTH_TOKEN")
+    // Remember to have the MODRINTH_TOKEN environment variable set or else this will fail - just make sure it stays private!
     projectId = "redistrade" // This can be the project ID or the slug. Either will work!
     versionType = "release" // This is the default -- can also be `beta` or `alpha`
     uploadFile = shadowJar // With Loom, this MUST be set to `remapJar` instead of `jar`!
-    gameVersions = ["1.21.10","1.21.9","1.21.8","1.21.7","1.21.6","1.21.5","1.21.4", "1.21.3","1.21.1","1.21.2","1.20.6"] // Must be an array, even with only one version
-    loaders = ["paper","spigot","bukkit"] // Must also be an array - no need to specify this if you're using Loom or ForgeGradle
+    gameVersions = ["1.21.10", "1.21.9", "1.21.8", "1.21.7", "1.21.6", "1.21.5", "1.21.4", "1.21.3", "1.21.1", "1.21.2", "1.20.6"]
+    // Must be an array, even with only one version
+    loaders = ["paper", "spigot", "bukkit"]
+    // Must also be an array - no need to specify this if you're using Loom or ForgeGradle
 }
 
 processResources {

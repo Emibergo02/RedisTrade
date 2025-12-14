@@ -24,11 +24,11 @@ public class RedisDataManager extends RedisAbstract {
         super(client, poolSize);
         this.plugin = plugin;
         registerSub(DataKeys.FIELD_UPDATE_TRADE.toString(),
-                DataKeys.PLAYERLIST.toString(),
-                DataKeys.IGNORE_PLAYER_UPDATE.toString(),
-                DataKeys.NAME_UUIDS.toString(),
-                DataKeys.FULL_TRADE.toString(),
-                DataKeys.TRADE_QUERY.toString()
+          DataKeys.PLAYERLIST.toString(),
+          DataKeys.IGNORE_PLAYER_UPDATE.toString(),
+          DataKeys.NAME_UUIDS.toString(),
+          DataKeys.FULL_TRADE.toString(),
+          DataKeys.TRADE_QUERY.toString()
         );
     }
 
@@ -49,8 +49,7 @@ public class RedisDataManager extends RedisAbstract {
             plugin.getTradeManager().getTrade(tradeUUID).ifPresent(trade -> {
                 plugin.getTradeManager().setTradeServerOwner(tradeUUID, packetServerId);
                 switch (viewerUpdate.getUpdateType()) {
-                    case OPEN ->
-                            plugin.getTradeManager().remoteOpenTrade(tradeUUID, viewerUpdate.getActorSide());
+                    case OPEN -> plugin.getTradeManager().remoteOpenTrade(tradeUUID, viewerUpdate.getActorSide());
                     case PRICE -> {
                         String[] split = value.split(":");
                         trade.setPrice(split[0], Double.parseDouble(split[1]), viewerUpdate.getActorSide());
@@ -91,50 +90,50 @@ public class RedisDataManager extends RedisAbstract {
     @Override
     public void updateCachePlayerList(String playerName, UUID playerUUID) {
         getConnectionAsync(connection -> connection.publish(DataKeys.NAME_UUIDS.toString(), playerName + "§" + playerUUID))
-                .exceptionally(exception -> {
-                    plugin.getLogger().warning("Error when publishing nameUUIDs");
-                    return null;
-                });
+          .exceptionally(exception -> {
+              plugin.getLogger().warning("Error when publishing nameUUIDs");
+              return null;
+          });
     }
 
     @Override
     public void publishPlayerList(List<String> playerList) {
         getConnectionAsync(connection -> connection.publish(DataKeys.PLAYERLIST.toString(),
-                String.join("§", playerList)))
-                .toCompletableFuture().orTimeout(1, TimeUnit.SECONDS)
-                .exceptionally(exception -> {
-                    plugin.getLogger().warning("Error when publishing player list");
-                    return -1L;
-                });
+          String.join("§", playerList)))
+          .toCompletableFuture().orTimeout(1, TimeUnit.SECONDS)
+          .exceptionally(exception -> {
+              plugin.getLogger().warning("Error when publishing player list");
+              return -1L;
+          });
     }
 
     @Override
     public CompletionStage<Long> updateTrade(UUID tradeUUID, ViewerUpdate type, Object value) {
         plugin.getTradeManager().setTradeServerOwner(tradeUUID, RedisTrade.getServerId());
         return getConnectionAsync(connection ->
-                connection.publish(DataKeys.FIELD_UPDATE_TRADE.toString(),
-                        new String(ByteBuffer.allocate(4).putInt(RedisTrade.getServerId()).array(), StandardCharsets.ISO_8859_1) +
-                                tradeUUID.toString() + type + value))
-                .exceptionallyAsync(exception -> {
-                    plugin.getLogger().warning("Error when publishing trade update");
-                    return -1L;
-                });
+          connection.publish(DataKeys.FIELD_UPDATE_TRADE.toString(),
+            new String(ByteBuffer.allocate(4).putInt(RedisTrade.getServerId()).array(), StandardCharsets.ISO_8859_1) +
+              tradeUUID.toString() + type + value))
+          .exceptionallyAsync(exception -> {
+              plugin.getLogger().warning("Error when publishing trade update");
+              return -1L;
+          });
 
     }
 
     @Override
     public CompletionStage<Long> sendFullTrade(NewTrade trade) {
         final ByteBuffer bb = ByteBuffer.allocate(4)
-                .putInt(RedisTrade.getServerId());//4 for serverId, 8 for UUID = 12 bytes
+          .putInt(RedisTrade.getServerId());//4 for serverId, 8 for UUID = 12 bytes
         return getConnectionAsync(connection -> connection.publish(DataKeys.FULL_TRADE.toString(),
-                new String(bb.array(), StandardCharsets.ISO_8859_1) +
-                        new String(trade.serialize(), StandardCharsets.ISO_8859_1)));
+          new String(bb.array(), StandardCharsets.ISO_8859_1) +
+            new String(trade.serialize(), StandardCharsets.ISO_8859_1)));
     }
 
     @Override
     public void sendQuery() {
         getConnectionAsync(connection -> connection.publish(DataKeys.TRADE_QUERY.toString(),
-                String.valueOf(RedisTrade.getServerId()))).whenComplete((aLong, throwable) -> {
+          String.valueOf(RedisTrade.getServerId()))).whenComplete((aLong, throwable) -> {
             if (throwable != null) {
                 plugin.getLogger().warning("Error when sending query");
             }
