@@ -1,5 +1,9 @@
 package dev.unnm3d.redistrade.core;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalCause;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
@@ -15,17 +19,20 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 import xyz.xenondevs.invui.item.Item;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class TradeManager {
 
     private final RedisTrade plugin;
     private final ConcurrentHashMap<UUID, NewTrade> trades;
     private final ConcurrentHashMap<UUID, UUID> playerTrades;
+    private final Set<TradeInvite> playerInvites;
     private final ConcurrentHashMap<String, HashSet<String>> ignorePlayers;
 
     private final ConcurrentHashMap<UUID, Integer> tradeServerOwners;
@@ -35,6 +42,7 @@ public class TradeManager {
         this.trades = new ConcurrentHashMap<>();
         this.tradeServerOwners = new ConcurrentHashMap<>();
         this.playerTrades = new ConcurrentHashMap<>();
+
         this.ignorePlayers = new ConcurrentHashMap<>();
 
         plugin.getDataStorage().restoreTrades().thenAccept(trades -> {
@@ -46,6 +54,28 @@ public class TradeManager {
         });
     }
 
+    private Set<TradeInvite> buildInviteCache() {
+        return Collections.newSetFromMap(CacheBuilder.newBuilder()
+          .removalListener((RemovalListener<TradeInvite, Boolean>) notification -> {
+              if (notification.getCause() == RemovalCause.EXPIRED) {
+                  playerInvites.remove(notification.getKey());
+              }
+          })
+          .expireAfterWrite(Duration.ofMinutes(1))
+          .build().asMap());
+    }
+
+    private RemovalListener<TradeInvite, Boolean> removalListener() {
+        return notification -> {
+
+        };
+    }
+
+    public void invitePlayer(UUID fromPlayer, UUID toPlayer) {
+        final TradeInvite invite = TradeInvite.of(fromPlayer, toPlayer);
+        playerInvites.add(invite);
+        plugin.getDataCache().sendInvite(invite);
+    }
 
     public CompletionStage<Optional<NewTrade>> startTrade(Player traderPlayer, String targetName) {
         if (traderPlayer.getName().equals(targetName)) {

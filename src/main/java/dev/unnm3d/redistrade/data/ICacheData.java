@@ -1,6 +1,7 @@
 package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.core.NewTrade;
+import dev.unnm3d.redistrade.core.TradeInvite;
 import dev.unnm3d.redistrade.core.enums.ViewerUpdate;
 
 import java.util.List;
@@ -31,6 +32,12 @@ public interface ICacheData {
      * @return the number of subscribers that received the message
      */
     CompletionStage<Long> sendFullTrade(NewTrade trade);
+
+    /**
+     * Send a trade invite to other servers
+     * @param invite the invite to send
+     */
+    void sendInvite(TradeInvite invite);
 
     /**
      * Send a query to all servers

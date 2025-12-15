@@ -2,6 +2,7 @@ package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.core.NewTrade;
+import dev.unnm3d.redistrade.core.TradeInvite;
 import dev.unnm3d.redistrade.core.enums.StatusActor;
 import dev.unnm3d.redistrade.core.enums.ViewerUpdate;
 import dev.unnm3d.redistrade.redistools.RedisAbstract;
@@ -128,6 +129,16 @@ public class RedisDataManager extends RedisAbstract {
         return getConnectionAsync(connection -> connection.publish(DataKeys.FULL_TRADE.toString(),
           new String(bb.array(), StandardCharsets.ISO_8859_1) +
             new String(trade.serialize(), StandardCharsets.ISO_8859_1)));
+    }
+
+    @Override
+    public void sendInvite(long timestamp,TradeInvite invite) {
+        getConnectionAsync(connection -> connection.publish(DataKeys.INVITE_UPDATE.toString(),
+          invite.getInvitedPlayerName() + "§" + invite.getInviterPlayerName() + "§" + invite.isIgnore()))
+          .exceptionally(exception -> {
+              plugin.getLogger().warning("Error when publishing ignore player update");
+              return null;
+          });
     }
 
     @Override
