@@ -24,6 +24,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
 import xyz.xenondevs.invui.inventory.event.ItemPreUpdateEvent;
 import xyz.xenondevs.invui.inventory.event.PlayerUpdateReason;
@@ -31,12 +32,15 @@ import xyz.xenondevs.invui.item.Item;
 import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
 
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 @Setter
 @Getter
 public final class TradeGuiBuilder {
     private final NewTrade trade;
     private final Actor actorSide;
-    private ItemStack receiptItem;
+    private ConcurrentHashMap<ItemStack,Long> invalidItems = new ConcurrentHashMap<>();
 
     public TradeGuiBuilder(NewTrade trade, Actor actorSide) {
         this.trade = trade;
@@ -74,17 +78,62 @@ public final class TradeGuiBuilder {
         final VirtualInventory virtualInventory = trade.getTradeSide(actorSide).getOrder().getVirtualInventory();
         if (virtualInventory.getPreUpdateHandler() == null) {
             virtualInventory.setPreUpdateHandler(event -> {
-                if (virtualInventoryListener(event, actorSide)) {
+
+                if (!(event.getUpdateReason() instanceof PlayerUpdateReason playerUpdateReason) ||
+                  //Check integrity system and correct side
+                  checkCorrectSide(playerUpdateReason.getPlayer(), event.getNewItem(), actorSide) ||
+                  //Check invalid items
+                  checkInvalidItem(playerUpdateReason.getPlayer(), event.getNewItem()) ||
+                  //Check if player is too far
+                  checkDistance(playerUpdateReason.getPlayer())) {
                     event.setCancelled(true);
-                } else {
-                    checkXpBottle(event, actorSide);
-                    trade.updateItem(event.getSlot(), event.getNewItem(), actorSide, true);
+                    return;
                 }
+
+                checkXpBottle(event, actorSide);
+                trade.updateItem(event.getSlot(), event.getNewItem(), actorSide, true);
+
             });
         }
         if (virtualInventory.getPostUpdateHandler() == null) {
             virtualInventory.setPostUpdateHandler(event -> trade.retrievedPhase(actorSide, actorSide.opposite()));
         }
+    }
+
+    private boolean checkDistance(@NotNull Player player) {
+        //Check distance
+        if (RedisTrade.getInstance().getTradeManager().checkInvalidDistance(player, trade.getTradeSide(actorSide.opposite()).getTraderUUID())) {
+            player.sendRichMessage(Messages.instance().tradeDistance
+              .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
+            return true;
+        }
+        return false;
+    }
+
+    private boolean checkInvalidItem(@NotNull Player player, @Nullable ItemStack newItem) {
+        //Check invalid items
+        if (newItem != null) {
+            //Check recently invalid items to avoid reprocessing
+            if (invalidItems.containsKey(newItem)) {
+                invalidItems.values().removeIf(timestamp -> System.currentTimeMillis() - timestamp > 500);
+                return true;
+            }
+
+            final String itemTypeKey = newItem.getType().getKey().toString(); // example: "minecraft:diamond_sword"
+            final String itemAsString = itemTypeKey + newItem.getItemMeta().getAsComponentString(); // results in: "minecraft:diamond_sword[minecraft:damage=53]"
+            for (Settings.BlacklistedItemRegex blacklistedRegex : Settings.instance().blacklistedItemRegexes) {
+                boolean matches = blacklistedRegex.containsOnly()
+                  ? itemAsString.contains(blacklistedRegex.regex())
+                  : itemAsString.matches(blacklistedRegex.regex());
+
+                if (matches) {
+                    invalidItems.put(newItem, System.currentTimeMillis());
+                    player.sendRichMessage(Messages.instance().blacklistedItem);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void checkXpBottle(@NotNull ItemPreUpdateEvent event, Actor actorSide) {
@@ -108,45 +157,25 @@ public final class TradeGuiBuilder {
     /**
      * This method is called when an item is updated in the virtual inventory
      *
-     * @param event The event that triggered the update
+     * @param player    The player performing the action
+     * @param newItem   The new item that is being set
+     * @param actorSide The side of the actor performing the action
      * @return If the event should be cancelled
      */
-    public boolean virtualInventoryListener(ItemPreUpdateEvent event, Actor actorSide) {
-        if (!(event.getUpdateReason() instanceof PlayerUpdateReason playerUpdateReason)) return false;
+    public boolean checkCorrectSide(Player player, ItemStack newItem, Actor actorSide) {
         //Check integrity system
         if (RedisTrade.getInstance().getIntegritySystem().isFaulted()) {
-            playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().newTradesLock);
-            return true;
-        }
-        //Check invalid items
-        if (event.getNewItem() != null) {
-            final String itemTypeKey = event.getNewItem().getType().getKey().toString(); // example: "minecraft:diamond_sword"
-            final String itemAsString = itemTypeKey + event.getNewItem().getItemMeta().getAsComponentString(); // results in: "minecraft:diamond_sword[minecraft:damage=53]"
-            for (Settings.BlacklistedItemRegex blacklistedRegex : Settings.instance().blacklistedItemRegexes) {
-                boolean matches = blacklistedRegex.containsOnly()
-                  ? itemAsString.contains(blacklistedRegex.regex())
-                  : itemAsString.matches(blacklistedRegex.regex());
-
-                if (matches) {
-                    playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().blacklistedItem);
-                    return true;
-                }
-            }
-        }
-        //Check distance
-        if (RedisTrade.getInstance().getTradeManager().checkInvalidDistance(playerUpdateReason.getPlayer(), trade.getTradeSide(actorSide.opposite()).getTraderUUID())) {
-            playerUpdateReason.getPlayer().sendRichMessage(Messages.instance().tradeDistance
-              .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
+            player.sendRichMessage(Messages.instance().newTradesLock);
             return true;
         }
 
-        final Actor tradeActor = trade.getActor(playerUpdateReason.getPlayer());
+        final Actor tradeActor = trade.getActor(player);
         final TradeSide operatingSide = trade.getTradeSide(actorSide);
 
         //If the trade is completed, the target can modify the trader inventory
         return switch (operatingSide.getOrder().getStatus()) {
             //If the trade is completed, the target can only move items out of the trade
-            case COMPLETED -> !(actorSide.opposite().isSideOf(tradeActor) && event.getNewItem() == null);
+            case COMPLETED -> !(actorSide.opposite().isSideOf(tradeActor) && newItem == null);
             //Only admin can modify in confirmed phase
             case CONFIRMED -> tradeActor != Actor.ADMIN;
             case RETRIEVED -> true;
