@@ -1,6 +1,7 @@
 package dev.unnm3d.redistrade.configs;
 
 
+import com.sk89q.worldedit.util.collection.BlockMap;
 import de.exlll.configlib.Configuration;
 import de.exlll.configlib.YamlConfigurations;
 import dev.unnm3d.redistrade.restriction.KnownRestriction;
@@ -56,6 +57,11 @@ public class Messages {
     public String tradeShowRating = "<green>%reviewer% review of %reviewed%: <yellow>%stars%</yellow>";
     public String tradeWindowClosed = "<aqua>Your trade has been put it background<br><color:#bfbfbf><click:run_command:'/trade %player%'>[Click to resume]</click> or <click:suggest_command:'/trade'>[/trade]</click><br><red>You did something you're not allowed to do when trading";
     public String tradeRestricted = "<red>You can't open the trade window because you did something you're not allowed to do: moving, getting damaged, being in combat";
+    public String inviteCancelled = "<red>Your trade invitation to %player% has been cancelled for %reason%";
+    public String inviteRefused = "<red>Your trade invitation to %player% has been refused";
+    public String inviteExpired = "<red>Your trade invitation to %player% has expired";
+    public String inviteNew = "<green>Your trade invitation to %player% has been sent";
+    public String inviteAlreadySent = "<red>You have already sent a trade invitation to %player%";
     public Map<String, String> restrictionMessages = Map.of(
       KnownRestriction.MOVED.toString(), "<red>You can't move while trading",
       KnownRestriction.DAMAGED.toString(), "<red>You can't get damaged while trading",

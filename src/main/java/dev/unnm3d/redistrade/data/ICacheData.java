@@ -1,7 +1,6 @@
 package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.core.NewTrade;
-import dev.unnm3d.redistrade.core.TradeInvite;
 import dev.unnm3d.redistrade.core.enums.ViewerUpdate;
 
 import java.util.List;
@@ -35,9 +34,10 @@ public interface ICacheData {
 
     /**
      * Send a trade invite to other servers
-     * @param invite the invite to send
+     * @param traderUUID the trader UUID
+     * @param customerUUID the customer UUID
      */
-    void sendInvite(TradeInvite invite);
+    void sendInvite(String traderName, String customerName);
 
     /**
      * Send a query to all servers
@@ -65,6 +65,10 @@ public interface ICacheData {
             @Override
             public CompletionStage<Long> sendFullTrade(NewTrade trade) {
                 return CompletableFuture.completedFuture(0L);
+            }
+
+            @Override
+            public void sendInvite(String tradeName, String customerName) {
             }
 
             @Override

@@ -2,12 +2,12 @@ package dev.unnm3d.redistrade.data;
 
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.core.NewTrade;
-import dev.unnm3d.redistrade.core.TradeInvite;
 import dev.unnm3d.redistrade.core.enums.StatusActor;
 import dev.unnm3d.redistrade.core.enums.ViewerUpdate;
 import dev.unnm3d.redistrade.redistools.RedisAbstract;
 import dev.unnm3d.redistrade.utils.Utils;
 import io.lettuce.core.RedisClient;
+import org.stringtemplate.v4.ST;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -29,7 +29,8 @@ public class RedisDataManager extends RedisAbstract {
           DataKeys.IGNORE_PLAYER_UPDATE.toString(),
           DataKeys.NAME_UUIDS.toString(),
           DataKeys.FULL_TRADE.toString(),
-          DataKeys.TRADE_QUERY.toString()
+          DataKeys.TRADE_QUERY.toString(),
+          DataKeys.INVITE_UPDATE.toString()
         );
     }
 
@@ -39,6 +40,11 @@ public class RedisDataManager extends RedisAbstract {
             if (plugin.getPlayerListManager() != null)
                 plugin.getPlayerListManager().updatePlayerList(Arrays.asList(message.split("§")));
 
+        } else if (channel.equals(DataKeys.INVITE_UPDATE.toString())) {
+            int packetServerId = ByteBuffer.wrap(message.substring(0, 4).getBytes(StandardCharsets.ISO_8859_1)).getInt();
+            if (packetServerId == RedisTrade.getServerId()) return;
+            String[] split = message.substring(4).split("§");
+            plugin.getTradeManager().getInviteManager().invite(split[0], split[1]);
         } else if (channel.equals(DataKeys.FIELD_UPDATE_TRADE.toString())) {
             int packetServerId = ByteBuffer.wrap(message.substring(0, 4).getBytes(StandardCharsets.ISO_8859_1)).getInt();
             if (packetServerId == RedisTrade.getServerId()) return;
@@ -132,9 +138,10 @@ public class RedisDataManager extends RedisAbstract {
     }
 
     @Override
-    public void sendInvite(long timestamp,TradeInvite invite) {
+    public void sendInvite(String traderName, String customerName) {
         getConnectionAsync(connection -> connection.publish(DataKeys.INVITE_UPDATE.toString(),
-          invite.getInvitedPlayerName() + "§" + invite.getInviterPlayerName() + "§" + invite.isIgnore()))
+          new String(ByteBuffer.allocate(4).putInt(RedisTrade.getServerId()).array(), StandardCharsets.ISO_8859_1)+
+            traderName + "§" + customerName))
           .exceptionally(exception -> {
               plugin.getLogger().warning("Error when publishing ignore player update");
               return null;

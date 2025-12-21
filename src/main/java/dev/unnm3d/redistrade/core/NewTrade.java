@@ -30,7 +30,6 @@ import java.util.function.BiConsumer;
 @ToString
 public class NewTrade {
     private CompletionTimer completionTimer;
-
     private final UUID uuid;
     private final TradeSide traderSide;
     private final TradeSide customerSide;
@@ -59,6 +58,10 @@ public class NewTrade {
         if (traderSide.getTraderUUID().equals(playerUUID)) return Actor.TRADER;
         if (customerSide.getTraderUUID().equals(playerUUID)) return Actor.CUSTOMER;
         return Actor.SPECTATOR;
+    }
+
+    public boolean isParticipant(UUID playerUUID) {
+        return isTrader(playerUUID) || isCustomer(playerUUID);
     }
 
     public TradeSide getTradeSide(Actor actor) {
@@ -308,23 +311,6 @@ public class NewTrade {
             }
         }
         return CompletableFuture.completedFuture(operatingSide.getOrder().getStatus());
-    }
-
-    public void openWindow(Player player, Actor actorSide) {
-        Window.single()
-          .setTitle(GuiSettings.instance().tradeGuiTitle.replace("%player%",
-            getTradeSide(actorSide.opposite()).getTraderName()))
-          .setGui(getTradeSide(actorSide).getSidePerspective())
-          .addCloseHandler(() -> {
-              //If the player is a spectator/admin, don't send the message
-              if (!getActor(player).isParticipant()) return;
-              final OrderInfo traderOrder = getTradeSide(actorSide).getOrder();
-              if (traderOrder.getStatus() != Status.RETRIEVED) {
-                  player.sendRichMessage(Messages.instance().tradeRunning
-                    .replace("%player%", getTradeSide(actorSide.opposite()).getTraderName()));
-              }
-          })
-          .open(player);
     }
 
     public byte[] serialize() {

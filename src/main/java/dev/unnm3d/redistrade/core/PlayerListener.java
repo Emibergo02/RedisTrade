@@ -1,7 +1,6 @@
 package dev.unnm3d.redistrade.core;
 
 import dev.unnm3d.redistrade.RedisTrade;
-import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.restriction.KnownRestriction;
 import org.bukkit.entity.EntityType;
@@ -13,6 +12,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.event.entity.EntityMountEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
@@ -23,18 +23,17 @@ public record PlayerListener(RedisTrade plugin) implements Listener {
         if (!event.getPlayer().isSneaking()) return;
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (!(event.getRightClicked() instanceof Player targetPlayer)) return;
-        plugin.getTradeManager().getActiveTrade(event.getPlayer().getUniqueId())
-          .ifPresentOrElse(trade -> {
-                if (!trade.getCustomerSide().getTraderName().equals(targetPlayer.getName()))
-                    event.getPlayer().sendRichMessage(Messages.instance().alreadyInTrade
-                      .replace("%player%", trade.getTraderSide().getTraderName()));
-            },
-            () -> plugin.getTradeManager().startTrade(event.getPlayer(), targetPlayer.getName()));
+        plugin.getTradeManager().startTrade(event.getPlayer(), targetPlayer.getUniqueId(), targetPlayer.getName());
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        plugin.getTradeManager().loadIgnoredPlayers(event.getPlayer().getName());
     }
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
-        if (event.getFrom().distanceSquared(event.getTo()) == 0) return;
+        if (event.getFrom().distanceSquared(event.getTo()) < 0.1) return;
         plugin.getRestrictionService().addPlayerRestriction(event.getPlayer(), KnownRestriction.MOVED.toString());
     }
 
