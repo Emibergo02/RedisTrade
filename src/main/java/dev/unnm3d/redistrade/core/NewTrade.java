@@ -1,7 +1,6 @@
 package dev.unnm3d.redistrade.core;
 
 import dev.unnm3d.redistrade.RedisTrade;
-import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.enums.*;
@@ -16,7 +15,6 @@ import lombok.ToString;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import xyz.xenondevs.invui.inventory.VirtualInventory;
-import xyz.xenondevs.invui.window.Window;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -36,7 +34,7 @@ public class NewTrade {
 
 
     public NewTrade(UUID traderUUID, UUID targetUUID, String traderName, String targetName) {
-        this(UUID.randomUUID(), new TradeSide(traderUUID, traderName, new OrderInfo(25), true),
+        this(UUID.randomUUID(), new TradeSide(traderUUID, traderName, new OrderInfo(25), false),
           new TradeSide(targetUUID, targetName, new OrderInfo(25), false));
     }
 
@@ -201,14 +199,6 @@ public class NewTrade {
                   return previousStatus;
               }
           });
-    }
-
-    public void setOpened(boolean opened, Actor actor) {
-        if (opened) {//The closing is handled by the finishTrade method
-            RedisTrade.getInstance().getDataCache().updateTrade(uuid,
-              ViewerUpdate.valueOf(actor, UpdateType.OPEN), true);
-        }
-        getTradeSide(actor).setOpened(opened);
     }
 
     public void updateItem(int slot, ItemStack item, Actor tradeSide, boolean sendUpdate) {

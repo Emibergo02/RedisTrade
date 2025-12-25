@@ -33,11 +33,7 @@ public class InviteManager {
                     .replace("%player%", removed.getValue()));
                   return;
               }
-              if (removed.getCause() == RemovalCause.EXPLICIT) {
-                  player.sendRichMessage(Messages.instance().inviteRefused
-                    .replace("%player%", removed.getValue()));
-                  return;
-              }
+              if (removed.getCause() == RemovalCause.EXPLICIT) return;
               player.sendRichMessage(Messages.instance().inviteCancelled
                 .replace("%player%", removed.getValue())
                 .replace("%reason%", removed.getCause().name())
@@ -61,7 +57,7 @@ public class InviteManager {
     /**
      * Get who the trader has invited
      *
-     * @param traderUUID the trader UUID
+     * @param traderName the trader name
      * @return the invited customer UUID, or null if none
      */
     public String getInvitee(String traderName) {

@@ -4,8 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum Status {
-    REFUSED('r'),
-    CONFIRMED('v'),
+    REFUSED('R'),
+    CONFIRMED('V'),
     COMPLETED('c'),
     RETRIEVED('x');
 
@@ -17,8 +17,8 @@ public enum Status {
 
     public static Status valueOf(char status) {
         return switch (status) {
-            case 'r' -> REFUSED;
-            case 'v' -> CONFIRMED;
+            case 'R' -> REFUSED;
+            case 'V' -> CONFIRMED;
             case 'c' -> COMPLETED;
             case 'x' -> RETRIEVED;
             default -> null;

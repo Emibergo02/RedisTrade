@@ -7,7 +7,6 @@ import dev.unnm3d.redistrade.core.enums.ViewerUpdate;
 import dev.unnm3d.redistrade.redistools.RedisAbstract;
 import dev.unnm3d.redistrade.utils.Utils;
 import io.lettuce.core.RedisClient;
-import org.stringtemplate.v4.ST;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -56,7 +55,7 @@ public class RedisDataManager extends RedisAbstract {
             plugin.getTradeManager().getTrade(tradeUUID).ifPresent(trade -> {
                 plugin.getTradeManager().setTradeServerOwner(tradeUUID, packetServerId);
                 switch (viewerUpdate.getUpdateType()) {
-                    case OPEN -> plugin.getTradeManager().remoteOpenTrade(tradeUUID, viewerUpdate.getActorSide());
+                    case OPEN -> plugin.getTradeManager().receiveOpenWindow(tradeUUID, viewerUpdate.getActorSide());
                     case PRICE -> {
                         String[] split = value.split(":");
                         trade.setPrice(split[0], Double.parseDouble(split[1]), viewerUpdate.getActorSide());

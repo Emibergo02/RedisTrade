@@ -28,7 +28,7 @@ public class SpectateTradeCommand {
           //Find player's UUID
           .ifPresentOrElse(targetUUID -> {
               final Map<UUID, NewTrade> activeTrades = plugin.getTradeManager()
-                .getPlayerTrades(targetUUID);
+                .getPlayerActiveTrades(targetUUID);
               if (activeTrades.isEmpty()) {
                   player.sendRichMessage(Messages.instance().noPendingTradesOther.replace("%player%", playerName));
                   return;

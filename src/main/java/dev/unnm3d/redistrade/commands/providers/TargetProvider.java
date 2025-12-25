@@ -29,7 +29,7 @@ public class TargetProvider extends DrinkProvider<PlayerListManager.Target> {
 
     @Nullable
     @Override
-    public PlayerListManager.Target provide(@NotNull CommandArg arg, @NotNull List<? extends Annotation> annotations) throws CommandExitMessage {
+    public PlayerListManager.Target provide(@NotNull CommandArg arg, @NotNull List<? extends Annotation> annotations) {
         return new PlayerListManager.Target(arg.get());
     }
 
@@ -41,7 +41,7 @@ public class TargetProvider extends DrinkProvider<PlayerListManager.Target> {
 
     @Override
     public List<String> getSuggestions(CommandSender sender, @NotNull String prefix) {
-        return playerListManager.getPlayerList(null)
+        return playerListManager.getPlayerList(sender)
           .stream()
           .filter(s -> s.toLowerCase().startsWith(prefix.toLowerCase()) && !sender.getName().equalsIgnoreCase(s))
           .toList();

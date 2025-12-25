@@ -6,6 +6,7 @@ import com.jonahseguin.drink.annotation.Require;
 import com.jonahseguin.drink.annotation.Sender;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
+import dev.unnm3d.redistrade.configs.Settings;
 import dev.unnm3d.redistrade.core.NewTrade;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.entity.Player;
@@ -31,43 +32,42 @@ public class TradeCommand {
      * If the target is already in another trade, send message todo
      * If sender is already in a trade, send message with possibility to open the trade window todo
      */
-    public void createTrade(@Sender Player player, @OptArg("target") PlayerListManager.Target targetName) {
+    public void tradeCommand(@Sender Player player, @OptArg("target") PlayerListManager.Target targetName) {
         if (targetName == null || targetName.playerName() == null) {//Case A
-            plugin.getTradeManager().getLatestTrade(player.getUniqueId()).ifPresentOrElse(trade -> {
-                //Open the latest trade (Case A1)
-                plugin.getTradeManager().openWindow(trade, player);
-            }, () -> {
-                //No pending trades (Case A2)
-                player.sendRichMessage(Messages.instance().noPendingTrades);
-            });
+            plugin.getTradeManager().openActiveTrades(player);
+            return;
+        }
+        if( targetName.playerName().equals(player.getName())) {
+            player.sendRichMessage(Messages.instance().tradeWithYourself);
             return;
         }
 
         plugin.getPlayerListManager().getPlayerUUID(targetName.playerName()).ifPresentOrElse(targetUUID -> {
-            if (!plugin.getTradeManager().checkInvalidDistance(player, targetUUID)) {
-                Optional<NewTrade> alreadyRunning = plugin.getTradeManager()
-                  .getTradeFromParticipants(player.getUniqueId(), targetUUID);
-                if (alreadyRunning.isPresent()) {
-                    //Open the already running trade (Case E)
-                    plugin.getTradeManager().openWindow(alreadyRunning.get(), player);
-                    return;
-                }
-
-                //Start the trade if player has been invited by target (Case C)
-
-                if (player.getName().equals(plugin.getTradeManager().getInviteManager().getInvitee(targetName.playerName()))) {
-                    startAndAccept(player, targetUUID, targetName.playerName());
-                    return;
-                }
+            if (plugin.getTradeManager().checkInvalidDistance(player, targetUUID)) return;
+            Optional<NewTrade> alreadyRunning = plugin.getTradeManager()
+              .getTradeFromParticipants(player.getUniqueId(), targetUUID);
+            if (alreadyRunning.isPresent()) {
+                //Open the already running trade (Case E)
+                plugin.getTradeManager().openWindow(alreadyRunning.get(), player);
+                return;
             }
 
+            //Start the trade if player has been invited by target (Case C)
+            if (Settings.instance().skipInviteRequirements || player.getName().equals(plugin.getTradeManager().getInviteManager().getInvitee(targetName.playerName()))) {
+                startAndAccept(player, targetUUID, targetName.playerName());
+                return;
+            }
             invitePlayer(player, targetName.playerName());
-        }, () -> {
-            player.sendRichMessage(Messages.instance().playerNotFound.replace("%player%", targetName.playerName()));
-        });
+
+        }, () ->
+          player.sendRichMessage(Messages.instance().playerNotFound.replace("%player%", targetName.playerName())));
     }
 
     private void startAndAccept(Player player, UUID targetUUID, @NonNull String targetName) {
+        if (RedisTrade.getInstance().getTradeManager().isIgnoring(targetName, player.getName())) {
+            player.sendRichMessage(Messages.instance().tradeYouAreIgnored.replace("%player%", targetName));
+            return;
+        }
         plugin.getTradeManager().startTrade(player, targetUUID, targetName)
           .thenAccept(trade -> trade.ifPresentOrElse(t -> {
               //Open the trade window for the accepting player

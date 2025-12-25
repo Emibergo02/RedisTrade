@@ -6,16 +6,13 @@ import com.jonahseguin.drink.annotation.Sender;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import dev.unnm3d.redistrade.configs.Messages;
+import dev.unnm3d.redistrade.core.NewTrade;
 import lombok.AllArgsConstructor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
-import xyz.xenondevs.invui.gui.Gui;
-import xyz.xenondevs.invui.window.AnvilWindow;
 
 import java.lang.reflect.Field;
 
@@ -70,6 +67,21 @@ public class TradeAdminCommand {
         player.sendRichMessage(Messages.instance().getItemField.replace("%field%", itemField.getName()));
     }
 
+    @Command(name = "opentrade", desc = "Force open a trade window")
+    @Require("redistrade.forceopen")
+    public void forceOpenTrade(@Sender CommandSender player, Player trader, PlayerListManager.Target customerName) {
+        plugin.getPlayerListManager().getPlayerUUID(customerName.playerName())
+          .ifPresentOrElse(customerUUID ->
+              plugin.getTradeManager().startTrade(trader, customerUUID, customerName.playerName())
+                .thenAccept(optTrade ->
+                  optTrade.ifPresentOrElse(t ->
+                      plugin.getTradeManager().openWindow(t, trader, true),
+                    () -> player.sendRichMessage(Messages.instance().newTradesLock))),
+            () -> player.sendRichMessage(Messages.instance().playerNotFound
+              .replace("%player%", customerName.playerName())));
+
+    }
+
     @Command(name = "stresser", desc = "Stress test")
     @Require("redistrade.admin")
     public void toggleStress(@Sender CommandSender sender) {
@@ -89,13 +101,14 @@ public class TradeAdminCommand {
         }, 0, 20);
     }
 
-    @Command(name = "test", desc = "Stress test")
-    public void test(@Sender Player sender) {
-        AnvilWindow.single().setGui(Gui.normal().setStructure("abc")
-            .addIngredient('a', new ItemStack(Material.DIAMOND))
-            .addIngredient('b', new ItemStack(Material.DIAMOND))
-            .addIngredient('c', new ItemStack(Material.DIAMOND)).build())
-          .open(sender);
+    @Command(name = "debug", desc = "Debug cmd")
+    @Require("redistrade.admin")
+    public void debug(@Sender Player sender) {
+        for (NewTrade allTrade : plugin.getTradeManager().getAllTrades()) {
+            sender.sendRichMessage("<aqua>Trade " + allTrade.getUuid() + ": " +
+              allTrade.getTraderSide().getTraderName() + "(" + allTrade.getTraderSide().getOrder().getStatus() + ") <-> " +
+              allTrade.getCustomerSide().getTraderName() + "(" + allTrade.getCustomerSide().getOrder().getStatus() + ")");
+        }
     }
 
 }
