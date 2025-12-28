@@ -33,6 +33,6 @@ public class BrowseTradeCommand {
             end = LocalDateTime.MAX;
         }
 
-        plugin.getTradeManager().openBrowser(player, targetUUID, start, end);
+        plugin.getTradeManager().openArchivedTrades(player, targetUUID, start, end);
     }
 }

@@ -11,6 +11,7 @@ public enum DataKeys {
     PLAYER_TRADES("rtrade:p_trades"),
     IGNORE_PLAYER_PREFIX("rtrade:ignore_"),
     IGNORE_PLAYER_UPDATE("rtrade:ignore_up"),
+    INVITE_UPDATE("rtrade:invute_up"),
     FIELD_UPDATE_TRADE("rtrade:f_update"),
     PLAYERLIST("rtrade:playerlist"),
     OPEN_WINDOW("rtrade:open_window"),

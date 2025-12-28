@@ -57,8 +57,9 @@ public class BedrockMoneySelectorGUI extends MoneySelector {
                 if (priceDifference != 0) {
                     trade.setAndSendPrice(currencyName, nextPrice, playerSide);
                 }
+
                 RedisTrade.getInstance().getServer().getScheduler().runTaskLater(RedisTrade.getInstance(), () ->
-                  trade.openWindow(player, playerSide), 10L);
+                  RedisTrade.getInstance().getTradeManager().openWindow(trade, player,true), 10L);
                 return;
             }
 

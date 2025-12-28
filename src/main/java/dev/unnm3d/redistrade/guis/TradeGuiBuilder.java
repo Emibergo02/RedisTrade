@@ -32,7 +32,6 @@ import xyz.xenondevs.invui.item.Item;
 import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
 
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Setter
@@ -40,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class TradeGuiBuilder {
     private final NewTrade trade;
     private final Actor actorSide;
-    private ConcurrentHashMap<ItemStack,Long> invalidItems = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<ItemStack, Long> invalidItems = new ConcurrentHashMap<>();
 
     public TradeGuiBuilder(NewTrade trade, Actor actorSide) {
         this.trade = trade;
@@ -101,13 +100,7 @@ public final class TradeGuiBuilder {
     }
 
     private boolean checkDistance(@NotNull Player player) {
-        //Check distance
-        if (RedisTrade.getInstance().getTradeManager().checkInvalidDistance(player, trade.getTradeSide(actorSide.opposite()).getTraderUUID())) {
-            player.sendRichMessage(Messages.instance().tradeDistance
-              .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
-            return true;
-        }
-        return false;
+        return RedisTrade.getInstance().getTradeManager().checkInvalidDistance(player, trade.getTradeSide(actorSide.opposite()).getTraderUUID());
     }
 
     private boolean checkInvalidItem(@NotNull Player player, @Nullable ItemStack newItem) {
@@ -206,16 +199,20 @@ public final class TradeGuiBuilder {
                 if (!confirmActorSide.isSideOf(actor)) return;
                 switch (orderInfo.getStatus()) {
                     case REFUSED -> {
-                        //Check distance
-                        if (RedisTrade.getInstance().getTradeManager().checkInvalidDistance(player, trade.getTradeSide(actor.opposite()).getTraderUUID())) {
-                            player.sendRichMessage(Messages.instance().tradeDistance
-                              .replace("%blocks%", String.valueOf(Settings.instance().tradeDistance)));
+                        //Check if distance is invalid
+                        if (RedisTrade.getInstance().getTradeManager().checkInvalidDistance(player, trade.getTradeSide(actor.opposite()).getTraderUUID()))
                             return;
-                        }
-                        trade.changeAndSendStatus(StatusActor.valueOf(confirmActorSide, Status.CONFIRMED), orderInfo.getStatus(), confirmActorSide);
+                        trade.changeAndSendStatus(
+                          StatusActor.valueOf(confirmActorSide, Status.CONFIRMED),
+                          orderInfo.getStatus(),
+                          confirmActorSide);
+
                     }
-                    case CONFIRMED ->
-                      trade.changeAndSendStatus(StatusActor.valueOf(confirmActorSide, Status.REFUSED), orderInfo.getStatus(), confirmActorSide);
+                    case CONFIRMED -> trade.changeAndSendStatus(
+                      StatusActor.valueOf(confirmActorSide, Status.REFUSED),
+                      orderInfo.getStatus(),
+                      confirmActorSide);
+
                     case COMPLETED, RETRIEVED -> {
                     }
                 }

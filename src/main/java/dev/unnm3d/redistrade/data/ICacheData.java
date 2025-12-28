@@ -33,6 +33,13 @@ public interface ICacheData {
     CompletionStage<Long> sendFullTrade(NewTrade trade);
 
     /**
+     * Send a trade invite to other servers
+     * @param traderUUID the trader UUID
+     * @param customerUUID the customer UUID
+     */
+    void sendInvite(String traderName, String customerName);
+
+    /**
      * Send a query to all servers
      * The servers will respond by sending all their owned trades via sendFullTrade
      */
@@ -58,6 +65,10 @@ public interface ICacheData {
             @Override
             public CompletionStage<Long> sendFullTrade(NewTrade trade) {
                 return CompletableFuture.completedFuture(0L);
+            }
+
+            @Override
+            public void sendInvite(String tradeName, String customerName) {
             }
 
             @Override

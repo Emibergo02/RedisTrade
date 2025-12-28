@@ -11,11 +11,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @RequiredArgsConstructor
 public class RestrictionService {
-    private final ConcurrentHashMap<Player, Restriction> restrictionCooldown = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Restriction> restrictionCooldown = new ConcurrentHashMap<>();
     private final List<RestrictionHook> restrictionHooks = new ArrayList<>();
     private RedisTrade plugin;
 
@@ -29,10 +30,10 @@ public class RestrictionService {
             if (!isRestricted) continue;
             addPlayerRestriction(player, restrictionHook.getName());
         }
-        final Restriction restriction = restrictionCooldown.get(player);
+        final Restriction restriction = restrictionCooldown.get(player.getUniqueId());
         if (restriction == null) return null;
         if (restriction.isExpired()) {
-            restrictionCooldown.remove(player);
+            restrictionCooldown.remove(player.getUniqueId());
             return null;
         }
         RedisTrade.debug("Player " + player.getName() + " is restricted by " + restriction.restrictionName());
@@ -44,23 +45,23 @@ public class RestrictionService {
     }
 
     public void addPlayerRestriction(Player player, String restrictionName) {
-        final Restriction previousRestriction = restrictionCooldown.get(player);
+        final Restriction previousRestriction = restrictionCooldown.get(player.getUniqueId());
 
         int restrictionDuration = Settings.instance().actionCooldowns.getOrDefault(restrictionName, 0);
         if (restrictionDuration <= 0) return;
 
         // If the restrict is null or the remaining is less than the future restrict timestamp
         if (previousRestriction == null || previousRestriction.endRestrictionTimestamp() < System.currentTimeMillis() + restrictionDuration) {
-            restrictionCooldown.put(player, Restriction.from(restrictionName, restrictionDuration));
+            restrictionCooldown.put(player.getUniqueId(), Restriction.from(restrictionName, restrictionDuration));
 
             //Close trade GUI for the player if open
-            plugin.getTradeManager().getActiveTrade(player.getUniqueId()).ifPresent(trade -> {
+            for (NewTrade trade : plugin.getTradeManager().getPlayerActiveTrades(player.getUniqueId()).values()) {
                 final TradeSide playerSide = trade.getTradeSide(trade.getActor(player));
                 if (playerSide.getSidePerspective().findAllCurrentViewers().contains(player)) {
                     player.closeInventory();
                     player.sendRichMessage(Messages.instance().tradeWindowClosed);
                 }
-            });
+            }
         }
     }
 

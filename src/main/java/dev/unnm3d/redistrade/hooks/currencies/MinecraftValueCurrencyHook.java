@@ -48,7 +48,8 @@ public class MinecraftValueCurrencyHook extends CurrencyHook {
                 if (getBalance(playerUUID) < (int) amount) yield false;
                 player.setExperienceLevelAndProgress(player.calculateTotalExperiencePoints() - (int) amount);
                 //Add xp bottle to the trade
-                RedisTrade.getInstance().getTradeManager().getActiveTrade(playerUUID).ifPresent(trade -> {
+                RedisTrade.getInstance().getTradeManager().getLatestTrade(playerUUID)
+                  .ifPresent(trade -> {
                     VirtualInventory traderInventory = trade.getTradeSide(trade.getActor(player)).getOrder().getVirtualInventory();
                     ItemStack itemStack = new ItemStack(Material.EXPERIENCE_BOTTLE);
                     itemStack.editMeta(meta -> {

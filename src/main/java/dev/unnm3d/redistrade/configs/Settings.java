@@ -75,6 +75,8 @@ public class Settings {
 
     @Comment("Show receipt button at the end of the trade")
     public boolean deliverReceipt = true;
+    @Comment("Skip invite requirements and instantly open the trade")
+    public boolean skipInviteRequirements = false;
     @Comment("Maximum number of receipt to be delivered to a single player")
     public int receiptDelivered = 3;
     @Comment("Timezone for the trade receipt")
