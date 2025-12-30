@@ -79,7 +79,7 @@ public class Settings {
     public boolean openTradeOnAccept = true;
     @Comment({"Instantly cancels the trade if a player closes the trade window",
       "EXPERIMENTAL: do not use this in production yet"})
-    public boolean cancelOnClose = true;
+    public boolean cancelOnClose = false;
     @Comment("Show receipt button at the end of the trade")
     public boolean deliverReceipt = true;
     @Comment("Maximum number of receipt to be delivered to a single player")

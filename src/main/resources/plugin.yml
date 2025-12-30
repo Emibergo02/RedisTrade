@@ -2,6 +2,7 @@ name: RedisTrade
 version: '${version}'
 main: dev.unnm3d.redistrade.RedisTrade
 api-version: '1.21'
+folia-supported: true
 depend:
   - Vault
 softdepend:

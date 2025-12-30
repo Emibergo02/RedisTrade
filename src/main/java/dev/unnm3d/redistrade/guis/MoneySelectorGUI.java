@@ -27,7 +27,7 @@ public class MoneySelectorGUI extends MoneySelector {
     private final Item moneyDisplayItem;
     private final Item moneyConfirmButton;
 
-    public MoneySelectorGUI(NewTrade trade, Actor playerSide, Player player, String currencyName) {
+    private MoneySelectorGUI(NewTrade trade, Actor playerSide, Player player, String currencyName) {
         super(trade, playerSide, player, currencyName);
         this.currentGui = Gui.empty(3, 1);
         this.moneyDisplayItem = createMoneyDisplayItem();

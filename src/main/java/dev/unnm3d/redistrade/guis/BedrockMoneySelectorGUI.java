@@ -18,8 +18,21 @@ import java.util.concurrent.TimeUnit;
 
 public class BedrockMoneySelectorGUI extends MoneySelector {
 
-    public BedrockMoneySelectorGUI(NewTrade trade, Actor playerSide, Player player, String currencyName) {
+    private BedrockMoneySelectorGUI(NewTrade trade, Actor playerSide, Player player, String currencyName) {
         super(trade, playerSide, player, currencyName);
+    }
+
+    /**
+     * Opens the money selector GUI for the specified trade, player and currency.
+     * The player could be Actor.ADMIN so we need playerSide to determine the side
+     *
+     * @param trade        The trade to open the money selector GUI for
+     * @param playerSide   The side of the player in the trade
+     * @param player       The player to open the money selector GUI for
+     * @param currencyName The name of the currency to edit the price for
+     */
+    public static void open(NewTrade trade, Actor playerSide, Player player, String currencyName) {
+        new BedrockMoneySelectorGUI(trade, playerSide, player, currencyName).openWindow();
     }
 
     public static boolean isBedrockPlayer(UUID playerUUID) {

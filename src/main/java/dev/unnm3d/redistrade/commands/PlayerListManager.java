@@ -1,22 +1,22 @@
 package dev.unnm3d.redistrade.commands;
 
 import dev.unnm3d.redistrade.RedisTrade;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class PlayerListManager implements Listener {
     private final RedisTrade plugin;
-    private final BukkitTask task;
+    private final ScheduledTask task;
     private final ConcurrentHashMap<String, Long> onlinePlayerList;
     private final ConcurrentHashMap<String, UUID> nameUUIDs;
 
@@ -25,21 +25,18 @@ public class PlayerListManager implements Listener {
         this.plugin = plugin;
         this.onlinePlayerList = new ConcurrentHashMap<>();
         this.nameUUIDs = new ConcurrentHashMap<>();
-        this.task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                onlinePlayerList.entrySet().removeIf(stringLongEntry ->
-                  System.currentTimeMillis() - stringLongEntry.getValue() > 1000 * 4);
+        this.task = plugin.getServer().getAsyncScheduler().runAtFixedRate(plugin, (task) -> {
+            onlinePlayerList.entrySet().removeIf(stringLongEntry ->
+              System.currentTimeMillis() - stringLongEntry.getValue() > 1000 * 4);
 
-                final List<String> tempList = plugin.getServer().getOnlinePlayers().stream()
-                  .map(HumanEntity::getName)
-                  .filter(n -> !n.isEmpty())
-                  .toList();
-                if (!tempList.isEmpty())
-                    plugin.getDataCache().publishPlayerList(tempList);
-                tempList.forEach(s -> onlinePlayerList.put(s, System.currentTimeMillis()));
-            }
-        }.runTaskTimerAsynchronously(plugin, 0, 60);//3 seconds
+            final List<String> tempList = plugin.getServer().getOnlinePlayers().stream()
+              .map(HumanEntity::getName)
+              .filter(n -> !n.isEmpty())
+              .toList();
+            if (!tempList.isEmpty())
+                plugin.getDataCache().publishPlayerList(tempList);
+            tempList.forEach(s -> onlinePlayerList.put(s, System.currentTimeMillis()));
+        }, 0L, 3L, TimeUnit.SECONDS);//Every 3 secs
 
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
 
