@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.text.ParseException;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class BedrockMoneySelectorGUI extends MoneySelector {
 
@@ -58,8 +59,7 @@ public class BedrockMoneySelectorGUI extends MoneySelector {
                     trade.setAndSendPrice(currencyName, nextPrice, playerSide);
                 }
 
-                RedisTrade.getInstance().getServer().getScheduler().runTaskLater(RedisTrade.getInstance(), () ->
-                  RedisTrade.getInstance().getTradeManager().openWindow(trade, player,true), 10L);
+                RedisTrade.getInstance().getTradeManager().openWindow(trade, player,true,10L);
                 return;
             }
 
@@ -79,8 +79,8 @@ public class BedrockMoneySelectorGUI extends MoneySelector {
      * @param form the form to send
      */
     private void sendDelayedForm(CustomForm form) {
-        RedisTrade.getInstance().getServer().getScheduler().runTaskLaterAsynchronously(RedisTrade.getInstance(), () ->
-          FloodgateApi.getInstance().sendForm(player.getUniqueId(), form), 10L);
+        RedisTrade.getInstance().getServer().getAsyncScheduler().runDelayed(RedisTrade.getInstance(), (task) ->
+          FloodgateApi.getInstance().sendForm(player.getUniqueId(), form), 500L, TimeUnit.MILLISECONDS);
     }
 
     private double parseNextPrice() throws ParseException, NumberFormatException {

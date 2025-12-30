@@ -8,11 +8,12 @@ import xyz.xenondevs.invui.gui.structure.Markers;
 import xyz.xenondevs.invui.item.Item;
 
 import java.util.List;
+import java.util.UUID;
 
 
 public class ActiveTradesBrowserGUI extends AbstractBrowserGUI {
 
-    public ActiveTradesBrowserGUI(List<NewTrade> activeTrades) {
+    public ActiveTradesBrowserGUI(UUID tradeOwner, List<NewTrade> activeTrades) {
         super(PagedGui.items()
           .setStructure(
             "# # # # # # # # #",
@@ -23,13 +24,13 @@ public class ActiveTradesBrowserGUI extends AbstractBrowserGUI {
           .addIngredient('<', backItem())
           .addIngredient('>', forwardItem())
           .setContent(activeTrades.stream()
-            .map(trade -> (Item) new ActiveTradeButton(trade))
+            .map(trade -> (Item) new ActiveTradeButton(trade, trade.getActor(tradeOwner)))
             .toList())
           .build(), "Active Trade Browser");
 
     }
 
-    public static void openBrowser(Player player, List<NewTrade> activeTrades) {
-        new ActiveTradesBrowserGUI(activeTrades).openWindow(player);
+    public static void openBrowser(Player viewer, UUID tradesOwner, List<NewTrade> activeTrades) {
+        new ActiveTradesBrowserGUI(tradesOwner, activeTrades).openWindow(viewer);
     }
 }

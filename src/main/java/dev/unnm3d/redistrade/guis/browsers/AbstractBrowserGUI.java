@@ -3,7 +3,6 @@ package dev.unnm3d.redistrade.guis.browsers;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.GuiSettings;
 import lombok.AllArgsConstructor;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import xyz.xenondevs.invui.gui.PagedGui;
 import xyz.xenondevs.invui.item.Item;
@@ -17,11 +16,13 @@ public abstract class AbstractBrowserGUI {
     public final String title;
 
     public void openWindow(Player player) {
-        Bukkit.getScheduler().runTask(RedisTrade.getInstance(), () ->
-          Window.single()
-            .setGui(this.gui)
-            .setTitle(this.title)
-            .open(player));
+        player.getScheduler().run(RedisTrade.getInstance(), (task) ->
+            Window.single()
+              .setGui(this.gui)
+              .setTitle(this.title)
+              .open(player),
+          null);
+
     }
 
     protected static Item forwardItem() {

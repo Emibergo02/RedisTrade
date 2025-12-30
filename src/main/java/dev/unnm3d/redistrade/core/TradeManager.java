@@ -83,6 +83,131 @@ public class TradeManager {
           });
     }
 
+    public void startAcceptInviteAndOpen(Player player, UUID targetUUID, @NonNull String targetName, boolean force) {
+        if (!force && RedisTrade.getInstance().getTradeManager().isIgnoring(targetName, player.getName())) {
+            player.sendRichMessage(Messages.instance().tradeYouAreIgnored.replace("%player%", targetName));
+            return;
+        }
+        plugin.getTradeManager().startTrade(player, targetUUID, targetName)
+          .thenAccept(trade -> trade.ifPresentOrElse(t -> {
+              //Open the trade window for the accepting player
+              plugin.getTradeManager().getInviteManager().acceptInvitationOf(targetName);
+              plugin.getTradeManager().openWindow(t, player, force);
+
+          }, () -> player.sendRichMessage(Messages.instance().newTradesLock)));
+    }
+
+    /**
+     * Opens the trade window for the player
+     *
+     * @param trade  The trade to open
+     * @param player The player to open the window for
+     * @param force  Whether to force open the window (bypass restrictions)
+     * @param delay  The delay before opening the window in ticks
+     */
+    public void openWindow(NewTrade trade, Player player, boolean force, long delay) {
+        if (!force) {
+            final RestrictionService.Restriction restriction = plugin.getRestrictionService().getRestriction(player, trade);
+            if (restriction != null) {
+                player.sendRichMessage(Messages.instance().restrictionMessages
+                  .getOrDefault(restriction.restrictionName(), Messages.instance().tradeRestricted));
+                return;
+            }
+        }
+
+        final Actor actorSide = trade.getActor(player);
+        //Set the trade as opened only if we are in the first stage
+        if ((force || trade.getTradeSide(actorSide).getOrder().getStatus() == Status.REFUSED) && actorSide.isParticipant()) {
+            openAndSendWindow(trade, actorSide);
+        }
+
+        Window.Builder.Normal.Single tradeWindow = Window.single()
+          .setTitle(GuiSettings.instance().tradeGuiTitle.replace("%player%",
+            trade.getTradeSide(actorSide.opposite()).getTraderName()))
+          .setGui(trade.getTradeSide(actorSide).getSidePerspective())
+          .addCloseHandler(() -> {
+              //If the player is a spectator/admin, don't send the message
+              if (!trade.getActor(player).isParticipant()) return;
+              final OrderInfo traderOrder = trade.getTradeSide(actorSide).getOrder();
+              if (traderOrder.getStatus() != Status.RETRIEVED) {
+                  player.sendRichMessage(Messages.instance().tradeRunning
+                    .replace("%player%", trade.getTradeSide(actorSide.opposite()).getTraderName()));
+              }
+              if(Settings.instance().cancelOnClose) collectItemsAndClose(player, trade.getUuid());
+          });
+
+        player.getScheduler().runDelayed(RedisTrade.getInstance(), task -> {
+            tradeWindow.open(player);
+            this.latestTrade.put(player.getUniqueId(), trade.getUuid());
+        }, null, delay);
+    }
+
+    /**
+     * Instantly opens the trade window for the player
+     *
+     * @param trade  The trade to open
+     * @param player The player to open the window for
+     * @param force  Whether to force open the window (bypass restrictions)
+     */
+    public void openWindow(NewTrade trade, Player player, boolean force) {
+        openWindow(trade, player, force, 1L);
+    }
+
+    /**
+     * Locally update information about the trade opening
+     *
+     * @param trade     The trade to open
+     * @param actorSide The actor side that is opening the trade
+     */
+    private void localOpenWindow(NewTrade trade, Actor actorSide) {
+        if (trade.getTradeSide(actorSide).isOpened()) return;
+        trade.getTradeSide(actorSide).setOpened(true);
+        final TradeSide oppositeSide = trade.getTradeSide(actorSide.opposite());
+        if (!oppositeSide.isOpened()) {
+            plugin.getServer().getOnlinePlayers().stream()
+              .filter(player -> player.getUniqueId().equals(oppositeSide.getTraderUUID()))
+              .findFirst().ifPresent(player -> {
+                  if (Settings.instance().openTradeOnAccept) {
+                      plugin.getTradeManager().openWindow(trade, player, false);
+                      return;
+                  }
+                  player.sendRichMessage(Messages.instance().tradeCustomerJoined
+                    .replace("%player%", trade.getTradeSide(actorSide).getTraderName()));
+              });
+        }
+    }
+
+    /**
+     * Open the trade window and send the update to other servers
+     *
+     * @param trade     The trade to open
+     * @param actorSide The actor side that is opening the trade
+     */
+    private void openAndSendWindow(NewTrade trade, Actor actorSide) {
+        RedisTrade.getInstance().getDataCache().updateTrade(trade.getUuid(),
+          ViewerUpdate.valueOf(actorSide, UpdateType.OPEN), true);
+        localOpenWindow(trade, actorSide);
+        RedisTrade.debug(trade.getUuid() + " " + trade.getTradeSide(actorSide).getTraderName() + " opened trade window");
+    }
+
+    /**
+     * Receive a remote open trade request
+     * The close trade is handled by the finish trade method
+     *
+     * @param tradeUUID The UUID of the trade to open
+     * @param actorSide The actor side that is opening the trade
+     */
+    public void receiveOpenWindow(UUID tradeUUID, Actor actorSide) {
+        NewTrade trade = trades.get(tradeUUID);
+        if (trade == null) {
+            RedisTrade.debug("Remote open on " + tradeUUID + ": Trade not found");
+            return;
+        }
+        localOpenWindow(trade, actorSide);
+        RedisTrade.debug(trade.getUuid() + " " + trade.getTradeSide(actorSide).getTraderName() + " remotely opened trade window");
+        //The close is handler by the finish trade method
+    }
+
     /**
      * Check if the distance is invalid
      *
@@ -125,24 +250,16 @@ public class TradeManager {
         return tradeServerOwners.containsKey(tradeUUID) && tradeServerOwners.get(tradeUUID) == RedisTrade.getServerId();
     }
 
-    public Map<UUID, NewTrade> getPlayerActiveTrades(@NotNull UUID playerUUID) {
-        return trades.entrySet().stream()
-          .filter(entry -> entry.getValue().isParticipant(playerUUID) &&
-            entry.getValue().getTradeSide(entry.getValue().getActor(playerUUID)).isOpened())
-          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-    public Optional<NewTrade> getTradeFromParticipants(@NotNull UUID playerUUID, @NotNull UUID player2UUID) {
-        return trades.values().stream().filter(value ->
-          value.isParticipant(playerUUID) &&
-            value.isParticipant(player2UUID)
-        ).findFirst();
+    public List<NewTrade> getPlayerActiveTrades(@NotNull UUID playerUUID) {
+        return trades.values().stream()
+          .filter(t -> t.isParticipant(playerUUID))
+          .collect(Collectors.toList());
     }
 
     public void openArchivedTrades(Player player, UUID targetUUID, LocalDateTime start, LocalDateTime end) {
         if (plugin.getDataStorage() instanceof Database database) {
             database.getArchivedTrades(targetUUID, start, end)
-              .thenAcceptAsync(trades -> ArchivedTradesBrowserGUI.openBrowser(player, trades))
+              .thenAccept(trades -> ArchivedTradesBrowserGUI.openBrowser(player, trades))
               .exceptionally(e -> {
                   e.printStackTrace();
                   return null;
@@ -154,16 +271,19 @@ public class TradeManager {
     }
 
     public void openActiveTrades(Player player) {
-        List<NewTrade> actives = new ArrayList<>(getPlayerActiveTrades(player.getUniqueId()).values());
+        final List<NewTrade> actives = getPlayerActiveTrades(player.getUniqueId());
+        actives.removeIf(t->!t.getTradeSide(t.getActor(player)).isOpened());
         if (actives.isEmpty()) {
             player.sendRichMessage(Messages.instance().noPendingTrades);
             return;
         }
         if (actives.size() == 1) {
-            openWindow(actives.getFirst(), player);
+            NewTrade current = actives.getFirst();
+            TradeSide oppositeSide = current.getTradeSide(current.getActor(player).opposite());
+            startAcceptInviteAndOpen(player, oppositeSide.getTraderUUID(), oppositeSide.getTraderName(), true);
             return;
         }
-        ActiveTradesBrowserGUI.openBrowser(player, actives);
+        ActiveTradesBrowserGUI.openBrowser(player, player.getUniqueId(), actives);
     }
 
     /**
@@ -205,9 +325,10 @@ public class TradeManager {
             player.closeInventory();
             return;
         }
-        final Actor tradeSide = trade.getActor(player);
         //Spectators can't cancel trades
-        if (tradeSide == Actor.SPECTATOR) return;
+        if(!trade.isParticipant(player.getUniqueId()))return;
+
+        final Actor tradeSide = trade.getActor(player);
 
         //If the actor side is still in the first stage, return the items and try retrieve phase (AKA close trade)
         final TradeSide actorSide = trade.getTradeSide(tradeSide);
@@ -276,84 +397,6 @@ public class TradeManager {
         final NewTrade trade = trades.get(tradeToOpen);
         if (trade == null) return Optional.empty();
         return Optional.of(trade);
-    }
-
-    public void openWindow(NewTrade trade, Player player, boolean force) {
-        if (!force) {
-            final RestrictionService.Restriction restriction = plugin.getRestrictionService().getRestriction(player, trade);
-            if (restriction != null) {
-                player.sendRichMessage(Messages.instance().restrictionMessages
-                  .getOrDefault(restriction.restrictionName(), Messages.instance().tradeRestricted));
-                return;
-            }
-        }
-
-        final Actor actorSide = trade.getActor(player);
-        //Set the trade as opened only if we are in the first stage
-        if ((force || trade.getTradeSide(actorSide).getOrder().getStatus() == Status.REFUSED) && actorSide.isParticipant()) {
-            openAndSendWindow(trade, actorSide);
-        }
-
-        Window.Builder.Normal.Single tradeWindow = Window.single()
-          .setTitle(GuiSettings.instance().tradeGuiTitle.replace("%player%",
-            trade.getTradeSide(actorSide.opposite()).getTraderName()))
-          .setGui(trade.getTradeSide(actorSide).getSidePerspective())
-          .addCloseHandler(() -> {
-              //If the player is a spectator/admin, don't send the message
-              if (!trade.getActor(player).isParticipant()) return;
-              final OrderInfo traderOrder = trade.getTradeSide(actorSide).getOrder();
-              if (traderOrder.getStatus() != Status.RETRIEVED) {
-                  player.sendRichMessage(Messages.instance().tradeRunning
-                    .replace("%player%", trade.getTradeSide(actorSide.opposite()).getTraderName()));
-              }
-          });
-        plugin.getServer().getScheduler().runTask(plugin,
-          () -> {
-              tradeWindow.open(player);
-              this.latestTrade.put(player.getUniqueId(), trade.getUuid());
-          });
-    }
-
-    public void openWindow(NewTrade trade, Player player) {
-        openWindow(trade, player, false);
-    }
-
-    private void openAndSendWindow(NewTrade trade, Actor actorSide) {
-        RedisTrade.getInstance().getDataCache().updateTrade(trade.getUuid(),
-          ViewerUpdate.valueOf(actorSide, UpdateType.OPEN), true);
-        localOpenWindow(trade, actorSide);
-        RedisTrade.debug(trade.getUuid() + " " + trade.getTradeSide(actorSide).getTraderName() + " opened trade window");
-    }
-
-    private void localOpenWindow(NewTrade trade, Actor actorSide) {
-        if (trade.getTradeSide(actorSide).isOpened()) return;
-        trade.getTradeSide(actorSide).setOpened(true);
-        final TradeSide oppositeSide = trade.getTradeSide(actorSide.opposite());
-        if (!oppositeSide.isOpened()) {
-            plugin.getServer().getOnlinePlayers().stream()
-              .filter(player -> player.getUniqueId().equals(oppositeSide.getTraderUUID()))
-              .findFirst().ifPresent(player ->
-                player.sendRichMessage(Messages.instance().tradeCustomerJoined
-                  .replace("%player%", trade.getTradeSide(actorSide).getTraderName())));
-        }
-    }
-
-    /**
-     * Receive a remote open trade request
-     * The close trade is handled by the finish trade method
-     *
-     * @param tradeUUID The UUID of the trade to open
-     * @param actorSide The actor side that is opening the trade
-     */
-    public void receiveOpenWindow(UUID tradeUUID, Actor actorSide) {
-        NewTrade trade = trades.get(tradeUUID);
-        if (trade == null) {
-            RedisTrade.debug("Remote open on " + tradeUUID + ": Trade not found");
-            return;
-        }
-        localOpenWindow(trade, actorSide);
-        RedisTrade.debug(trade.getUuid() + " " + trade.getTradeSide(actorSide).getTraderName() + " remotely opened trade window");
-        //The close is handler by the finish trade method
     }
 
     public void loadIgnoredPlayers(String playerName) {

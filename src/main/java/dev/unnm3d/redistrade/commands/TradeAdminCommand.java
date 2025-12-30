@@ -72,14 +72,9 @@ public class TradeAdminCommand {
     public void forceOpenTrade(@Sender CommandSender player, Player trader, PlayerListManager.Target customerName) {
         plugin.getPlayerListManager().getPlayerUUID(customerName.playerName())
           .ifPresentOrElse(customerUUID ->
-              plugin.getTradeManager().startTrade(trader, customerUUID, customerName.playerName())
-                .thenAccept(optTrade ->
-                  optTrade.ifPresentOrElse(t ->
-                      plugin.getTradeManager().openWindow(t, trader, true),
-                    () -> player.sendRichMessage(Messages.instance().newTradesLock))),
+              plugin.getTradeManager().startAcceptInviteAndOpen(trader, customerUUID, customerName.playerName(), true),
             () -> player.sendRichMessage(Messages.instance().playerNotFound
               .replace("%player%", customerName.playerName())));
-
     }
 
     @Command(name = "stresser", desc = "Stress test")

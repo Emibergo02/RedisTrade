@@ -23,7 +23,7 @@ public record PlayerListener(RedisTrade plugin) implements Listener {
         if (!event.getPlayer().isSneaking()) return;
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (!(event.getRightClicked() instanceof Player targetPlayer)) return;
-        plugin.getTradeManager().startTrade(event.getPlayer(), targetPlayer.getUniqueId(), targetPlayer.getName());
+        plugin.getTradeManager().startAcceptInviteAndOpen(event.getPlayer(), targetPlayer.getUniqueId(), targetPlayer.getName(),false);
     }
 
     @EventHandler

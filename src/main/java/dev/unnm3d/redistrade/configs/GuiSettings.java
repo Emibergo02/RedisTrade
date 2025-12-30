@@ -46,17 +46,17 @@ public class GuiSettings {
         );
     }
 
-    @Comment({"C - Confirm trade, M - First currency, N - Second currency, O - Third currency, L - Trader side,",
-      "r - Receipt Slot, v - Profile button, V - Rating button (shown on trade completion), x - Background item, D - Cancel trade,",
-      "o - Customer first currency, n - Customer second currency, m - Customer third currency, c - Customer confirm trade, R - Customer side",
+    @Comment({"C - Confirm Trade, M - First Currency, N - Second Currency, O - Third Currency, L - Trader Side, r - Receipt Slot,",
+      "V - Trader Profile Button, v - Opposite Profile Button, W - Rating Button (shown on trade completion), x - Background Item, D - Cancel Trade,",
+      "o - Customer First Currency, n - Customer Second Currency, m - Customer Third Currency, c - Customer Confirm Trade, R - Customer Side",
       "CAUTION!: This configuration must be the same on every instance of RedisTrade"})
     public List<String> tradeGuiStructure = List.of(
-      "CMNODonmc",
-      "LLLLrRRRR",
-      "LLLLvRRRR",
-      "LLLLVRRRR",
+      "VMNODonmv",
       "LLLLxRRRR",
-      "LLLLxRRRR");
+      "LLLLrRRRR",
+      "LLLLWRRRR",
+      "LLLLxRRRR",
+      "LLLCxcRRR");
 
     public String tradeGuiTitle = "Trading with %player%";
     public String ratingMenuTitle = "Review %player%'s traded items";

@@ -55,7 +55,7 @@ public class RestrictionService {
             restrictionCooldown.put(player.getUniqueId(), Restriction.from(restrictionName, restrictionDuration));
 
             //Close trade GUI for the player if open
-            for (NewTrade trade : plugin.getTradeManager().getPlayerActiveTrades(player.getUniqueId()).values()) {
+            for (NewTrade trade : plugin.getTradeManager().getPlayerActiveTrades(player.getUniqueId())) {
                 final TradeSide playerSide = trade.getTradeSide(trade.getActor(player));
                 if (playerSide.getSidePerspective().findAllCurrentViewers().contains(player)) {
                     player.closeInventory();

@@ -73,10 +73,15 @@ public class Settings {
       "RedisTrade",
       3);
 
-    @Comment("Show receipt button at the end of the trade")
-    public boolean deliverReceipt = true;
     @Comment("Skip invite requirements and instantly open the trade")
     public boolean skipInviteRequirements = false;
+    @Comment("Instantly open the trade if target has accepted the invite")
+    public boolean openTradeOnAccept = true;
+    @Comment({"Instantly cancels the trade if a player closes the trade window",
+      "EXPERIMENTAL: do not use this in production yet"})
+    public boolean cancelOnClose = true;
+    @Comment("Show receipt button at the end of the trade")
+    public boolean deliverReceipt = true;
     @Comment("Maximum number of receipt to be delivered to a single player")
     public int receiptDelivered = 3;
     @Comment("Timezone for the trade receipt")

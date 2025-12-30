@@ -6,11 +6,11 @@ import com.jonahseguin.drink.annotation.Sender;
 import dev.unnm3d.redistrade.RedisTrade;
 import dev.unnm3d.redistrade.configs.Messages;
 import dev.unnm3d.redistrade.core.NewTrade;
+import dev.unnm3d.redistrade.guis.browsers.ActiveTradesBrowserGUI;
 import lombok.AllArgsConstructor;
 import org.bukkit.entity.Player;
 
-import java.util.Map;
-import java.util.UUID;
+import java.util.List;
 
 @AllArgsConstructor
 public class SpectateTradeCommand {
@@ -27,16 +27,16 @@ public class SpectateTradeCommand {
         plugin.getPlayerListManager().getPlayerUUID(playerName)
           //Find player's UUID
           .ifPresentOrElse(targetUUID -> {
-              final Map<UUID, NewTrade> activeTrades = plugin.getTradeManager()
-                .getPlayerActiveTrades(targetUUID);
-              if (activeTrades.isEmpty()) {
+              final List<NewTrade> actives = plugin.getTradeManager().getPlayerActiveTrades(targetUUID);
+              if (actives.isEmpty()) {
                   player.sendRichMessage(Messages.instance().noPendingTradesOther.replace("%player%", playerName));
                   return;
               }
-              activeTrades.values().forEach(newTrade ->
-                plugin.getServer().getScheduler().runTask(plugin, () ->
-                  //Open the window on the main thread
-                  plugin.getTradeManager().openWindow(newTrade, player)));
+              if (actives.size() == 1) {
+                  plugin.getTradeManager().openWindow(actives.getFirst(), player, true);
+                  return;
+              }
+              ActiveTradesBrowserGUI.openBrowser(player, targetUUID, actives);
 
           }, () -> player.sendRichMessage(Messages.instance().playerNotFound.replace("%player%", playerName)));
     }

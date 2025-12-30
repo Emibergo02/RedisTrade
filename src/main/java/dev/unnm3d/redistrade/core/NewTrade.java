@@ -261,8 +261,8 @@ public class NewTrade {
             traderSide.getSidePerspective().notifyItem('D');
             customerSide.getSidePerspective().notifyItem('D');
             //Show the review trade button
-            traderSide.getSidePerspective().notifyItem('V');
-            customerSide.getSidePerspective().notifyItem('V');
+            traderSide.getSidePerspective().notifyItem('W');
+            customerSide.getSidePerspective().notifyItem('W');
 
             //Archive the completed trade
             if (RedisTrade.getInstance().getDataStorage() instanceof Database database) {

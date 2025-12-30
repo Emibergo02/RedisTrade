@@ -60,7 +60,8 @@ public final class TradeGuiBuilder {
           .setIngredient('c', getConfirmButton(actorSide.opposite()))
           .setIngredient('D', new CancelButton(trade, actorSide))
           .setIngredient('v', new ProfileDisplay(oppositeTradeSide))
-          .setIngredient('V', new ReviewButton(trade.getUuid(), oppositeTradeSide))
+          .setIngredient('V', new ProfileDisplay(actorTradeSide))
+          .setIngredient('W', new ReviewButton(trade.getUuid(), oppositeTradeSide))
           //Set the money editor buttons and rating GUI as background by default
           .setIngredients("MNOPQmnopqrx", GuiSettings.instance().separator.toItemBuilder());
         int i = 'M'; //Cycle MNOPQ... and mnopq... as many currencies are allowed
